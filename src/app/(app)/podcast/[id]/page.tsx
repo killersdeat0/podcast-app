@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { usePlayer } from '@/components/player/PlayerContext'
+import { SkeletonEpisodeRow } from '@/components/ui/Skeleton'
 import type { PodcastFeed, Episode } from '@/lib/rss/parser'
 
 function formatDuration(s: number | null) {
@@ -22,15 +23,20 @@ export default function PodcastPage() {
 
   const [feed, setFeed] = useState<PodcastFeed | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     if (!feedUrl) return
+    setLoading(true)
+    setError(false)
     fetch(`/api/podcasts/feed?url=${encodeURIComponent(feedUrl)}`)
-      .then((r) => r.json())
-      .then((data) => {
-        setFeed(data)
-        setLoading(false)
+      .then((r) => {
+        if (!r.ok) throw new Error()
+        return r.json()
       })
+      .then((data) => setFeed(data))
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
   }, [feedUrl])
 
   function playEpisode(episode: Episode) {
@@ -60,8 +66,22 @@ export default function PodcastPage() {
       </div>
 
       {/* Episode list */}
-      {loading ? (
-        <p className="text-gray-400">Loading episodes...</p>
+      {error ? (
+        <div className="text-center py-12">
+          <p className="text-gray-400 mb-3">Failed to load episodes.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-violet-400 hover:text-violet-300 text-sm"
+          >
+            Try again
+          </button>
+        </div>
+      ) : loading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 8 }).map((_, i) => <SkeletonEpisodeRow key={i} />)}
+        </div>
+      ) : feed?.episodes.length === 0 ? (
+        <p className="text-gray-400 text-sm">No episodes found.</p>
       ) : (
         <div className="space-y-2">
           {feed?.episodes.map((ep) => (

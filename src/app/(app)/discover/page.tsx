@@ -3,20 +3,32 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import type { ItunesResult } from '@/lib/itunes/search'
+import { SkeletonPodcastCard } from '@/components/ui/Skeleton'
 
 export default function DiscoverPage() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<ItunesResult[]>([])
   const [loading, setLoading] = useState(false)
+  const [searched, setSearched] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function search(e: React.FormEvent) {
     e.preventDefault()
     if (!query.trim()) return
     setLoading(true)
-    const res = await fetch(`/api/podcasts/search?q=${encodeURIComponent(query)}`)
-    const data = await res.json()
-    setResults(data.results ?? [])
-    setLoading(false)
+    setError(null)
+    setSearched(true)
+    try {
+      const res = await fetch(`/api/podcasts/search?q=${encodeURIComponent(query)}`)
+      if (!res.ok) throw new Error('Search failed')
+      const data = await res.json()
+      setResults(data.results ?? [])
+    } catch {
+      setError('Something went wrong. Please try again.')
+      setResults([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -40,27 +52,37 @@ export default function DiscoverPage() {
         </button>
       </form>
 
+      {error && (
+        <p className="text-red-400 text-sm mb-4">{error}</p>
+      )}
+
       <div className="grid grid-cols-2 gap-4">
-        {results.map((podcast) => (
-          <Link
-            key={podcast.collectionId}
-            href={`/podcast/${podcast.collectionId}?feed=${encodeURIComponent(podcast.feedUrl)}&title=${encodeURIComponent(podcast.collectionName)}&artwork=${encodeURIComponent(podcast.artworkUrl600)}`}
-            className="flex gap-4 bg-gray-900 hover:bg-gray-800 rounded-xl p-4 transition-colors"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={podcast.artworkUrl600}
-              alt={podcast.collectionName}
-              className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
-            />
-            <div className="overflow-hidden">
-              <p className="font-medium text-sm text-white truncate">{podcast.collectionName}</p>
-              <p className="text-xs text-gray-400 truncate mt-1">{podcast.artistName}</p>
-              <p className="text-xs text-gray-500 mt-1">{podcast.primaryGenreName}</p>
-            </div>
-          </Link>
-        ))}
+        {loading
+          ? Array.from({ length: 6 }).map((_, i) => <SkeletonPodcastCard key={i} />)
+          : results.map((podcast) => (
+              <Link
+                key={podcast.collectionId}
+                href={`/podcast/${podcast.collectionId}?feed=${encodeURIComponent(podcast.feedUrl)}&title=${encodeURIComponent(podcast.collectionName)}&artwork=${encodeURIComponent(podcast.artworkUrl600)}`}
+                className="flex gap-4 bg-gray-900 hover:bg-gray-800 rounded-xl p-4 transition-colors"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={podcast.artworkUrl600}
+                  alt={podcast.collectionName}
+                  className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                />
+                <div className="overflow-hidden">
+                  <p className="font-medium text-sm text-white truncate">{podcast.collectionName}</p>
+                  <p className="text-xs text-gray-400 truncate mt-1">{podcast.artistName}</p>
+                  <p className="text-xs text-gray-500 mt-1">{podcast.primaryGenreName}</p>
+                </div>
+              </Link>
+            ))}
       </div>
+
+      {searched && !loading && results.length === 0 && !error && (
+        <p className="text-gray-400 text-sm">No podcasts found for &ldquo;{query}&rdquo;.</p>
+      )}
     </div>
   )
 }
