@@ -30,9 +30,19 @@ interface PlayerControls {
 
 const PlayerContext = createContext<(PlayerState & PlayerControls) | null>(null)
 
+function loadNowPlaying(): NowPlaying | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem('nowPlaying')
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
 export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
-  const [nowPlaying, setNowPlaying] = useState<NowPlaying | null>(null)
+  const [nowPlaying, setNowPlaying] = useState<NowPlaying | null>(loadNowPlaying)
   const [playing, setPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
@@ -41,7 +51,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const play = useCallback((episode: NowPlaying) => {
     setNowPlaying(episode)
     setPlaying(true)
-    // Audio element picks this up via useEffect in Player component
+    localStorage.setItem('nowPlaying', JSON.stringify(episode))
   }, [])
 
   const togglePlay = useCallback(() => {

@@ -34,7 +34,9 @@ export async function parseFeed(feedUrl: string): Promise<PodcastFeed | null> {
       const enclosure = item['enclosure'] as Record<string, string> | undefined
       const chapters = item['podcast:chapters'] as Record<string, string> | undefined
       return {
-        guid: String(item['guid'] ?? ''),
+        guid: typeof item['guid'] === 'object'
+          ? String((item['guid'] as Record<string, string>)?.['#text'] ?? JSON.stringify(item['guid']))
+          : String(item['guid'] ?? ''),
         title: String(item['title'] ?? ''),
         audioUrl: enclosure?.['@_url'] ?? '',
         duration: parseDuration(String(item['itunes:duration'] ?? '')),

@@ -18,21 +18,60 @@ export default function Player() {
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [sleepMinutes, setSleepMinutes] = useState(0)
+  const [artworkError, setArtworkError] = useState(false)
   const sleepTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastSavedAt = useRef(0)
+  const nowPlayingRef = useRef(nowPlaying)
 
-  // Sync audio element when nowPlaying changes
+  useEffect(() => {
+    nowPlayingRef.current = nowPlaying
+    setArtworkError(false)
+  }, [nowPlaying])
+
+  // Sync audio element when nowPlaying changes + restore saved position
   useEffect(() => {
     const audio = audioRef.current
     if (!audio || !nowPlaying) return
     audio.src = nowPlaying.audioUrl
     audio.playbackRate = speed
-    audio.play()
+    setCurrentTime(0)
+
+    fetch(`/api/progress?guid=${encodeURIComponent(nowPlaying.guid)}&feedUrl=${encodeURIComponent(nowPlaying.feedUrl)}`)
+      .then((r) => r.json())
+      .then(({ positionSeconds }) => {
+        if (positionSeconds > 5) audio.currentTime = positionSeconds
+        audio.play()
+      })
+      .catch(() => audio.play())
   }, [nowPlaying]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
-    const onTime = () => setCurrentTime(audio.currentTime)
+
+    const onTime = () => {
+      setCurrentTime(audio.currentTime)
+      const now = Date.now()
+      const np = nowPlayingRef.current
+      if (np && audio.currentTime > 5 && now - lastSavedAt.current > 10000) {
+        lastSavedAt.current = now
+        fetch('/api/progress', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            guid: np.guid,
+            feedUrl: np.feedUrl,
+            positionSeconds: Math.floor(audio.currentTime),
+            title: np.title,
+            audioUrl: np.audioUrl,
+            duration: np.duration,
+            artworkUrl: np.artworkUrl,
+            podcastTitle: np.podcastTitle,
+          }),
+        }).catch(() => {})
+      }
+    }
+
     const onDuration = () => setDuration(audio.duration)
     audio.addEventListener('timeupdate', onTime)
     audio.addEventListener('durationchange', onDuration)
@@ -62,9 +101,14 @@ export default function Player() {
       <div className="max-w-screen-xl mx-auto flex items-center gap-6">
         {/* Artwork + info */}
         <div className="flex items-center gap-3 w-56 flex-shrink-0">
-          {nowPlaying.artworkUrl && (
+          {nowPlaying.artworkUrl && !artworkError && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={nowPlaying.artworkUrl} alt="" className="w-12 h-12 rounded-lg object-cover" />
+            <img
+              src={nowPlaying.artworkUrl}
+              alt=""
+              className="w-12 h-12 rounded-lg object-cover"
+              onError={() => setArtworkError(true)}
+            />
           )}
           <div className="overflow-hidden">
             <p className="text-sm font-medium text-white truncate">{nowPlaying.title}</p>
