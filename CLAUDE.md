@@ -8,6 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev       # start dev server (Next.js 16 + Turbopack)
 npm run build     # production build
 npm run lint      # ESLint
+supabase db push  # apply pending migrations to remote DB
 ```
 
 No test suite exists yet.
@@ -22,7 +23,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 
 ## Architecture
 
-**Stack:** Next.js 16 App Router · TypeScript · Tailwind CSS v4 · Supabase (auth + database) · `fast-xml-parser` for RSS
+**Stack:** Next.js 16 App Router · TypeScript · Tailwind CSS v4 · Supabase (auth + database) · `fast-xml-parser` for RSS · `@dnd-kit` for drag-and-drop
 
 ### Route groups
 
@@ -41,7 +42,9 @@ Podcast discovery uses the iTunes Search API (`/api/podcasts/search`) → episod
 
 ### Global playback state
 
-`PlayerContext` (`src/components/player/PlayerContext.tsx`) holds `nowPlaying` in React state and persists it to `localStorage` on every `play()` call so the player survives page refreshes. The `Player` component (`src/components/player/Player.tsx`) owns the `<audio>` element, restores saved position from `/api/progress` on episode load, and saves position to `/api/progress` every 10 seconds via a throttle (not a debounce).
+`PlayerContext` (`src/components/player/PlayerContext.tsx`) holds `nowPlaying` in React state. On mount it restores `nowPlaying` from `localStorage` via `useEffect` (not initial state — avoids SSR hydration mismatch). The `play()` call persists to `localStorage`.
+
+The `Player` component (`src/components/player/Player.tsx`) always renders the `<audio>` element (even when `nowPlaying` is null) so that event listeners attach on mount. The UI is conditionally shown. It restores saved position from `/api/progress` on episode load (only auto-plays if `playing` is true), saves position to `/api/progress` every 10 seconds via throttle, and on `ended` marks the episode complete, removes it from the queue, and auto-plays the next queue item.
 
 ### Supabase clients
 
@@ -50,9 +53,15 @@ Podcast discovery uses the iTunes Search API (`/api/podcasts/search`) → episod
 
 ### Database
 
-Schema lives in `supabase/migrations/20250307000000_initial_schema.sql`. Key tables: `subscriptions`, `episodes` (shared cache), `playback_progress`, `queue`. The `episodes` table is an upsert-based cache — episode metadata is written whenever progress is saved or an episode is added to the queue. Always use `{ onConflict: 'feed_url,guid' }` when upserting into `episodes`.
+Schema lives in `supabase/migrations/`. Key tables: `subscriptions`, `episodes` (shared cache), `playback_progress`, `queue`. The `episodes` table is an upsert-based cache — episode metadata is written whenever progress is saved or an episode is added to the queue. Always use `{ onConflict: 'feed_url,guid' }` when upserting into `episodes`.
 
-**Artwork URL priority:** Always prefer the iTunes CDN URL (stored in `subscriptions.artwork_url`) over RSS feed artwork URLs — many podcast sites block hotlinking. When displaying queue/history items, fall back to `subscriptions.artwork_url` if `episodes.artwork_url` is missing.
+**Artwork URL priority:** Always prefer the iTunes CDN URL (stored in `subscriptions.artwork_url`) over RSS feed artwork URLs — many podcast sites block hotlinking. The queue and history APIs look up `subscriptions.artwork_url` as a fallback when `episodes.artwork_url` is missing.
+
+**Subscription ordering:** `subscriptions.position` stores drag-drop order. Use `PATCH /api/subscriptions` with `{ orderedFeedUrls }` to update. Same pattern for queue: `PATCH /api/queue` with `{ orderedGuids }`.
+
+### Sidebar subscription sync
+
+The Sidebar fetches subscriptions on mount and re-fetches on the custom `subscriptions-changed` window event. Fire `window.dispatchEvent(new Event('subscriptions-changed'))` after any subscribe/unsubscribe to update the sidebar instantly without a page reload.
 
 ### RSS parser quirk
 

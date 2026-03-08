@@ -78,6 +78,7 @@ export default function PodcastPage() {
         })
         setSubscribed(true)
       }
+      window.dispatchEvent(new Event('subscriptions-changed'))
     } finally {
       setSubscribing(false)
     }
@@ -125,6 +126,7 @@ export default function PodcastPage() {
       artworkUrl: artwork || feed?.artworkUrl,
       audioUrl: episode.audioUrl,
       duration: episode.duration ?? 0,
+      chapterUrl: episode.chapterUrl,
     })
   }
 

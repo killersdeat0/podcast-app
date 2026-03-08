@@ -3,6 +3,21 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { createClient } from '@/lib/supabase/client'
 
 interface Subscription {
@@ -18,19 +33,80 @@ const navItems = [
   { href: '/history', label: 'History', icon: '⏱' },
 ]
 
+function SortableSub({ sub, active }: { sub: Subscription; active: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: sub.feed_url,
+  })
+
+  const href = sub.collection_id
+    ? `/podcast/${sub.collection_id}?feed=${encodeURIComponent(sub.feed_url)}&title=${encodeURIComponent(sub.title)}&artwork=${encodeURIComponent(sub.artwork_url ?? '')}`
+    : `/podcast/${encodeURIComponent(sub.feed_url)}?feed=${encodeURIComponent(sub.feed_url)}&title=${encodeURIComponent(sub.title)}&artwork=${encodeURIComponent(sub.artwork_url ?? '')}`
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`flex items-center gap-1 ${isDragging ? 'opacity-50' : ''}`}
+    >
+      <div
+        {...attributes}
+        {...listeners}
+        className="p-1 text-gray-700 hover:text-gray-500 cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
+      >
+        ⠿
+      </div>
+      <Link
+        href={href}
+        className={`flex flex-1 items-center gap-2 px-2 py-2 rounded-lg text-sm transition-colors min-w-0 ${
+          active ? 'bg-violet-600 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+        }`}
+      >
+        {sub.artwork_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={sub.artwork_url} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />
+        ) : (
+          <span className="w-6 h-6 rounded bg-gray-700 flex-shrink-0" />
+        )}
+        <span className="truncate">{sub.title}</span>
+      </Link>
+    </div>
+  )
+}
+
 export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
+  const sensors = useSensors(useSensor(PointerSensor))
 
   useEffect(() => {
-    fetch('/api/subscriptions')
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) setSubscriptions(data)
-      })
-      .catch(() => {})
+    function fetchSubs() {
+      fetch('/api/subscriptions')
+        .then((r) => r.json())
+        .then((data) => { if (Array.isArray(data)) setSubscriptions(data) })
+        .catch(() => {})
+    }
+    fetchSubs()
+    window.addEventListener('subscriptions-changed', fetchSubs)
+    return () => window.removeEventListener('subscriptions-changed', fetchSubs)
   }, [])
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    setSubscriptions((prev) => {
+      const oldIndex = prev.findIndex((s) => s.feed_url === active.id)
+      const newIndex = prev.findIndex((s) => s.feed_url === over.id)
+      const reordered = arrayMove(prev, oldIndex, newIndex)
+      fetch('/api/subscriptions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderedFeedUrls: reordered.map((s) => s.feed_url) }),
+      }).catch(() => {})
+      return reordered
+    })
+  }
 
   async function handleSignOut() {
     const supabase = createClient()
@@ -65,35 +141,16 @@ export default function Sidebar() {
             <p className="px-3 pt-4 pb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">
               My Podcasts
             </p>
-            {subscriptions.map((sub) => {
-              const href = sub.collection_id
-                ? `/podcast/${sub.collection_id}?feed=${encodeURIComponent(sub.feed_url)}&title=${encodeURIComponent(sub.title)}&artwork=${encodeURIComponent(sub.artwork_url ?? '')}`
-                : `/podcast/${encodeURIComponent(sub.feed_url)}?feed=${encodeURIComponent(sub.feed_url)}&title=${encodeURIComponent(sub.title)}&artwork=${encodeURIComponent(sub.artwork_url ?? '')}`
-              return (
-                <Link
-                  key={sub.feed_url}
-                  href={href}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={subscriptions.map((s) => s.feed_url)} strategy={verticalListSortingStrategy}>
+                {subscriptions.map((sub) => {
+                  const isActive =
                     pathname.includes(encodeURIComponent(sub.feed_url)) ||
-                    (sub.collection_id && pathname.includes(sub.collection_id))
-                      ? 'bg-violet-600 text-white'
-                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                  }`}
-                >
-                  {sub.artwork_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={sub.artwork_url}
-                      alt=""
-                      className="w-6 h-6 rounded object-cover flex-shrink-0"
-                    />
-                  ) : (
-                    <span className="w-6 h-6 rounded bg-gray-700 flex-shrink-0" />
-                  )}
-                  <span className="truncate">{sub.title}</span>
-                </Link>
-              )
-            })}
+                    (!!sub.collection_id && pathname.includes(sub.collection_id))
+                  return <SortableSub key={sub.feed_url} sub={sub} active={isActive} />
+                })}
+              </SortableContext>
+            </DndContext>
           </>
         )}
       </nav>

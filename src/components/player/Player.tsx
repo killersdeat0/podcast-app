@@ -5,6 +5,11 @@ import { usePlayer } from './PlayerContext'
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]
 
+interface Chapter {
+  startTime: number
+  title?: string
+}
+
 function formatTime(s: number) {
   const h = Math.floor(s / 3600)
   const m = Math.floor((s % 3600) / 60)
@@ -14,18 +19,31 @@ function formatTime(s: number) {
 }
 
 export default function Player() {
-  const { nowPlaying, playing, speed, togglePlay, seek, setSpeed, audioRef } = usePlayer()
+  const { nowPlaying, playing, speed, play, togglePlay, seek, setSpeed, audioRef } = usePlayer()
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [sleepMinutes, setSleepMinutes] = useState(0)
   const [artworkError, setArtworkError] = useState(false)
+  const [chapters, setChapters] = useState<Chapter[]>([])
   const sleepTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastSavedAt = useRef(0)
   const nowPlayingRef = useRef(nowPlaying)
+  const playingRef = useRef(playing)
 
   useEffect(() => {
     nowPlayingRef.current = nowPlaying
+    playingRef.current = playing
+  })
+
+  useEffect(() => {
     setArtworkError(false)
+    setChapters([])
+    if (nowPlaying?.chapterUrl) {
+      fetch(`/api/podcasts/chapters?url=${encodeURIComponent(nowPlaying.chapterUrl)}`)
+        .then((r) => r.json())
+        .then(({ chapters: ch }) => setChapters(ch ?? []))
+        .catch(() => {})
+    }
   }, [nowPlaying])
 
   // Sync audio element when nowPlaying changes + restore saved position
@@ -40,9 +58,9 @@ export default function Player() {
       .then((r) => r.json())
       .then(({ positionSeconds }) => {
         if (positionSeconds > 5) audio.currentTime = positionSeconds
-        audio.play()
+        if (playingRef.current) audio.play().catch(() => {})
       })
-      .catch(() => audio.play())
+      .catch(() => { if (playingRef.current) audio.play().catch(() => {}) })
   }, [nowPlaying]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -73,13 +91,66 @@ export default function Player() {
     }
 
     const onDuration = () => setDuration(audio.duration)
+
+    const onEnded = () => {
+      const np = nowPlayingRef.current
+      if (!np) return
+
+      // Mark completed
+      fetch('/api/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          guid: np.guid,
+          feedUrl: np.feedUrl,
+          positionSeconds: Math.floor(audio.duration || 0),
+          completed: true,
+          title: np.title,
+          audioUrl: np.audioUrl,
+          duration: np.duration,
+          artworkUrl: np.artworkUrl,
+          podcastTitle: np.podcastTitle,
+        }),
+      }).catch(() => {})
+
+      // Remove from queue and play next
+      fetch('/api/queue')
+        .then((r) => r.json())
+        .then((items: Array<{ episode_guid: string; feed_url: string; episode: { title: string; audio_url: string; duration: number | null; artwork_url: string | null; podcast_title: string | null } | null }>) => {
+          if (!Array.isArray(items)) return
+          const idx = items.findIndex((i) => i.episode_guid === np.guid)
+          // Remove current from queue
+          fetch('/api/queue', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ guid: np.guid }),
+          }).catch(() => {})
+          // Play next if available
+          const next = items[idx + 1]
+          if (next?.episode) {
+            play({
+              guid: next.episode_guid,
+              feedUrl: next.feed_url,
+              title: next.episode.title,
+              podcastTitle: next.episode.podcast_title ?? '',
+              artworkUrl: next.episode.artwork_url ?? '',
+              audioUrl: next.episode.audio_url,
+              duration: next.episode.duration ?? 0,
+            })
+          }
+        })
+        .catch(() => {})
+    }
+
     audio.addEventListener('timeupdate', onTime)
     audio.addEventListener('durationchange', onDuration)
+    audio.addEventListener('ended', onEnded)
     return () => {
       audio.removeEventListener('timeupdate', onTime)
       audio.removeEventListener('durationchange', onDuration)
+      audio.removeEventListener('ended', onEnded)
     }
-  }, [audioRef])
+  }, [audioRef, play])
 
   function startSleepTimer(minutes: number) {
     if (sleepTimer.current) clearTimeout(sleepTimer.current)
@@ -91,12 +162,11 @@ export default function Player() {
     }, minutes * 60 * 1000)
   }
 
-  if (!nowPlaying) return null
-
   return (
+    <>
+      <audio ref={audioRef} preload="metadata" />
+      {!nowPlaying ? null : (
     <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 px-6 py-3 z-50">
-      {/* Hidden audio element */}
-      <audio ref={audioRef} />
 
       <div className="max-w-screen-xl mx-auto flex items-center gap-6">
         {/* Artwork + info */}
@@ -130,16 +200,33 @@ export default function Player() {
           </div>
           <div className="flex items-center gap-2 w-full max-w-lg">
             <span className="text-xs text-gray-400 w-10 text-right">{formatTime(currentTime)}</span>
-            <input
-              type="range"
-              min={0}
-              max={duration || 0}
-              value={currentTime}
-              onChange={(e) => seek(Number(e.target.value))}
-              className="flex-1 accent-violet-500"
-            />
+            <div className="relative flex-1">
+              <input
+                type="range"
+                min={0}
+                max={duration || 0}
+                value={currentTime}
+                onChange={(e) => seek(Number(e.target.value))}
+                className="w-full accent-violet-500"
+              />
+              {duration > 0 && chapters.map((ch) => (
+                <div
+                  key={ch.startTime}
+                  title={ch.title}
+                  onClick={() => seek(ch.startTime)}
+                  className="absolute top-1/2 -translate-y-1/2 w-1 h-3 bg-violet-300/70 rounded-full cursor-pointer pointer-events-auto"
+                  style={{ left: `${(ch.startTime / duration) * 100}%` }}
+                />
+              ))}
+            </div>
             <span className="text-xs text-gray-400 w-10">{formatTime(duration)}</span>
           </div>
+          {chapters.length > 0 && (() => {
+            const current = [...chapters].reverse().find((ch) => ch.startTime <= currentTime)
+            return current?.title ? (
+              <p className="text-xs text-gray-500 truncate max-w-lg">{current.title}</p>
+            ) : null
+          })()}
         </div>
 
         {/* Speed + Sleep timer */}
@@ -169,5 +256,7 @@ export default function Player() {
         </div>
       </div>
     </div>
+      )}
+    </>
   )
 }

@@ -16,39 +16,28 @@ A working web app where users can sign up, search/subscribe to podcasts, play ep
 - [x] Auth pages: login + signup (email/password + Google OAuth via Supabase)
 - [x] App shell: Sidebar + layout
 - [x] Audio player: play/pause, seek, speed control (0.5x–3x), sleep timer
-- [x] PlayerContext (global playback state)
+- [x] PlayerContext (global playback state, persists to localStorage)
 - [x] Discover page (search + results grid)
-- [x] Podcast detail page (episode list, click to play)
-- [x] Queue + History pages (stubs)
-- [x] Database schema with RLS policies (`supabase-schema.sql`)
+- [x] Podcast detail page (episode list, subscribe button, add-to-queue per episode)
+- [x] Database schema with RLS policies (`supabase/migrations/`)
 - [x] Git repo initialized + pushed to GitHub
+- [x] Auth guard via `src/proxy.ts`, sign out handler, OAuth callback route
+- [x] Save playback progress to DB every 10s (throttle), restore on episode load
+- [x] Subscribe/unsubscribe to podcasts, persisted to DB, instant sidebar update
+- [x] Subscribed podcasts in Sidebar with drag-to-reorder
+- [x] Queue: add/remove/reorder (drag-and-drop), persisted to DB
+- [x] History: in-progress and completed episodes from DB
+- [x] Episode ends → marked completed, removed from queue, next queue item auto-plays
+- [x] Chapter support: fetch `podcast:chapters` JSON, markers on scrubber, current chapter name
+- [x] Ad banner placeholder for free-tier users (checks `user_profiles.tier`)
+- [x] Loading skeletons for episode lists and search results
+- [x] Error states (failed RSS fetch, no results)
 
 ---
 
 ## Remaining
 
-### Supabase wiring
-- [ ] Middleware: protect `(app)` routes, redirect unauthenticated users to `/login`
-- [ ] Sign out handler in Sidebar (currently just a link to `/login`)
-- [ ] Auth callback route (`/auth/callback`) for OAuth redirect handling
-
-### Sync
-- [ ] Save playback progress to DB on `timeupdate` (debounced)
-- [ ] Restore playback position when an episode loads
-- [ ] Subscribe/unsubscribe to podcasts, persisted to DB
-- [ ] Show subscribed podcasts in Sidebar or a "My Podcasts" section
-- [ ] Queue: add episodes, persist order, reorder, remove
-- [ ] History: list completed/in-progress episodes from DB
-
-### Player
-- [ ] Chapter support (parse `podcast:chapters` JSON, display chapter markers on scrubber)
-
-### Ads
-- [ ] Ad banner placeholder for free-tier users
-
 ### Polish
-- [ ] Loading skeletons for episode lists and search results
-- [ ] Error states (failed RSS fetch, no results)
 - [ ] Responsive layout check
 
 ---
@@ -57,17 +46,21 @@ A working web app where users can sign up, search/subscribe to podcasts, play ep
 
 | File | Purpose |
 |---|---|
-| `src/app/(app)/layout.tsx` | Main app shell (sidebar + player) |
+| `src/app/(app)/layout.tsx` | Main app shell (sidebar + player + ad banner) |
 | `src/app/(app)/discover/page.tsx` | Search + podcast grid |
-| `src/app/(app)/podcast/[id]/page.tsx` | Episode list + play |
+| `src/app/(app)/podcast/[id]/page.tsx` | Episode list, subscribe, add to queue |
+| `src/app/(app)/queue/page.tsx` | Queue with drag-to-reorder |
+| `src/app/(app)/history/page.tsx` | Listening history |
 | `src/app/(auth)/login/page.tsx` | Login page |
-| `src/components/player/Player.tsx` | Audio player UI |
+| `src/components/player/Player.tsx` | Audio player UI + progress save/restore + chapter markers |
 | `src/components/player/PlayerContext.tsx` | Global playback state |
+| `src/components/ui/Sidebar.tsx` | Nav + subscriptions with drag-to-reorder |
 | `src/lib/supabase/client.ts` | Browser Supabase client |
 | `src/lib/supabase/server.ts` | Server Supabase client |
 | `src/lib/rss/parser.ts` | RSS feed parser |
 | `src/lib/itunes/search.ts` | iTunes search wrapper |
-| `supabase-schema.sql` | Full DB schema + RLS policies |
+| `src/proxy.ts` | Auth guard (Next.js 16 middleware equivalent) |
+| `supabase/migrations/` | DB schema + migrations |
 
 ---
 
@@ -76,9 +69,11 @@ A working web app where users can sign up, search/subscribe to podcasts, play ep
 - Sign up → redirected to `/discover`
 - Search a podcast → results appear
 - Click podcast → episodes load from RSS
-- Click episode → player appears, audio plays
+- Click episode → player appears, audio plays, position restored from DB
 - Speed control changes playback rate
 - Sleep timer pauses after set time
-- Play episode on one session, log in on another → position restored
-- Subscribe to podcast → appears in sidebar
-- Queue: add/remove/reorder persists across sessions
+- Subscribe → podcast appears in sidebar instantly; drag to reorder
+- Add episodes to queue → drag to reorder; episode ends → next plays automatically
+- History shows in-progress and completed episodes with progress %
+- Chapter markers appear on scrubber for supported podcasts (e.g. "No Agenda")
+- Ad banner shows for free-tier users, dismissible

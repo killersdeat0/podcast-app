@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useRef, useState, useCallback } from 'react'
+import { createContext, useContext, useRef, useState, useCallback, useEffect } from 'react'
 
 export interface NowPlaying {
   guid: string
@@ -10,13 +10,12 @@ export interface NowPlaying {
   artworkUrl: string
   audioUrl: string
   duration: number
+  chapterUrl?: string | null
 }
 
 interface PlayerState {
   nowPlaying: NowPlaying | null
   playing: boolean
-  currentTime: number
-  duration: number
   speed: number
 }
 
@@ -30,23 +29,20 @@ interface PlayerControls {
 
 const PlayerContext = createContext<(PlayerState & PlayerControls) | null>(null)
 
-function loadNowPlaying(): NowPlaying | null {
-  if (typeof window === 'undefined') return null
-  try {
-    const raw = localStorage.getItem('nowPlaying')
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
-}
-
 export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
-  const [nowPlaying, setNowPlaying] = useState<NowPlaying | null>(loadNowPlaying)
+  const [nowPlaying, setNowPlaying] = useState<NowPlaying | null>(null)
   const [playing, setPlaying] = useState(false)
-  const [currentTime, setCurrentTime] = useState(0)
-  const [duration, setDuration] = useState(0)
   const [speed, setSpeedState] = useState(1)
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('nowPlaying')
+      if (raw) setNowPlaying(JSON.parse(raw))
+    } catch {
+      // ignore
+    }
+  }, [])
 
   const play = useCallback((episode: NowPlaying) => {
     setNowPlaying(episode)
@@ -77,7 +73,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <PlayerContext.Provider
-      value={{ nowPlaying, playing, currentTime, duration, speed, play, togglePlay, seek, setSpeed, audioRef }}
+      value={{ nowPlaying, playing, speed, play, togglePlay, seek, setSpeed, audioRef }}
     >
       {children}
     </PlayerContext.Provider>
