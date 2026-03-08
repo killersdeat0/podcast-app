@@ -38,6 +38,12 @@ NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID=
 NEXT_PUBLIC_STRIPE_YEARLY_PRICE_ID=
 ```
 
+## Detailed docs
+
+- `docs/api.md` — all API routes, request/response shapes, freemium gates
+- `docs/data-model.md` — DB tables, columns, RLS policies, key patterns
+- `docs/player.md` — player state machine, progress saving, queue auto-advance, chapters
+
 ## Architecture
 
 **Stack:** Next.js 16 App Router · TypeScript · Tailwind CSS v4 · Supabase (auth + database) · `fast-xml-parser` for RSS · `@dnd-kit` for drag-and-drop
@@ -79,6 +85,10 @@ Schema lives in `supabase/migrations/`. Key tables: `subscriptions`, `episodes` 
 ### Sidebar subscription sync
 
 The Sidebar fetches subscriptions on mount and re-fetches on the custom `subscriptions-changed` window event. Fire `window.dispatchEvent(new Event('subscriptions-changed'))` after any subscribe/unsubscribe to update the sidebar instantly without a page reload.
+
+### Documentation
+
+When significantly altering a function or API route (changing behavior, parameters, return shape, or side effects), update `CLAUDE.md` if the change affects anything documented there, and create or update a focused doc file in `docs/` covering the changed area (e.g. `docs/api.md`, `docs/player.md`). Phase plan files in `docs/plans/` should also be updated if a planned item is completed or changed in scope.
 
 ### RSS parser quirk
 
