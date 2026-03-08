@@ -40,6 +40,12 @@ A working web app where users can sign up, search/subscribe to podcasts, play ep
 ### Polish
 - [ ] Responsive layout check
 
+### Testing (backfill)
+- [x] Set up Vitest + Playwright
+- [x] Unit tests: RSS parser (`src/lib/rss/parser.ts`) — guid parsing, field extraction
+- [x] Unit tests: iTunes search wrapper (`src/lib/itunes/search.ts`)
+- [ ] Playwright E2E: sign up → search → subscribe → play → queue flow
+
 ---
 
 ## Key Files

@@ -11,7 +11,15 @@ npm run lint      # ESLint
 supabase db push  # apply pending migrations to remote DB
 ```
 
-No test suite exists yet.
+## Testing
+
+```bash
+npm test -- --run   # run unit tests (Vitest, non-watch)
+npm test            # run unit tests in watch mode
+npm run test:e2e    # run Playwright E2E tests (requires dev server on port 3000)
+```
+
+Unit tests live alongside source files (`*.test.ts`). E2E tests live in `tests/e2e/`.
 
 ## Environment
 
