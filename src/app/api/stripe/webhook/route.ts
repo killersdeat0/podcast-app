@@ -1,4 +1,4 @@
-import stripe from '@/lib/stripe/client'
+import { getStripe } from '@/lib/stripe/client'
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
@@ -17,6 +17,8 @@ export async function POST(request: NextRequest) {
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
     return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 })
   }
+
+  const stripe = getStripe()
 
   let event: Stripe.Event
   try {
