@@ -28,9 +28,18 @@ interface Subscription {
 }
 
 const navItems = [
-  { href: '/discover', label: 'Discover', icon: '🔍' },
-  { href: '/queue', label: 'Queue', icon: '≡' },
-  { href: '/history', label: 'History', icon: '⏱' },
+  {
+    href: '/discover', label: 'Discover',
+    icon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8"/><path strokeLinecap="round" d="M21 21l-4.35-4.35"/></svg>,
+  },
+  {
+    href: '/queue', label: 'Queue',
+    icon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>,
+  },
+  {
+    href: '/history', label: 'History',
+    icon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="9"/><path strokeLinecap="round" d="M12 7v5l3 3"/></svg>,
+  },
 ]
 
 function SortableSub({ sub, active }: { sub: Subscription; active: boolean }) {
@@ -131,7 +140,7 @@ export default function Sidebar() {
                 : 'text-gray-400 hover:bg-gray-800 hover:text-white'
             }`}
           >
-            <span>{icon}</span>
+            {icon}
             {label}
           </Link>
         ))}
@@ -154,12 +163,13 @@ export default function Sidebar() {
           </>
         )}
       </nav>
-      <div className="px-3 py-4 border-t border-gray-800">
+      <div className="px-3 pt-1 pb-2 border-t border-gray-800">
         <button
           onClick={handleSignOut}
-          className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+          className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
         >
-          <span>⎋</span> Sign out
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1"/></svg>
+          Sign out
         </button>
       </div>
     </aside>

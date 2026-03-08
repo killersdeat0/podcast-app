@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePlayer } from './PlayerContext'
 
-const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]
+const ALL_SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]
+const FREE_SPEEDS = [1, 2]
 
 interface Chapter {
   startTime: number
@@ -18,8 +19,9 @@ function formatTime(s: number) {
   return `${m}:${String(sec).padStart(2, '0')}`
 }
 
-export default function Player() {
+export default function Player({ isFreeTier = false }: { isFreeTier?: boolean }) {
   const { nowPlaying, playing, speed, play, togglePlay, seek, setSpeed, audioRef } = usePlayer()
+  const availableSpeeds = isFreeTier ? FREE_SPEEDS : ALL_SPEEDS
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [sleepMinutes, setSleepMinutes] = useState(0)
@@ -113,6 +115,8 @@ export default function Player() {
         }),
       }).catch(() => {})
 
+      // TODO: play audio ad clip here for free tier before advancing
+
       // Remove from queue and play next
       fetch('/api/queue')
         .then((r) => r.json())
@@ -166,7 +170,7 @@ export default function Player() {
     <>
       <audio ref={audioRef} preload="metadata" />
       {!nowPlaying ? null : (
-    <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 px-6 py-3 z-50">
+    <div className="bg-gray-900 border-t border-gray-800 px-6 py-3 flex-shrink-0">
 
       <div className="max-w-screen-xl mx-auto flex items-center gap-6">
         {/* Artwork + info */}
@@ -231,15 +235,22 @@ export default function Player() {
 
         {/* Speed + Sleep timer */}
         <div className="flex items-center gap-3 w-48 justify-end flex-shrink-0">
-          <select
-            value={speed}
-            onChange={(e) => setSpeed(Number(e.target.value))}
-            className="bg-gray-800 text-white text-xs rounded px-2 py-1 outline-none"
-          >
-            {SPEEDS.map((s) => (
-              <option key={s} value={s}>{s}x</option>
-            ))}
-          </select>
+          <div className="flex flex-col items-end gap-0.5">
+            <select
+              value={availableSpeeds.includes(speed) ? speed : availableSpeeds[availableSpeeds.length - 1]}
+              onChange={(e) => setSpeed(Number(e.target.value))}
+              className="bg-gray-800 text-white text-xs rounded px-2 py-1 outline-none"
+            >
+              {availableSpeeds.map((s) => (
+                <option key={s} value={s}>{s}x</option>
+              ))}
+            </select>
+            {isFreeTier && (
+              <a href="/upgrade" className="text-[10px] text-violet-400 hover:text-violet-300 leading-none">
+                Upgrade for more speeds
+              </a>
+            )}
+          </div>
           <select
             value={sleepMinutes}
             onChange={(e) => startSleepTimer(Number(e.target.value))}

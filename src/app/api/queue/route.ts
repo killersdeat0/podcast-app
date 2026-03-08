@@ -73,6 +73,27 @@ export async function POST(request: NextRequest) {
   const { guid, feedUrl, title, audioUrl, artworkUrl, podcastTitle, duration, pubDate, description } =
     await request.json()
 
+  // Enforce free-tier queue cap of 10 episodes
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('tier')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!profile || profile.tier === 'free') {
+    const { count } = await supabase
+      .from('queue')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+
+    if ((count ?? 0) >= 10) {
+      return NextResponse.json(
+        { error: 'Queue limit reached. Upgrade to add more episodes.' },
+        { status: 403 }
+      )
+    }
+  }
+
   // Upsert episode metadata
   const { data: sub } = await supabase
     .from('subscriptions')

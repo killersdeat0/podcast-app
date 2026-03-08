@@ -6,12 +6,28 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: progress, error } = await supabase
+  // Determine tier for free-tier history limit
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('tier')
+    .eq('user_id', user.id)
+    .single()
+
+  const isFreeTier = !profile || profile.tier === 'free'
+
+  let query = supabase
     .from('playback_progress')
     .select('episode_guid, feed_url, position_seconds, completed, updated_at')
     .eq('user_id', user.id)
     .gt('position_seconds', 0)
     .order('updated_at', { ascending: false })
+
+  if (isFreeTier) {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+    query = query.gte('updated_at', thirtyDaysAgo)
+  }
+
+  const { data: progress, error } = await query
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!progress || progress.length === 0) return NextResponse.json([])

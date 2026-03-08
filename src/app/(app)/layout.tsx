@@ -22,9 +22,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         {isFreeTier && <AdBanner />}
-        <main className="flex-1 overflow-y-auto pb-28">{children}</main>
+        <main className="flex-1 overflow-y-auto">{children}</main>
+        <Player isFreeTier={isFreeTier} />
       </div>
-      <Player />
     </div>
   )
 }
