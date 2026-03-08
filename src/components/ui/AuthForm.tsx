@@ -37,7 +37,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
   async function handleGoogle() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/discover` },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     })
   }
 
