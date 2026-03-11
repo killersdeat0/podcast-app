@@ -25,6 +25,7 @@ Create `.env.local`:
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://nuvadoybccdqipyhdhns.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key from Supabase dashboard>
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 # Stripe (required for subscription payments)
 STRIPE_SECRET_KEY=
