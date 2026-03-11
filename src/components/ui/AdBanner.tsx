@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 
 export default function AdBanner() {
@@ -10,7 +11,13 @@ export default function AdBanner() {
     <div className="flex items-center justify-between bg-gray-800 border-b border-gray-700 px-6 py-2 text-sm">
       <div className="flex items-center gap-3">
         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Ad</span>
-        <span className="text-gray-300">Enjoying PodSync? Upgrade to Pro for an ad-free experience.</span>
+        <span className="text-gray-300">
+          Enjoying PodSync?{' '}
+          <Link href="/upgrade" className="text-violet-400 hover:text-violet-300 underline">
+            Upgrade to Pro
+          </Link>{' '}
+          for an ad-free experience.
+        </span>
       </div>
       <button
         onClick={() => setDismissed(true)}

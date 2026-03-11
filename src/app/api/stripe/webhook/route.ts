@@ -1,5 +1,5 @@
 import { getStripe } from '@/lib/stripe/client'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `Webhook signature verification failed: ${message}` }, { status: 400 })
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   switch (event.type) {
     case 'customer.subscription.created':
@@ -40,14 +40,21 @@ export async function POST(request: NextRequest) {
 
       const isActive = subscription.status === 'active' || subscription.status === 'trialing'
       const tier = isActive ? 'paid' : 'free'
+      const userId = subscription.metadata?.supabase_user_id
 
-      await supabase
-        .from('user_profiles')
-        .update({
-          tier,
-          stripe_subscription_id: subscription.id,
-        })
-        .eq('stripe_customer_id', customerId)
+      if (userId) {
+        const { error } = await supabase
+          .from('user_profiles')
+          .update({ tier, stripe_customer_id: customerId, stripe_subscription_id: subscription.id })
+          .eq('user_id', userId)
+        if (error) console.error('Webhook: failed to update user_profiles by user_id', error)
+      } else {
+        const { error } = await supabase
+          .from('user_profiles')
+          .update({ tier, stripe_subscription_id: subscription.id })
+          .eq('stripe_customer_id', customerId)
+        if (error) console.error('Webhook: failed to update user_profiles by stripe_customer_id', error)
+      }
 
       break
     }
@@ -58,19 +65,26 @@ export async function POST(request: NextRequest) {
         ? subscription.customer
         : subscription.customer.id
 
-      await supabase
-        .from('user_profiles')
-        .update({
-          tier: 'free',
-          stripe_subscription_id: null,
-        })
-        .eq('stripe_customer_id', customerId)
+      const userId = subscription.metadata?.supabase_user_id
+
+      if (userId) {
+        const { error } = await supabase
+          .from('user_profiles')
+          .update({ tier: 'free', stripe_subscription_id: null })
+          .eq('user_id', userId)
+        if (error) console.error('Webhook: failed to downgrade user_profiles by user_id', error)
+      } else {
+        const { error } = await supabase
+          .from('user_profiles')
+          .update({ tier: 'free', stripe_subscription_id: null })
+          .eq('stripe_customer_id', customerId)
+        if (error) console.error('Webhook: failed to downgrade user_profiles by stripe_customer_id', error)
+      }
 
       break
     }
 
     default:
-      // Unhandled event type — acknowledge receipt
       break
   }
 
