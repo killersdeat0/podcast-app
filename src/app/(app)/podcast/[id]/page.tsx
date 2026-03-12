@@ -131,14 +131,14 @@ export default function PodcastPage() {
   }
 
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-4 md:p-8 max-w-3xl">
       {/* Header */}
       <div className="flex gap-6 mb-8">
         {artwork && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={artwork} alt={title} className="w-32 h-32 rounded-xl object-cover flex-shrink-0" />
+          <img src={artwork} alt={title} className="w-24 h-24 md:w-32 md:h-32 rounded-xl object-cover flex-shrink-0" />
         )}
-        <div className="flex flex-col justify-end gap-3">
+        <div className="flex flex-col justify-end gap-3 min-w-0">
           <h1 className="text-2xl font-bold">{title}</h1>
           {feed && <p className="text-gray-400 text-sm line-clamp-3">{feed.description}</p>}
           <button

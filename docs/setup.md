@@ -133,6 +133,7 @@ E2E tests require `E2E_TEST_EMAIL` and `E2E_TEST_PASSWORD` set to a real Supabas
 |---|---|---|
 | Queue size | 10 episodes | Unlimited |
 | Playback speed | 1x, 2x only | Full range (0.5x–3x) |
+| Speed preference | Resets to 1x each session | Persisted across sessions (`localStorage`) |
 | History | Last 30 days | Full history |
 | Notifications | Per-podcast toggle | + name pattern filters |
 | Ads | Banner + audio ad between episodes | None |

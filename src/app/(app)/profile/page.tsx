@@ -17,13 +17,25 @@ function formatHours(seconds: number): string {
 
 export default function ProfilePage() {
   const [data, setData] = useState<ProfileData | null>(null)
+  const [downgrading, setDowngrading] = useState(false)
 
-  useEffect(() => {
+  function fetchProfile() {
     fetch('/api/profile')
       .then((r) => r.json())
       .then(setData)
       .catch(() => {})
+  }
+
+  useEffect(() => {
+    fetchProfile()
   }, [])
+
+  async function handleDowngrade() {
+    setDowngrading(true)
+    await fetch('/api/dev/downgrade', { method: 'POST' })
+    fetchProfile()
+    setDowngrading(false)
+  }
 
   return (
     <div className="max-w-lg mx-auto px-6 py-12">
@@ -53,7 +65,15 @@ export default function ProfilePage() {
               </Link>
             )}
             {data.tier === 'paid' && (
-              <span className="text-violet-400 text-sm font-medium">Pro</span>
+              <div className="flex flex-col items-end">
+                <span className="text-violet-400 text-sm font-medium">Pro</span>
+                {process.env.NODE_ENV === 'development' && (
+                  <button onClick={handleDowngrade} disabled={downgrading}
+                    className="mt-2 text-xs text-red-400 underline">
+                    [Dev] Downgrade to free
+                  </button>
+                )}
+              </div>
             )}
           </div>
 

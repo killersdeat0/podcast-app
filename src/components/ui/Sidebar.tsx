@@ -94,7 +94,31 @@ export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
+  const [tier, setTier] = useState<'free' | 'paid' | null>(null)
+  const [open, setOpen] = useState(true)
   const sensors = useSensors(useSensor(PointerSensor))
+
+  useEffect(() => {
+    const stored = localStorage.getItem('sidebar-open')
+    if (stored !== null) {
+      setOpen(stored === 'true')
+    } else {
+      setOpen(window.innerWidth >= 768)
+    }
+  }, [])
+
+  function toggleSidebar() {
+    const next = !open
+    setOpen(next)
+    localStorage.setItem('sidebar-open', String(next))
+  }
+
+  useEffect(() => {
+    fetch('/api/profile')
+      .then((r) => r.json())
+      .then((data) => { if (data?.tier) setTier(data.tier) })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     function fetchSubs() {
@@ -133,53 +157,73 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="w-56 flex-shrink-0 bg-gray-900 flex flex-col border-r border-gray-800">
-      <div className="px-6 py-5 border-b border-gray-800">
-        <span className="text-xl font-bold text-violet-400">PodSync</span>
-      </div>
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems.map(({ href, label, icon }) => (
-          <Link
-            key={href}
-            href={href}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              pathname.startsWith(href)
-                ? 'bg-violet-600 text-white'
-                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-            }`}
-          >
-            {icon}
-            {label}
-          </Link>
-        ))}
-
-        {subscriptions.length > 0 && (
-          <>
-            <p className="px-3 pt-4 pb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              My Podcasts
-            </p>
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={subscriptions.map((s) => s.feed_url)} strategy={verticalListSortingStrategy}>
-                {subscriptions.map((sub) => {
-                  const isActive =
-                    pathname.includes(encodeURIComponent(sub.feed_url)) ||
-                    (!!sub.collection_id && pathname.includes(sub.collection_id))
-                  return <SortableSub key={sub.feed_url} sub={sub} active={isActive} />
-                })}
-              </SortableContext>
-            </DndContext>
-          </>
-        )}
-      </nav>
-      <div className="px-3 pt-1 pb-2 border-t border-gray-800">
+    <aside className={`${open ? 'w-56' : 'w-10'} flex-shrink-0 bg-gray-900 flex flex-col border-r border-gray-800 transition-[width] duration-200`}>
+      <div className="px-3 py-5 border-b border-gray-800 flex items-center justify-between min-w-0">
+        {open && <span className="text-xl font-bold text-violet-400 truncate mr-2">PodSync</span>}
         <button
-          onClick={handleSignOut}
-          className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+          onClick={toggleSidebar}
+          className="text-gray-400 hover:text-white flex-shrink-0 p-1 rounded hover:bg-gray-800 transition-colors"
+          aria-label={open ? 'Collapse sidebar' : 'Expand sidebar'}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1"/></svg>
-          Sign out
+          {open ? (
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
         </button>
       </div>
+
+      {open && (
+        <>
+          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            {navItems.filter(({ href }) => !(href === '/upgrade' && tier === 'paid')).map(({ href, label, icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  pathname.startsWith(href)
+                    ? 'bg-violet-600 text-white'
+                    : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                }`}
+              >
+                {icon}
+                {label}
+              </Link>
+            ))}
+
+            {subscriptions.length > 0 && (
+              <>
+                <p className="px-3 pt-4 pb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  My Podcasts
+                </p>
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={subscriptions.map((s) => s.feed_url)} strategy={verticalListSortingStrategy}>
+                    {subscriptions.map((sub) => {
+                      const isActive =
+                        pathname.includes(encodeURIComponent(sub.feed_url)) ||
+                        (!!sub.collection_id && pathname.includes(sub.collection_id))
+                      return <SortableSub key={sub.feed_url} sub={sub} active={isActive} />
+                    })}
+                  </SortableContext>
+                </DndContext>
+              </>
+            )}
+          </nav>
+          <div className="px-3 pt-1 pb-2 border-t border-gray-800">
+            <button
+              onClick={handleSignOut}
+              className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1"/></svg>
+              Sign out
+            </button>
+          </div>
+        </>
+      )}
     </aside>
   )
 }

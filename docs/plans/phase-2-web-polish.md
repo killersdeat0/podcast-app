@@ -9,6 +9,7 @@ Harden the web app with premium features, monetization, and UX improvements.
 - [ ] Stripe integration (subscription checkout — $4.99/month or $50/year)
 - [ ] Webhook to update `user_profiles.tier` on payment
 - [ ] Background job: when paid subscription lapses, clear history older than 30 days
+- [x] Dev-only downgrade button on profile page (resets tier to free without Stripe)
 
 **Free tier limits:**
 - Queue capped at 10 episodes

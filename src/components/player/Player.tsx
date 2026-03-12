@@ -26,8 +26,21 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
   const [duration, setDuration] = useState(0)
   const [sleepMinutes, setSleepMinutes] = useState(0)
   const [artworkError, setArtworkError] = useState(false)
+  const [mobileMenu, setMobileMenu] = useState<null | 'main' | 'speed'>(null)
   const [chapters, setChapters] = useState<Chapter[]>([])
   const sleepTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (!isFreeTier) {
+      const stored = localStorage.getItem('playback-speed')
+      if (stored) setSpeed(Number(stored))
+    }
+  }, [isFreeTier]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleSetSpeed(s: number) {
+    setSpeed(s)
+    if (!isFreeTier) localStorage.setItem('playback-speed', String(s))
+  }
   const lastSavedAt = useRef(0)
   const nowPlayingRef = useRef(nowPlaying)
   const playingRef = useRef(playing)
@@ -170,21 +183,21 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
     <>
       <audio ref={audioRef} preload="metadata" />
       {!nowPlaying ? null : (
-    <div className="bg-gray-900 border-t border-gray-800 px-6 py-3 flex-shrink-0">
+    <div className="bg-gray-900 border-t border-gray-800 px-3 md:px-6 py-3 flex-shrink-0">
 
-      <div className="max-w-screen-xl mx-auto flex items-center gap-6">
+      <div className="max-w-screen-xl mx-auto flex items-center gap-3 md:gap-6">
         {/* Artwork + info */}
-        <div className="flex items-center gap-3 w-56 flex-shrink-0">
+        <div className="flex items-center gap-3 min-w-0 flex-shrink max-w-[40%] md:max-w-none md:w-56 md:flex-shrink-0">
           {nowPlaying.artworkUrl && !artworkError && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={nowPlaying.artworkUrl}
               alt=""
-              className="w-12 h-12 rounded-lg object-cover"
+              className="w-10 h-10 md:w-12 md:h-12 rounded-lg object-cover flex-shrink-0"
               onError={() => setArtworkError(true)}
             />
           )}
-          <div className="overflow-hidden">
+          <div className="overflow-hidden min-w-0 hidden sm:block">
             <p className="text-sm font-medium text-white truncate">{nowPlaying.title}</p>
             <p className="text-xs text-gray-400 truncate">{nowPlaying.podcastTitle}</p>
           </div>
@@ -233,12 +246,58 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
           })()}
         </div>
 
+        {/* Mobile menu */}
+        <div className="relative md:hidden flex-shrink-0">
+          <button
+            onClick={() => setMobileMenu('main')}
+            className="text-gray-400 hover:text-white px-1 py-1 text-lg leading-none"
+            aria-label="More options"
+          >
+            ···
+          </button>
+          {mobileMenu && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setMobileMenu(null)} />
+              <div className="absolute bottom-full right-0 mb-2 bg-gray-800 border border-gray-700 rounded-lg overflow-hidden z-20 min-w-[160px]">
+                {mobileMenu === 'main' && (
+                  <button
+                    onClick={() => setMobileMenu('speed')}
+                    className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700"
+                  >
+                    <span>Playback Speed</span>
+                    <span className="text-gray-500 ml-4">{speed}x ›</span>
+                  </button>
+                )}
+                {mobileMenu === 'speed' && (
+                  <>
+                    <button
+                      onClick={() => setMobileMenu('main')}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-400 hover:bg-gray-700 border-b border-gray-700"
+                    >
+                      <span>‹</span> Playback Speed
+                    </button>
+                    {availableSpeeds.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => { handleSetSpeed(s); setMobileMenu(null) }}
+                        className={`w-full text-left px-4 py-2.5 text-sm ${speed === s ? 'text-violet-400 font-semibold' : 'text-gray-300 hover:bg-gray-700'}`}
+                      >
+                        {s}x
+                      </button>
+                    ))}
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
         {/* Speed + Sleep timer */}
-        <div className="flex items-center gap-3 w-48 justify-end flex-shrink-0">
+        <div className="hidden md:flex items-center gap-3 w-48 justify-end flex-shrink-0">
           <div className="flex flex-col items-end gap-0.5">
             <select
               value={availableSpeeds.includes(speed) ? speed : availableSpeeds[availableSpeeds.length - 1]}
-              onChange={(e) => setSpeed(Number(e.target.value))}
+              onChange={(e) => handleSetSpeed(Number(e.target.value))}
               className="bg-gray-800 text-white text-xs rounded px-2 py-1 outline-none"
             >
               {availableSpeeds.map((s) => (

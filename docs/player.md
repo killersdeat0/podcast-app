@@ -94,6 +94,21 @@ A dropdown lets users set a sleep timer (5–60 minutes). When the timer fires, 
 - Free tier: speed options `[1, 2]` + "Upgrade for more speeds" link
 - Paid tier: full range `[0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]`
 
+**Speed persistence (paid only):** When a paid user changes speed, it is saved to `localStorage` under the key `playback-speed`. On mount, `Player` restores this value by calling `setSpeed()` — so the preferred rate is applied before the first episode loads. Free-tier users always start at 1x.
+
+### Mobile layout
+
+On narrow viewports (below the `md` breakpoint):
+
+- The right-side panel (speed selector + sleep timer) is hidden (`hidden md:flex`).
+- The left artwork panel drops its fixed width and shrinks to fit.
+- A `···` button appears to the right of the transport controls, opening a two-level menu:
+  - **Main level:** lists available actions (currently: Playback Speed, showing the active speed inline).
+  - **Speed submenu:** back button + the available speed options for the user's tier.
+- Selecting a speed closes the menu and calls `handleSetSpeed()`, which also persists to `localStorage` for paid users.
+
+To add future mobile-only options, add another row to the `mobileMenu === 'main'` block in `Player.tsx`.
+
 ---
 
 ## Layout integration
