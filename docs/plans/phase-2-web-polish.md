@@ -25,13 +25,14 @@ Harden the web app with premium features, monetization, and UX improvements.
 - [x] Full history (kept while subscribed)
 - [ ] Notification filters by name pattern (starts with / contains)
 - [x] No banner ads (audio ad not yet implemented for free tier either)
-- [ ] Silence skipping
+- [x] ~~Silence skipping~~ — canceled for web: Web Audio API can't analyse cross-origin audio (CORS); all podcast CDNs are cross-origin. Will be implemented in Phase 3 (mobile) where native audio APIs have no CORS restriction.
 - [ ] Listening stats & insights
 - [ ] OPML import/export
 
-### Silence Skipping (paid only)
-- [ ] Detect silence via Web Audio API
-- [ ] Skip silent sections automatically during playback
+### ~~Silence Skipping (paid only)~~ — Canceled for web — Phase 3 (mobile) only
+- The Web Audio API's `createMediaElementSource()` zeroes out cross-origin audio (browser security). Podcast audio always goes through cross-origin tracking redirects (podtrac, vpixl, etc.) that don't send CORS headers, so the analyser gets no data.
+- Would require a CORS proxy (Cloudflare Worker) to work on web — not worth the complexity/cost for now.
+- Native mobile (Phase 3) has no CORS restriction — silence skipping will work there via native audio APIs.
 
 ### Stats & Listening Insights (paid only)
 - [ ] Total listening time
@@ -48,6 +49,6 @@ Harden the web app with premium features, monetization, and UX improvements.
 
 ### Testing
 - [ ] Integration tests for API routes (`/api/podcasts/search`, `/api/podcasts/feed`, `/api/progress`, `/api/queue`)
-- [ ] Unit tests for silence-skipping logic
+- [x] ~~Unit tests for silence-skipping logic~~ — canceled (silence skipping canceled for web)
 - [ ] Unit test for Stripe webhook handler
 - [ ] Playwright E2E: Stripe checkout flow (test mode)

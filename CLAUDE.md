@@ -69,6 +69,10 @@ Podcast discovery uses the iTunes Search API (`/api/podcasts/search`) → episod
 
 The `Player` component (`src/components/player/Player.tsx`) always renders the `<audio>` element (even when `nowPlaying` is null) so that event listeners attach on mount. The UI is conditionally shown. It restores saved position from `/api/progress` on episode load (only auto-plays if `playing` is true), saves position to `/api/progress` every 10 seconds via throttle, and on `ended` marks the episode complete, removes it from the queue, and auto-plays the next queue item.
 
+### Silence skipping — web blocked, canceled for web, mobile only
+
+`useSilenceSkipper` (`src/hooks/useSilenceSkipper.ts`) uses the Web Audio API (`createMediaElementSource` + `AnalyserNode`) to detect and skip silent sections. **This does not work on the web** because all podcast audio is cross-origin and the tracking redirect chain (podtrac, vpixl, etc.) doesn't send CORS headers — the browser zeroes out the entire audio graph. A CORS proxy (Cloudflare Worker) would fix it but isn't worth the complexity yet. The feature is canceled for web; will be implemented in Phase 3 (mobile), where native audio APIs have no CORS restriction. Do not re-attempt a browser-only fix without a proxy.
+
 ### Supabase clients
 
 - `src/lib/supabase/client.ts` — browser client (for client components and sign-out)

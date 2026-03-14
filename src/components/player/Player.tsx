@@ -44,6 +44,8 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
   const lastSavedAt = useRef(0)
   const nowPlayingRef = useRef(nowPlaying)
   const playingRef = useRef(playing)
+  const isDragging = useRef(false)
+  const [sliderValue, setSliderValue] = useState(0)
 
   useEffect(() => {
     nowPlayingRef.current = nowPlaying
@@ -83,7 +85,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
     if (!audio) return
 
     const onTime = () => {
-      setCurrentTime(audio.currentTime)
+      if (!isDragging.current) setCurrentTime(audio.currentTime)
       const now = Date.now()
       const np = nowPlayingRef.current
       if (np && audio.currentTime > 5 && now - lastSavedAt.current > 10000) {
@@ -222,8 +224,10 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
                 type="range"
                 min={0}
                 max={duration || 0}
-                value={currentTime}
-                onChange={(e) => seek(Number(e.target.value))}
+                value={isDragging.current ? sliderValue : currentTime}
+                onPointerDown={() => { isDragging.current = true; setSliderValue(currentTime) }}
+                onChange={(e) => setSliderValue(Number(e.target.value))}
+                onPointerUp={(e) => { isDragging.current = false; seek(Number(e.currentTarget.value)) }}
                 className="w-full accent-violet-500"
               />
               {duration > 0 && chapters.map((ch) => (
@@ -260,13 +264,15 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
               <div className="fixed inset-0 z-10" onClick={() => setMobileMenu(null)} />
               <div className="absolute bottom-full right-0 mb-2 bg-gray-800 border border-gray-700 rounded-lg overflow-hidden z-20 min-w-[160px]">
                 {mobileMenu === 'main' && (
-                  <button
-                    onClick={() => setMobileMenu('speed')}
-                    className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700"
-                  >
-                    <span>Playback Speed</span>
-                    <span className="text-gray-500 ml-4">{speed}x ›</span>
-                  </button>
+                  <>
+                    <button
+                      onClick={() => setMobileMenu('speed')}
+                      className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700"
+                    >
+                      <span>Playback Speed</span>
+                      <span className="text-gray-500 ml-4">{speed}x ›</span>
+                    </button>
+                  </>
                 )}
                 {mobileMenu === 'speed' && (
                   <>

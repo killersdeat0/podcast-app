@@ -32,6 +32,7 @@ Mobile uses Supabase directly — no Next.js API layer needed for data.
 - [ ] Download manager with local storage (free tier: 3 downloads/day; paid tier: unlimited)
 - [ ] Lock screen / notification controls
 - [ ] Push notifications for new episodes
+- [ ] Silence skipping (paid only) — native audio APIs have no CORS restriction, so real-time silence detection works. Canceled for web (Phase 2) where browser security blocks cross-origin audio analysis.
 
 ### Testing
 - [ ] Unit tests for download manager logic (quota enforcement, local storage)
