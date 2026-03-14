@@ -38,13 +38,13 @@ A working web app where users can sign up, search/subscribe to podcasts, play ep
 ## Remaining
 
 ### Polish
-- [ ] Responsive layout check
+- [x] Responsive layout check — mobile padding on discover/queue/history (`p-4 md:p-8`), discover grid now `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`
 
 ### Testing (backfill)
 - [x] Set up Vitest + Playwright
 - [x] Unit tests: RSS parser (`src/lib/rss/parser.ts`) — guid parsing, field extraction
 - [x] Unit tests: iTunes search wrapper (`src/lib/itunes/search.ts`)
-- [ ] Playwright E2E: sign up → search → subscribe → play → queue flow
+- [x] Playwright E2E: sign up → search → subscribe → play → queue flow
 
 ---
 

@@ -1,6 +1,21 @@
 import { test, expect } from '@playwright/test'
 
 /**
+ * Sign-up page smoke test — no credentials required.
+ * Verifies the page loads and the form is present.
+ */
+test('sign-up page renders with correct form fields', async ({ page }) => {
+  await page.goto('/signup')
+
+  await expect(page.getByPlaceholder('Email')).toBeVisible()
+  await expect(page.getByPlaceholder('Password')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Sign up' })).toBeVisible()
+
+  // Should have a link back to /login for existing users.
+  await expect(page.getByRole('link', { name: /log in/i })).toBeVisible()
+})
+
+/**
  * Core user flow E2E test.
  *
  * Requires the following environment variables to be set:
@@ -10,7 +25,6 @@ import { test, expect } from '@playwright/test'
  * If either variable is absent the test is skipped automatically.
  * Run against a live server: `npx playwright test --headed`
  */
-
 test.describe('core user flow', () => {
   const email = process.env.E2E_TEST_EMAIL
   const password = process.env.E2E_TEST_PASSWORD
@@ -23,7 +37,7 @@ test.describe('core user flow', () => {
     }
   })
 
-  test('sign in → discover → podcast page → add to queue → queue page', async ({ page }) => {
+  test('sign in → discover → podcast page → subscribe → play → add to queue → queue page', async ({ page }) => {
     // ─── Step 1: navigate to /login ───────────────────────────────────────
     await page.goto('/login')
 
@@ -101,6 +115,26 @@ test.describe('core user flow', () => {
     // Also confirm at least one episode title <p> rendered in an episode row.
     const firstEpisodeTitle = page.locator('button.flex-1 p.font-medium').first()
     await expect(firstEpisodeTitle).toBeVisible({ timeout: 5_000 })
+
+    // ─── Step 7b: subscribe to the podcast ───────────────────────────────
+    // The subscribe button shows "Subscribe" or "Subscribed" depending on
+    // current state. Click it and verify it toggles to the opposite state.
+    const subscribeBtn = page.getByRole('button', { name: /^Subscri/ })
+    await expect(subscribeBtn).toBeVisible({ timeout: 5_000 })
+    const wasSubscribed = (await subscribeBtn.textContent()) === 'Subscribed'
+    await subscribeBtn.click()
+    const expectedSubscribeText = wasSubscribed ? 'Subscribe' : 'Subscribed'
+    await expect(subscribeBtn).toHaveText(expectedSubscribeText, { timeout: 10_000 })
+
+    // ─── Step 7c: play the first episode ─────────────────────────────────
+    // Each episode row has a flex-1 play button. Clicking it calls play()
+    // on PlayerContext, which sets nowPlaying and updates the <audio> src.
+    const firstPlayBtn = page.locator('button.flex-1').first()
+    await firstPlayBtn.click()
+
+    // The <audio> element always exists in the DOM (renders unconditionally).
+    // Once an episode is played its src attribute is set to the audio URL.
+    await expect(page.locator('audio')).toHaveAttribute('src', /.+/, { timeout: 10_000 })
 
     // ─── Step 8: click "Add to Queue" on the first episode ───────────────
     await firstQueueToggle.click()

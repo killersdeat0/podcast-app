@@ -121,7 +121,7 @@ export default function DiscoverPage() {
   const isLoading = showTrending ? trendingLoading : loading
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <h1 className="text-2xl font-bold mb-6">{strings.discover.heading}</h1>
 
       <form onSubmit={search} className="relative flex gap-3 mb-8" ref={dropdownRef}>
@@ -211,7 +211,7 @@ export default function DiscoverPage() {
         </>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {isLoading
           ? Array.from({ length: 6 }).map((_, i) => <SkeletonPodcastCard key={i} />)
           : displayResults.map((podcast) => (
