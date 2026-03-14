@@ -28,6 +28,8 @@ const es = {
     heading: 'Perfil',
     account: 'Cuenta',
     listened: 'Escuchado (últimos 30 días)',
+    completed_this_week: 'Completados esta semana',
+    streak: 'Días seguidos 🔥',
     language: 'Idioma',
     subscriptions: 'Suscripciones',
     subscriptions_empty: 'Sin suscripciones todavía 🔍',

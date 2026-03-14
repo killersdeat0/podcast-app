@@ -155,6 +155,19 @@ Returns all episodes where `position_seconds > 0`, ordered by `updated_at` desce
 
 ---
 
+## Profile
+
+### `GET /api/profile`
+Returns the current user's profile and listening stats.
+
+**Response:** `{ email, tier, listeningSeconds, completedThisWeek, streakDays }`
+
+- `listeningSeconds` — sum of `position_seconds` from `playback_progress` in the last 30 days
+- `completedThisWeek` — count of episodes marked `completed = true` in the last 7 days (paid-only display)
+- `streakDays` — consecutive days with any listening activity; starts from today, falls back to yesterday if no activity yet today (paid-only display)
+
+---
+
 ## Stripe / Payments
 
 ### `POST /api/stripe/checkout`

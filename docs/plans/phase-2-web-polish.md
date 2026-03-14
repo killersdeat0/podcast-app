@@ -26,7 +26,7 @@ Harden the web app with premium features, monetization, and UX improvements.
 - [ ] Notification filters by name pattern (starts with / contains)
 - [x] No banner ads (audio ads moved to Phase 4)
 - [x] ~~Silence skipping~~ — canceled for web: Web Audio API can't analyse cross-origin audio (CORS); all podcast CDNs are cross-origin. Will be implemented in Phase 3 (mobile) where native audio APIs have no CORS restriction.
-- [ ] Listening stats & insights
+- [x] Listening stats & insights
 - [ ] OPML import/export
 
 ### ~~Silence Skipping (paid only)~~ — Canceled for web — Phase 3 (mobile) only
@@ -35,9 +35,9 @@ Harden the web app with premium features, monetization, and UX improvements.
 - Native mobile (Phase 3) has no CORS restriction — silence skipping will work there via native audio APIs.
 
 ### Stats & Listening Insights (paid only)
-- [ ] Total listening time
-- [ ] Episodes completed per week
-- [ ] Streak tracking
+- [x] Total listening time
+- [x] Episodes completed per week
+- [x] Streak tracking
 
 ### Discovery
 - [x] Trending/popular podcasts on discover page (Apple Top Charts + iTunes Lookup)

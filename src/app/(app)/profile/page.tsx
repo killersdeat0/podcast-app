@@ -10,6 +10,8 @@ interface ProfileData {
   email: string
   tier: 'free' | 'paid'
   listeningSeconds: number
+  completedThisWeek: number
+  streakDays: number
 }
 
 interface Subscription {
@@ -99,23 +101,30 @@ export default function ProfilePage() {
             <p className="text-white font-semibold text-3xl">{formatHours(data.listeningSeconds)}</p>
           </div>
 
+          {data.tier === 'paid' && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-gray-900 border border-gray-700 rounded-xl p-6">
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">{strings.profile.completed_this_week}</p>
+                <p className="text-white font-semibold text-3xl">{data.completedThisWeek}</p>
+              </div>
+              <div className="bg-gray-900 border border-gray-700 rounded-xl p-6">
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">{strings.profile.streak}</p>
+                <p className="text-white font-semibold text-3xl">{data.streakDays}</p>
+              </div>
+            </div>
+          )}
+
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 flex items-center justify-between">
             <p className="text-xs text-gray-500 uppercase tracking-wider">{strings.profile.language}</p>
-            <div className="flex gap-2">
+            <select
+              value={locale}
+              onChange={(e) => setLocale(e.target.value as Locale)}
+              className="bg-gray-800 text-white text-sm rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-violet-500"
+            >
               {(Object.entries(LOCALE_LABELS) as [Locale, string][]).map(([code, label]) => (
-                <button
-                  key={code}
-                  onClick={() => setLocale(code)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    locale === code
-                      ? 'bg-violet-600 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:text-white'
-                  }`}
-                >
-                  {label}
-                </button>
+                <option key={code} value={code}>{label}</option>
               ))}
-            </div>
+            </select>
           </div>
 
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-6">

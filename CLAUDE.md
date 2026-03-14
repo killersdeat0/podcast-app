@@ -38,12 +38,14 @@ NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID=
 NEXT_PUBLIC_STRIPE_YEARLY_PRICE_ID=
 ```
 
-## Detailed docs
+## Docs
 
-- `docs/api.md` — all API routes, request/response shapes, freemium gates
-- `docs/data-model.md` — DB tables, columns, RLS policies, key patterns
-- `docs/player.md` — player state machine, progress saving, queue auto-advance, chapters
-- `docs/i18n.md` — i18n system: adding languages, string namespaces, EmptyState component, tone guidelines
+Read relevant docs before making changes
+
+- `docs/api.md` — all API routes, request/response shapes, freemium gates. Read before touching API routes.
+- `docs/data-model.md` — DB tables, columns, RLS policies, key patterns. Read before touching DB schema or queries.
+- `docs/player.md` — player state machine, progress saving, queue auto-advance, chapters. Read before touching player/queue logic.
+- `docs/i18n.md` — i18n system: adding languages, string namespaces, EmptyState component, tone guidelines. Read before adding any user-visible text.
 
 ## Architecture
 
@@ -97,7 +99,7 @@ The Sidebar fetches subscriptions on mount and re-fetches on the custom `subscri
 
 ### Documentation
 
-When significantly altering a function or API route (changing behavior, parameters, return shape, or side effects), update `CLAUDE.md` if the change affects anything documented there, and create or update a focused doc file in `docs/` covering the changed area (e.g. `docs/api.md`, `docs/player.md`). Phase plan files in `docs/plans/` should also be updated if a planned item is completed or changed in scope.
+When committing, first check if it significantly altering a function or API route (changing behavior, parameters, return shape, or side effects). update `CLAUDE.md` if the change affects anything documented there, and create or update a focused doc file in `docs/` covering the changed area (e.g. `docs/api.md`, `docs/player.md`). Phase plan files in `docs/plans/` should also be updated if a planned item is completed or changed in scope.
 
 ### RSS parser quirk
 
