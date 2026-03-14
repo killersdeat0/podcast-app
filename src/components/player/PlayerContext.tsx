@@ -38,6 +38,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem('nowPlaying')
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (raw) setNowPlaying(JSON.parse(raw))
     } catch {
       // ignore

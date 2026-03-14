@@ -48,7 +48,7 @@ export async function GET() {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   // Start from today; if no activity today, start from yesterday
-  let cursor = new Date(today)
+  const cursor = new Date(today)
   if (!days.has(cursor.toISOString().slice(0, 10))) {
     cursor.setDate(cursor.getDate() - 1)
   }

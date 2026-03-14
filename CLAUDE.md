@@ -101,6 +101,15 @@ The Sidebar fetches subscriptions on mount and re-fetches on the custom `subscri
 
 When committing, first check if it significantly altering a function or API route (changing behavior, parameters, return shape, or side effects). update `CLAUDE.md` if the change affects anything documented there, and create or update a focused doc file in `docs/` covering the changed area (e.g. `docs/api.md`, `docs/player.md`). Phase plan files in `docs/plans/` should also be updated if a planned item is completed or changed in scope.
 
+### ESLint intentional suppressions
+
+Several files use `// eslint-disable-next-line` for patterns that are deliberately non-standard:
+
+- `PlayerContext.tsx`, `Sidebar.tsx`, `LocaleContext.tsx` — `react-hooks/set-state-in-effect`: `setState` called directly inside `useEffect` to restore `localStorage` state on mount. This is intentional to avoid SSR hydration mismatches (initial state can't read `localStorage` on the server).
+- `Player.tsx` — `react-hooks/refs`: `isDragging.current` read during render to control the slider value while dragging. Intentional — a state variable would cause unwanted re-renders.
+
+Do not remove these suppressions or refactor these patterns without understanding the SSR/performance trade-offs.
+
 ### RSS parser quirk
 
 The `guid` field in RSS items can be an XML object `{ '#text': '...', '@_isPermaLink': 'false' }` rather than a plain string. The parser (`src/lib/rss/parser.ts`) handles this — do not simplify it back to `String(item['guid'])`.

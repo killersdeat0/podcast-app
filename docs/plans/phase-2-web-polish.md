@@ -52,7 +52,7 @@ Harden the web app with premium features, monetization, and UX improvements.
 - [ ] Better empty states and onboarding flow
 
 ### Testing
-- [ ] Integration tests for API routes (`/api/podcasts/search`, `/api/podcasts/feed`, `/api/progress`, `/api/queue`)
+- [x] Unit tests for API routes (`/api/podcasts/search`, `/api/podcasts/feed`, `/api/progress`, `/api/queue`) — route handlers tested with mocked fetch and mocked Supabase client
 - [x] ~~Unit tests for silence-skipping logic~~ — canceled (silence skipping canceled for web)
 - [ ] Unit test for Stripe webhook handler
 - [ ] Playwright E2E: Stripe checkout flow (test mode)

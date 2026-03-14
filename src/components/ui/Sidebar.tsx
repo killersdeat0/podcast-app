@@ -96,6 +96,7 @@ export default function Sidebar() {
   useEffect(() => {
     const stored = localStorage.getItem('sidebar-open')
     if (stored !== null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOpen(stored === 'true')
     } else {
       setOpen(window.innerWidth >= 768)
