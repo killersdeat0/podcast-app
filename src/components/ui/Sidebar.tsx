@@ -20,12 +20,14 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { createClient } from '@/lib/supabase/client'
 import { useStrings } from '@/lib/i18n/LocaleContext'
-
 interface Subscription {
   feed_url: string
   title: string
   artwork_url: string | null
   collection_id: string | null
+  last_visited_at: string | null
+  latest_episode_pub_date: string | null
+  new_episode_count: number
 }
 
 const navIcons = {
@@ -64,12 +66,19 @@ function SortableSub({ sub, active }: { sub: Subscription; active: boolean }) {
           active ? 'bg-violet-600 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
         }`}
       >
-        {sub.artwork_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={sub.artwork_url} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />
-        ) : (
-          <span className="w-6 h-6 rounded bg-gray-700 flex-shrink-0" />
-        )}
+        <div className="relative w-6 h-6 flex-shrink-0">
+          {sub.artwork_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={sub.artwork_url} alt="" className="w-6 h-6 rounded object-cover" />
+          ) : (
+            <span className="w-6 h-6 rounded bg-gray-700 block" />
+          )}
+          {sub.new_episode_count > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-0.5 bg-violet-500 rounded-full border border-gray-900 flex items-center justify-center text-[9px] font-bold text-white leading-none">
+              {sub.new_episode_count > 99 ? '99+' : sub.new_episode_count}
+            </span>
+          )}
+        </div>
         <span className="truncate">{sub.title}</span>
       </Link>
     </div>

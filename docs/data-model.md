@@ -34,6 +34,10 @@ One row per user per podcast they're subscribed to.
 | `collection_id` | `text` | iTunes collection ID (optional) |
 | `position` | `integer` | Drag-drop order, 0-indexed |
 | `subscribed_at` | `timestamptz` | Auto-set |
+| `last_visited_at` | `timestamptz` | When user last opened this podcast's detail page (set on unmount) |
+| `latest_episode_pub_date` | `timestamptz` | Newest episode `pubDate` from the last feed fetch (set on mount) |
+| `episode_filter` | `text` | Paid only — substring filter for the "New" section on the detail page |
+| `new_episode_count` | `integer` | Count of new episodes since last visit; set on podcast detail page mount, reset to 0 on unmount; drives count badge in sidebar and profile |
 
 **Unique constraint:** `(user_id, feed_url)`
 

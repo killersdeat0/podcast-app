@@ -19,6 +19,7 @@ interface Subscription {
   title: string
   artwork_url: string | null
   collection_id: string | null
+  new_episode_count: number
 }
 
 function formatHours(seconds: number): string {
@@ -201,16 +202,23 @@ export default function ProfilePage() {
                       href={`/podcast/${sub.collection_id ?? encodeURIComponent(sub.feed_url)}?feed=${encodeURIComponent(sub.feed_url)}&title=${encodeURIComponent(sub.title)}&artwork=${encodeURIComponent(sub.artwork_url ?? '')}`}
                       className="flex items-center gap-3 group"
                     >
-                      {sub.artwork_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={sub.artwork_url}
-                          alt=""
-                          className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-lg bg-gray-800 flex-shrink-0" />
-                      )}
+                      <div className="relative w-10 h-10 flex-shrink-0">
+                        {sub.artwork_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={sub.artwork_url}
+                            alt=""
+                            className="w-10 h-10 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-gray-800" />
+                        )}
+                        {sub.new_episode_count > 0 && (
+                          <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-0.5 bg-violet-500 rounded-full border-2 border-gray-900 flex items-center justify-center text-[10px] font-bold text-white leading-none">
+                            {sub.new_episode_count > 99 ? '99+' : sub.new_episode_count}
+                          </span>
+                        )}
+                      </div>
                       <span className="text-sm text-gray-300 group-hover:text-white truncate transition-colors">
                         {sub.title}
                       </span>

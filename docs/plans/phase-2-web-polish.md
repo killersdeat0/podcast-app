@@ -15,7 +15,7 @@ Harden the web app with premium features, monetization, and UX improvements.
 - [x] Queue capped at 10 episodes
 - [x] Playback speed: 1x and 2x only (no range selector)
 - [x] History: last 30 days only
-- [ ] New episode notifications: per-podcast toggle only
+- [x] New episode badge: dot on sidebar + profile subscription items; "New" section on podcast detail page; paid users can set per-subscription episode title filter
 - [x] Banner ad in player
 - [ ] ~~Short audio ad clip before each queue auto-advance~~ — moved to Phase 4 (Ad Monetization)
 
@@ -23,7 +23,7 @@ Harden the web app with premium features, monetization, and UX improvements.
 - [x] Unlimited queue
 - [x] Full playback speed range selector (0.5x–3x)
 - [x] Full history (kept while subscribed)
-- [ ] Notification filters by name pattern (starts with / contains)
+- [x] Notification filters by name pattern (starts with / contains) — implemented as `episode_filter` on subscriptions
 - [x] No banner ads (audio ads moved to Phase 4)
 - [x] ~~Silence skipping~~ — canceled for web: Web Audio API can't analyse cross-origin audio (CORS); all podcast CDNs are cross-origin. Will be implemented in Phase 3 (mobile) where native audio APIs have no CORS restriction.
 - [x] Listening stats & insights
@@ -46,10 +46,13 @@ Harden the web app with premium features, monetization, and UX improvements.
 ### UX Polish
 - [x] Show subscribed podcasts on the profile page
 - [x] Keyboard shortcuts (space = play/pause, arrow keys = seek)
-- [ ] New episode push notifications (per-podcast toggle; paid: name pattern filters)
+- [x] New episode badge + episode search (see Freemium section above)
 - [ ] ~~Audio ad clip before queue auto-advance~~ — moved to Phase 4 (Ad Monetization)
 - [x] OPML import/export
 - [ ] Better empty states and onboarding flow
+
+### Known Bugs
+- [ ] Episode search (iTunes lookup via `/api/podcasts/episodes`) not returning episodes that are known to exist — suspected cause: iTunes Lookup API returning unexpected field names or omitting episodes; needs investigation (logging the raw API response is a good first step)
 
 ### Testing
 - [x] Unit tests for API routes (`/api/podcasts/search`, `/api/podcasts/feed`, `/api/progress`, `/api/queue`) — route handlers tested with mocked fetch and mocked Supabase client

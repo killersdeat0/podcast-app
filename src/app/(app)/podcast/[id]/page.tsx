@@ -1,10 +1,39 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useSearchParams, useParams } from 'next/navigation'
 import { usePlayer } from '@/components/player/PlayerContext'
 import { SkeletonEpisodeRow } from '@/components/ui/Skeleton'
 import type { PodcastFeed, Episode } from '@/lib/rss/parser'
+
+interface SubscriptionRow {
+  feed_url: string
+  last_visited_at: string | null
+  latest_episode_pub_date: string | null
+  episode_filter: string | null
+}
+
+interface ItunesEpisode {
+  trackId: number
+  episodeGuid?: string
+  trackName: string
+  releaseDate: string
+  trackTimeMillis: number
+  episodeUrl: string
+  description?: string
+}
+
+function itunesToEpisode(ep: ItunesEpisode): Episode {
+  return {
+    guid: ep.episodeGuid ?? String(ep.trackId),
+    title: ep.trackName,
+    audioUrl: ep.episodeUrl,
+    duration: ep.trackTimeMillis ? Math.round(ep.trackTimeMillis / 1000) : null,
+    pubDate: ep.releaseDate,
+    description: ep.description ?? '',
+    chapterUrl: null,
+  }
+}
 
 function formatDuration(s: number | null) {
   if (!s) return ''
@@ -22,12 +51,25 @@ export default function PodcastPage() {
   const artwork = params.get('artwork') ?? ''
   const { play } = usePlayer()
 
+  // Is `id` a numeric iTunes collection ID?
+  const collectionId = /^\d+$/.test(id) ? id : null
+
   const [feed, setFeed] = useState<PodcastFeed | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [subscribed, setSubscribed] = useState(false)
   const [subscribing, setSubscribing] = useState(false)
   const [queuedGuids, setQueuedGuids] = useState<Set<string>>(new Set())
+  const [subscription, setSubscription] = useState<SubscriptionRow | null>(null)
+  const [oldLastVisitedAt, setOldLastVisitedAt] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [episodeFilter, setEpisodeFilter] = useState('')
+  const [savingFilter, setSavingFilter] = useState(false)
+  const [userTier, setUserTier] = useState<'free' | 'paid' | null>(null)
+
+  // iTunes episode search state
+  const [itunesEpisodes, setItunesEpisodes] = useState<ItunesEpisode[] | null>(null)
+  const [itunesLoading, setItunesLoading] = useState(false)
 
   useEffect(() => {
     if (!feedUrl) return
@@ -43,13 +85,17 @@ export default function PodcastPage() {
       .finally(() => setLoading(false))
   }, [feedUrl])
 
-  // Check subscription status + current queue
+  // Check subscription status + current queue + tier
   useEffect(() => {
     if (!feedUrl) return
     fetch('/api/subscriptions')
       .then((r) => r.json())
-      .then((subs: Array<{ feed_url: string }>) => {
-        setSubscribed(subs.some((s) => s.feed_url === feedUrl))
+      .then((subs: SubscriptionRow[]) => {
+        const sub = subs.find((s) => s.feed_url === feedUrl) ?? null
+        setSubscribed(!!sub)
+        setSubscription(sub)
+        setOldLastVisitedAt(sub?.last_visited_at ?? null)
+        setEpisodeFilter(sub?.episode_filter ?? '')
       })
       .catch(() => {})
     fetch('/api/queue')
@@ -58,7 +104,86 @@ export default function PodcastPage() {
         setQueuedGuids(new Set(items.map((i) => i.episode_guid)))
       })
       .catch(() => {})
+    fetch('/api/profile')
+      .then((r) => r.json())
+      .then((d) => { if (d?.tier) setUserTier(d.tier) })
+      .catch(() => {})
   }, [feedUrl])
+
+  // Fetch iTunes episodes lazily when user starts searching
+  useEffect(() => {
+    if (!searchQuery || !collectionId || itunesEpisodes !== null) return
+    setItunesLoading(true)
+    fetch(`/api/podcasts/episodes?collectionId=${collectionId}`)
+      .then((r) => r.json())
+      .then((eps: ItunesEpisode[]) => setItunesEpisodes(eps))
+      .catch(() => setItunesEpisodes([]))
+      .finally(() => setItunesLoading(false))
+  }, [searchQuery, collectionId, itunesEpisodes])
+
+  // New episodes since last visit
+  const newEpisodes = useMemo(() => {
+    if (!feed) return []
+    let eps = oldLastVisitedAt
+      ? feed.episodes.filter((ep) => new Date(ep.pubDate) > new Date(oldLastVisitedAt))
+      : feed.episodes
+    if (userTier === 'paid' && subscription?.episode_filter) {
+      const f = subscription.episode_filter.toLowerCase()
+      eps = eps.filter((ep) => ep.title.toLowerCase().includes(f))
+    }
+    return eps
+  }, [feed, oldLastVisitedAt, userTier, subscription])
+
+  // Search results: iTunes episodes filtered by query (falls back to RSS if no collectionId)
+  const searchResults = useMemo((): Episode[] => {
+    if (!searchQuery) return []
+    if (collectionId) {
+      if (!itunesEpisodes) return []
+      const q = searchQuery.toLowerCase()
+      return itunesEpisodes
+        .filter((ep) => ep.trackName?.toLowerCase().includes(q))
+        .map(itunesToEpisode)
+    }
+    // Fallback: filter RSS episodes
+    if (!feed) return []
+    const q = searchQuery.toLowerCase()
+    return feed.episodes.filter((ep) => ep.title.toLowerCase().includes(q))
+  }, [searchQuery, collectionId, itunesEpisodes, feed])
+
+  // On mount (after feed + subscription loaded): update latest_episode_pub_date + new_episode_count
+  useEffect(() => {
+    if (!feed || !feedUrl || !subscribed) return
+    const newestPubDate = feed.episodes[0]?.pubDate
+    if (!newestPubDate) return
+    fetch('/api/subscriptions', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        feedUrl,
+        latestEpisodePubDate: newestPubDate,
+        newEpisodeCount: newEpisodes.length,
+      }),
+    })
+    window.dispatchEvent(new Event('subscriptions-changed'))
+  }, [feed, feedUrl, subscribed, newEpisodes.length])
+
+  // On unmount: update last_visited_at + reset count
+  useEffect(() => {
+    if (!feedUrl || !subscribed) return
+    return () => {
+      fetch('/api/subscriptions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          feedUrl,
+          lastVisitedAt: new Date().toISOString(),
+          newEpisodeCount: 0,
+        }),
+        keepalive: true,
+      }).catch(() => {})
+      window.dispatchEvent(new Event('subscriptions-changed'))
+    }
+  }, [feedUrl, subscribed])
 
   async function toggleSubscribe() {
     setSubscribing(true)
@@ -70,6 +195,7 @@ export default function PodcastPage() {
           body: JSON.stringify({ feedUrl }),
         })
         setSubscribed(false)
+        setSubscription(null)
       } else {
         await fetch('/api/subscriptions', {
           method: 'POST',
@@ -130,6 +256,57 @@ export default function PodcastPage() {
     })
   }
 
+  async function saveEpisodeFilter() {
+    setSavingFilter(true)
+    await fetch('/api/subscriptions', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ feedUrl, episodeFilter }),
+    })
+    setSubscription((prev) => prev ? { ...prev, episode_filter: episodeFilter } : prev)
+    setSavingFilter(false)
+  }
+
+  async function devResetLastVisited() {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    await fetch('/api/subscriptions', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ feedUrl, lastVisitedAt: sevenDaysAgo }),
+    })
+    setOldLastVisitedAt(sevenDaysAgo)
+  }
+
+  function renderEpisodeRow(ep: Episode) {
+    return (
+      <div key={ep.guid} className="flex items-center gap-2">
+        <button
+          onClick={() => playEpisode(ep)}
+          className="flex-1 text-left bg-gray-900 hover:bg-gray-800 rounded-xl px-5 py-4 transition-colors"
+        >
+          <p className="text-sm font-medium text-white">{ep.title}</p>
+          <div className="flex gap-3 mt-1">
+            <span className="text-xs text-gray-500">{new Date(ep.pubDate).toLocaleDateString()}</span>
+            {ep.duration && (
+              <span className="text-xs text-gray-500">{formatDuration(ep.duration)}</span>
+            )}
+          </div>
+        </button>
+        <button
+          onClick={() => toggleQueue(ep)}
+          title={queuedGuids.has(ep.guid) ? 'Remove from queue' : 'Add to queue'}
+          className={`p-3 rounded-lg text-lg transition-colors ${
+            queuedGuids.has(ep.guid)
+              ? 'text-violet-400 hover:text-red-400'
+              : 'text-gray-500 hover:text-white'
+          }`}
+        >
+          {queuedGuids.has(ep.guid) ? '✓' : '+'}
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="p-4 md:p-8 max-w-3xl">
       {/* Header */}
@@ -152,6 +329,14 @@ export default function PodcastPage() {
           >
             {subscribing ? '...' : subscribed ? 'Subscribed' : 'Subscribe'}
           </button>
+          {process.env.NODE_ENV === 'development' && subscribed && (
+            <button
+              onClick={devResetLastVisited}
+              className="self-start text-xs text-red-400 underline"
+            >
+              [dev] reset last visited → 7 days ago
+            </button>
+          )}
         </div>
       </div>
 
@@ -173,35 +358,74 @@ export default function PodcastPage() {
       ) : feed?.episodes.length === 0 ? (
         <p className="text-gray-400 text-sm">No episodes found.</p>
       ) : (
-        <div className="space-y-2">
-          {feed?.episodes.map((ep) => (
-            <div key={ep.guid} className="flex items-center gap-2">
+        <>
+          {/* Search */}
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={collectionId ? 'Search all episodes via iTunes... 🔍' : 'Search episodes... 🔍'}
+            className="w-full bg-gray-900 rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-violet-500 mb-4"
+          />
+
+          {/* Paid: episode filter — always visible when subscribed */}
+          {userTier === 'paid' && subscribed && (
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex-1">
+                <label className="text-xs text-gray-500 uppercase tracking-wider block mb-1">
+                  New episode filter
+                </label>
+                <input
+                  type="text"
+                  value={episodeFilter}
+                  onChange={(e) => setEpisodeFilter(e.target.value)}
+                  placeholder="e.g. 90 Day, interview... (leave blank for all)"
+                  className="w-full bg-gray-800 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-violet-500"
+                />
+              </div>
               <button
-                onClick={() => playEpisode(ep)}
-                className="flex-1 text-left bg-gray-900 hover:bg-gray-800 rounded-xl px-5 py-4 transition-colors"
+                onClick={saveEpisodeFilter}
+                disabled={savingFilter}
+                className="mt-5 px-3 py-1.5 rounded-lg text-sm bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 transition-colors flex-shrink-0"
               >
-                <p className="text-sm font-medium text-white">{ep.title}</p>
-                <div className="flex gap-3 mt-1">
-                  <span className="text-xs text-gray-500">{new Date(ep.pubDate).toLocaleDateString()}</span>
-                  {ep.duration && (
-                    <span className="text-xs text-gray-500">{formatDuration(ep.duration)}</span>
-                  )}
-                </div>
-              </button>
-              <button
-                onClick={() => toggleQueue(ep)}
-                title={queuedGuids.has(ep.guid) ? 'Remove from queue' : 'Add to queue'}
-                className={`p-3 rounded-lg text-lg transition-colors ${
-                  queuedGuids.has(ep.guid)
-                    ? 'text-violet-400 hover:text-red-400'
-                    : 'text-gray-500 hover:text-white'
-                }`}
-              >
-                {queuedGuids.has(ep.guid) ? '✓' : '+'}
+                {savingFilter ? '...' : 'Save'}
               </button>
             </div>
-          ))}
-        </div>
+          )}
+
+          {/* Search results */}
+          {searchQuery ? (
+            <div className="space-y-2">
+              {itunesLoading ? (
+                Array.from({ length: 4 }).map((_, i) => <SkeletonEpisodeRow key={i} />)
+              ) : searchResults.length === 0 ? (
+                <p className="text-gray-500 text-sm py-4 text-center">No episodes found.</p>
+              ) : (
+                searchResults.map(renderEpisodeRow)
+              )}
+            </div>
+          ) : (
+            <>
+              {/* New episodes section */}
+              {subscribed && newEpisodes.length > 0 && (
+                <section className="mb-6">
+                  <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
+                    New Episodes ✨
+                  </h2>
+
+                  <div className="space-y-2">
+                    {newEpisodes.map(renderEpisodeRow)}
+                  </div>
+                </section>
+              )}
+
+              {/* All episodes */}
+              <div className="space-y-2">
+                {feed?.episodes.map(renderEpisodeRow)}
+              </div>
+            </>
+          )}
+        </>
       )}
     </div>
   )

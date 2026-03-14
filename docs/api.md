@@ -32,6 +32,17 @@ Fetches a Podcast Namespace JSON chapter file.
 
 ---
 
+### `GET /api/podcasts/episodes?collectionId=<id>`
+Proxies the iTunes Lookup API to fetch up to 200 episodes for a podcast. No auth required. Results are cached for 1 hour (`revalidate: 3600`).
+
+**Response:** Array of iTunes episode objects with fields: `trackId`, `episodeGuid?`, `trackName`, `releaseDate`, `trackTimeMillis`, `episodeUrl`, `description?`
+
+**Errors:** `400` if `collectionId` missing, `502` if iTunes lookup fails.
+
+**Note:** Only works when the podcast has a numeric iTunes `collectionId`. Used client-side to power episode search (fetched lazily on first search, then filtered client-side). Known bug: some episodes may not appear — iTunes API response coverage is inconsistent.
+
+---
+
 ### `GET /api/podcasts/trending?genreId=<genreId>`
 Returns trending/popular podcasts. No auth required.
 
@@ -75,11 +86,14 @@ Unsubscribe from a podcast.
 ---
 
 ### `PATCH /api/subscriptions`
-Update drag-drop order.
+Two body variants:
 
-**Body:** `{ orderedFeedUrls: string[] }` — full ordered list of feed URLs.
+**Body A — Reorder:** `{ orderedFeedUrls: string[] }` — full ordered list of feed URLs. Runs parallel updates setting `position = index` for each.
 
-Runs parallel updates setting `position = index` for each.
+**Body B — Visit tracking / episode filter:** `{ feedUrl: string, latestEpisodePubDate?: string, lastVisitedAt?: string, episodeFilter?: string | null }`
+- `latestEpisodePubDate`: set on podcast detail page mount (after feed fetch) to the newest episode's `pubDate`
+- `lastVisitedAt`: set on podcast detail page unmount to record when the user last visited
+- `episodeFilter`: paid users only — substring filter controlling which episodes appear in the "New" section
 
 **Response:** `{ ok: true }`
 
