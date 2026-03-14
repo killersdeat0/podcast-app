@@ -1,6 +1,15 @@
 import { test, expect } from '@playwright/test'
 
 /**
+ * Auth guard smoke test — no credentials required.
+ * Verifies that unauthenticated users are redirected to /login.
+ */
+test('unauthenticated users are redirected to /login', async ({ page }) => {
+  await page.goto('/queue')
+  await expect(page).toHaveURL('/login', { timeout: 5_000 })
+})
+
+/**
  * Sign-up page smoke test — no credentials required.
  * Verifies the page loads and the form is present.
  */
