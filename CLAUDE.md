@@ -40,7 +40,7 @@ NEXT_PUBLIC_STRIPE_YEARLY_PRICE_ID=
 
 ## Docs
 
-Read relevant docs before making changes
+Read any relevant docs before making changes
 
 - `docs/api.md` — all API routes, request/response shapes, freemium gates. Read before touching API routes.
 - `docs/data-model.md` — DB tables, columns, RLS policies, key patterns. Read before touching DB schema or queries.
