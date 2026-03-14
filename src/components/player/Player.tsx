@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { usePlayer } from './PlayerContext'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { useStrings } from '@/lib/i18n/LocaleContext'
 
 const ALL_SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]
 const FREE_SPEEDS = [1, 2]
@@ -23,6 +24,7 @@ function formatTime(s: number) {
 export default function Player({ isFreeTier = false }: { isFreeTier?: boolean }) {
   const { nowPlaying, playing, speed, play, togglePlay, seek, setSpeed, audioRef } = usePlayer()
   const availableSpeeds = isFreeTier ? FREE_SPEEDS : ALL_SPEEDS
+  const strings = useStrings()
 
   const seekBack = useCallback(() => {
     if (audioRef.current) seek(audioRef.current.currentTime - 15)
@@ -278,7 +280,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
                       onClick={() => setMobileMenu('speed')}
                       className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700"
                     >
-                      <span>Playback Speed</span>
+                      <span>{strings.player.playback_speed}</span>
                       <span className="text-gray-500 ml-4">{speed}x ›</span>
                     </button>
                   </>
@@ -289,7 +291,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
                       onClick={() => setMobileMenu('main')}
                       className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-400 hover:bg-gray-700 border-b border-gray-700"
                     >
-                      <span>‹</span> Playback Speed
+                      <span>‹</span> {strings.player.playback_speed}
                     </button>
                     {availableSpeeds.map((s) => (
                       <button
@@ -321,7 +323,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
             </select>
             {isFreeTier && (
               <a href="/upgrade" className="text-[10px] text-violet-400 hover:text-violet-300 leading-none">
-                Upgrade for more speeds
+                {strings.player.upgrade_for_speeds}
               </a>
             )}
           </div>
@@ -330,13 +332,13 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
             onChange={(e) => startSleepTimer(Number(e.target.value))}
             className="bg-gray-800 text-white text-xs rounded px-2 py-1 outline-none"
           >
-            <option value={0}>Sleep off</option>
-            <option value={5}>5 min</option>
-            <option value={10}>10 min</option>
-            <option value={15}>15 min</option>
-            <option value={30}>30 min</option>
-            <option value={45}>45 min</option>
-            <option value={60}>60 min</option>
+            <option value={0}>{strings.player.sleep_off}</option>
+            <option value={5}>{strings.player.sleep_5}</option>
+            <option value={10}>{strings.player.sleep_10}</option>
+            <option value={15}>{strings.player.sleep_15}</option>
+            <option value={30}>{strings.player.sleep_30}</option>
+            <option value={45}>{strings.player.sleep_45}</option>
+            <option value={60}>{strings.player.sleep_60}</option>
           </select>
         </div>
       </div>

@@ -19,6 +19,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { createClient } from '@/lib/supabase/client'
+import { useStrings } from '@/lib/i18n/LocaleContext'
 
 interface Subscription {
   feed_url: string
@@ -27,28 +28,13 @@ interface Subscription {
   collection_id: string | null
 }
 
-const navItems = [
-  {
-    href: '/discover', label: 'Discover',
-    icon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8"/><path strokeLinecap="round" d="M21 21l-4.35-4.35"/></svg>,
-  },
-  {
-    href: '/queue', label: 'Queue',
-    icon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>,
-  },
-  {
-    href: '/history', label: 'History',
-    icon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="9"/><path strokeLinecap="round" d="M12 7v5l3 3"/></svg>,
-  },
-  {
-    href: '/upgrade', label: 'Upgrade',
-    icon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 3l14 9-14 9V3z"/></svg>,
-  },
-  {
-    href: '/profile', label: 'Profile',
-    icon: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-  },
-]
+const navIcons = {
+  discover: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8"/><path strokeLinecap="round" d="M21 21l-4.35-4.35"/></svg>,
+  queue:    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>,
+  history:  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="9"/><path strokeLinecap="round" d="M12 7v5l3 3"/></svg>,
+  upgrade:  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 3l14 9-14 9V3z"/></svg>,
+  profile:  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+}
 
 function SortableSub({ sub, active }: { sub: Subscription; active: boolean }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -97,6 +83,15 @@ export default function Sidebar() {
   const [tier, setTier] = useState<'free' | 'paid' | null>(null)
   const [open, setOpen] = useState(true)
   const sensors = useSensors(useSensor(PointerSensor))
+  const strings = useStrings()
+
+  const navItems = [
+    { href: '/discover', label: strings.nav.discover, icon: navIcons.discover },
+    { href: '/queue',    label: strings.nav.queue,    icon: navIcons.queue },
+    { href: '/history',  label: strings.nav.history,  icon: navIcons.history },
+    { href: '/upgrade',  label: strings.nav.upgrade,  icon: navIcons.upgrade },
+    { href: '/profile',  label: strings.nav.profile,  icon: navIcons.profile },
+  ]
 
   useEffect(() => {
     const stored = localStorage.getItem('sidebar-open')
@@ -195,11 +190,21 @@ export default function Sidebar() {
               </Link>
             ))}
 
-            {subscriptions.length > 0 && (
-              <>
-                <p className="px-3 pt-4 pb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  My Podcasts
-                </p>
+            <>
+              <p className="px-3 pt-4 pb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                {strings.sidebar.my_podcasts}
+              </p>
+              {subscriptions.length === 0 ? (
+                <div className="px-3 py-2">
+                  <p className="text-xs text-gray-600 mb-2">{strings.sidebar.empty_hint}</p>
+                  <Link
+                    href="/discover"
+                    className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                  >
+                    {strings.sidebar.empty_cta} →
+                  </Link>
+                </div>
+              ) : (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={subscriptions.map((s) => s.feed_url)} strategy={verticalListSortingStrategy}>
                     {subscriptions.map((sub) => {
@@ -210,8 +215,8 @@ export default function Sidebar() {
                     })}
                   </SortableContext>
                 </DndContext>
-              </>
-            )}
+              )}
+            </>
           </nav>
           <div className="px-3 pt-1 pb-2 border-t border-gray-800">
             <button
@@ -219,7 +224,7 @@ export default function Sidebar() {
               className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1"/></svg>
-              Sign out
+              {strings.nav.sign_out}
             </button>
           </div>
         </>

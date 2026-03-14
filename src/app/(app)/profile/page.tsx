@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { useStrings, useLocale, LOCALE_LABELS } from '@/lib/i18n/LocaleContext'
+import type { Locale } from '@/lib/i18n'
 
 interface ProfileData {
   email: string
@@ -26,6 +29,8 @@ export default function ProfilePage() {
   const [data, setData] = useState<ProfileData | null>(null)
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [downgrading, setDowngrading] = useState(false)
+  const strings = useStrings()
+  const { locale, setLocale } = useLocale()
 
   function fetchProfile() {
     fetch('/api/profile')
@@ -51,7 +56,7 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-lg mx-auto px-6 py-12">
-      <h1 className="text-2xl font-bold text-white mb-8">Profile</h1>
+      <h1 className="text-2xl font-bold text-white mb-8">{strings.profile.heading}</h1>
 
       {!data ? (
         <div className="space-y-4">
@@ -65,7 +70,7 @@ export default function ProfilePage() {
 
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Account</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">{strings.profile.account}</p>
               <p className="text-white font-semibold text-lg capitalize">{data.tier}</p>
             </div>
             {data.tier === 'free' && (
@@ -73,16 +78,16 @@ export default function ProfilePage() {
                 href="/upgrade"
                 className="bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
               >
-                Upgrade
+                {strings.profile.upgrade_cta}
               </Link>
             )}
             {data.tier === 'paid' && (
               <div className="flex flex-col items-end">
-                <span className="text-violet-400 text-sm font-medium">Pro</span>
+                <span className="text-violet-400 text-sm font-medium">{strings.profile.pro_label}</span>
                 {process.env.NODE_ENV === 'development' && (
                   <button onClick={handleDowngrade} disabled={downgrading}
                     className="mt-2 text-xs text-red-400 underline">
-                    [Dev] Downgrade to free
+                    {strings.profile.dev_downgrade}
                   </button>
                 )}
               </div>
@@ -90,16 +95,39 @@ export default function ProfilePage() {
           </div>
 
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-6">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Listened (last 30 days)</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">{strings.profile.listened}</p>
             <p className="text-white font-semibold text-3xl">{formatHours(data.listeningSeconds)}</p>
+          </div>
+
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 flex items-center justify-between">
+            <p className="text-xs text-gray-500 uppercase tracking-wider">{strings.profile.language}</p>
+            <div className="flex gap-2">
+              {(Object.entries(LOCALE_LABELS) as [Locale, string][]).map(([code, label]) => (
+                <button
+                  key={code}
+                  onClick={() => setLocale(code)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    locale === code
+                      ? 'bg-violet-600 text-white'
+                      : 'bg-gray-800 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-6">
             <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-              Subscriptions ({subscriptions.length})
+              {strings.profile.subscriptions} ({subscriptions.length})
             </p>
             {subscriptions.length === 0 ? (
-              <p className="text-gray-500 text-sm mt-2">No subscriptions yet.</p>
+              <EmptyState
+                title={strings.profile.subscriptions_empty}
+                description={strings.profile.subscriptions_empty_description}
+                cta={{ label: strings.profile.subscriptions_empty_cta, href: '/discover' }}
+              />
             ) : (
               <ul className="mt-3 space-y-3">
                 {subscriptions.map((sub) => (

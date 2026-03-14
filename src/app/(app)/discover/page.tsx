@@ -5,6 +5,8 @@ import Link from 'next/link'
 import type { ItunesResult } from '@/lib/itunes/search'
 import { PODCAST_GENRES } from '@/lib/itunes/trending'
 import { SkeletonPodcastCard } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { useStrings } from '@/lib/i18n/LocaleContext'
 
 function PodcastCard({ podcast }: { podcast: ItunesResult }) {
   return (
@@ -28,6 +30,7 @@ function PodcastCard({ podcast }: { podcast: ItunesResult }) {
 }
 
 export default function DiscoverPage() {
+  const strings = useStrings()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<ItunesResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -119,7 +122,7 @@ export default function DiscoverPage() {
 
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold mb-6">Discover</h1>
+      <h1 className="text-2xl font-bold mb-6">{strings.discover.heading}</h1>
 
       <form onSubmit={search} className="relative flex gap-3 mb-8" ref={dropdownRef}>
         <div className="flex-1 relative">
@@ -133,7 +136,7 @@ export default function DiscoverPage() {
             onFocus={() => {
               if (query.trim()) setShowDropdown(true)
             }}
-            placeholder="Search podcasts..."
+            placeholder={strings.discover.search_placeholder}
             className="w-full bg-gray-800 text-white rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-violet-500"
           />
 
@@ -141,7 +144,7 @@ export default function DiscoverPage() {
           {showDropdown && query.trim() && (
             <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-gray-800 rounded-xl shadow-2xl overflow-hidden z-50 backdrop-blur-md bg-opacity-95">
               {loadingSuggestions ? (
-                <div className="p-4 text-sm text-gray-400">Loading suggestions...</div>
+                <div className="p-4 text-sm text-gray-400">{strings.discover.loading_suggestions}</div>
               ) : suggestions.length > 0 ? (
                 <ul>
                   {suggestions.map((podcast) => (
@@ -167,7 +170,7 @@ export default function DiscoverPage() {
                 </ul>
               ) : (
                 <div className="p-4 text-sm text-gray-400">
-                  No suggestions for &ldquo;{query}&rdquo;
+                  {strings.discover.no_suggestions} &ldquo;{query}&rdquo;
                 </div>
               )}
             </div>
@@ -178,7 +181,7 @@ export default function DiscoverPage() {
           disabled={loading}
           className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white rounded-lg px-6 py-3 text-sm font-medium transition-colors"
         >
-          {loading ? '...' : 'Search'}
+          {loading ? '...' : strings.discover.search_button}
         </button>
       </form>
 
@@ -189,7 +192,7 @@ export default function DiscoverPage() {
       {/* Genre tabs — shown when browsing trending */}
       {showTrending && (
         <>
-          <h2 className="text-lg font-semibold mb-4">Trending Podcasts</h2>
+          <h2 className="text-lg font-semibold mb-4">{strings.discover.trending}</h2>
           <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
             {PODCAST_GENRES.map((genre) => (
               <button
@@ -201,7 +204,7 @@ export default function DiscoverPage() {
                     : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                 }`}
               >
-                {genre.label}
+                {strings.genres[genre.id] ?? genre.label}
               </button>
             ))}
           </div>
@@ -217,7 +220,10 @@ export default function DiscoverPage() {
       </div>
 
       {searched && !loading && results.length === 0 && !error && (
-        <p className="text-gray-400 text-sm">No podcasts found for &ldquo;{query}&rdquo;.</p>
+        <EmptyState
+          title={strings.discover.no_results_title}
+          description={strings.discover.no_results_description}
+        />
       )}
     </div>
   )

@@ -17,6 +17,8 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { usePlayer } from '@/components/player/PlayerContext'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { useStrings } from '@/lib/i18n/LocaleContext'
 
 interface QueueItem {
   episode_guid: string
@@ -106,6 +108,7 @@ export default function QueuePage() {
   const [items, setItems] = useState<QueueItem[]>([])
   const [loading, setLoading] = useState(true)
   const { play } = usePlayer()
+  const strings = useStrings()
 
   const sensors = useSensors(useSensor(PointerSensor))
 
@@ -157,7 +160,7 @@ export default function QueuePage() {
 
   return (
     <div className="p-8 max-w-3xl">
-      <h1 className="text-2xl font-bold mb-6">Queue</h1>
+      <h1 className="text-2xl font-bold mb-6">{strings.queue.heading}</h1>
 
       {loading ? (
         <div className="space-y-2">
@@ -166,7 +169,11 @@ export default function QueuePage() {
           ))}
         </div>
       ) : items.length === 0 ? (
-        <p className="text-gray-400 text-sm">Your queue is empty.</p>
+        <EmptyState
+          title={strings.queue.empty_title}
+          description={strings.queue.empty_description}
+          cta={{ label: strings.queue.empty_cta, href: '/discover' }}
+        />
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={items.map((i) => i.episode_guid)} strategy={verticalListSortingStrategy}>

@@ -43,6 +43,7 @@ NEXT_PUBLIC_STRIPE_YEARLY_PRICE_ID=
 - `docs/api.md` — all API routes, request/response shapes, freemium gates
 - `docs/data-model.md` — DB tables, columns, RLS policies, key patterns
 - `docs/player.md` — player state machine, progress saving, queue auto-advance, chapters
+- `docs/i18n.md` — i18n system: adding languages, string namespaces, EmptyState component, tone guidelines
 
 ## Architecture
 
@@ -62,6 +63,10 @@ NEXT_PUBLIC_STRIPE_YEARLY_PRICE_ID=
 ### Data flow
 
 Podcast discovery uses the iTunes Search API (`/api/podcasts/search`) → episode list fetches RSS via `/api/podcasts/feed` → `fast-xml-parser` parses the feed server-side.
+
+### i18n
+
+All user-facing strings live in `src/lib/i18n/`. The active locale is stored in `localStorage` and toggled from **Profile → Language**. Use `useStrings()` from `LocaleContext.tsx` in every client component — never the static `strings` export from `index.ts`. When writing or editing user-visible text, keep it fun: use emojis in titles/empty states and write CTAs as actions. See `docs/i18n.md` for the full guide.
 
 ### Global playback state
 

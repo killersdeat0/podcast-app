@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { usePlayer } from '@/components/player/PlayerContext'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { useStrings } from '@/lib/i18n/LocaleContext'
 
 interface HistoryItem {
   episode_guid: string
@@ -36,6 +38,7 @@ export default function HistoryPage() {
   const [items, setItems] = useState<HistoryItem[]>([])
   const [loading, setLoading] = useState(true)
   const { play } = usePlayer()
+  const strings = useStrings()
 
   useEffect(() => {
     fetch('/api/history')
@@ -61,7 +64,7 @@ export default function HistoryPage() {
 
   return (
     <div className="p-8 max-w-3xl">
-      <h1 className="text-2xl font-bold mb-6">History</h1>
+      <h1 className="text-2xl font-bold mb-6">{strings.history.heading}</h1>
 
       {loading ? (
         <div className="space-y-2">
@@ -70,7 +73,11 @@ export default function HistoryPage() {
           ))}
         </div>
       ) : items.length === 0 ? (
-        <p className="text-gray-400 text-sm">No listening history yet.</p>
+        <EmptyState
+          title={strings.history.empty_title}
+          description={strings.history.empty_description}
+          cta={{ label: strings.history.empty_cta, href: '/discover' }}
+        />
       ) : (
         <div className="space-y-2">
           {items.map((item) => (
