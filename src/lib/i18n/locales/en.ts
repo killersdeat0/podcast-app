@@ -38,6 +38,11 @@ const en = {
     upgrade_cta: 'Upgrade',
     pro_label: 'Pro',
     dev_downgrade: '[Dev] Downgrade to free',
+    opml_export: 'Export OPML',
+    opml_import: 'Import OPML',
+    opml_importing: 'Importing...',
+    opml_import_success: 'Imported {{n}} podcasts 🎉',
+    opml_import_error: 'Import failed',
   },
   discover: {
     heading: 'Discover',

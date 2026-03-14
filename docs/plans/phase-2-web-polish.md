@@ -27,7 +27,7 @@ Harden the web app with premium features, monetization, and UX improvements.
 - [x] No banner ads (audio ads moved to Phase 4)
 - [x] ~~Silence skipping~~ — canceled for web: Web Audio API can't analyse cross-origin audio (CORS); all podcast CDNs are cross-origin. Will be implemented in Phase 3 (mobile) where native audio APIs have no CORS restriction.
 - [x] Listening stats & insights
-- [ ] OPML import/export
+- [x] OPML import/export
 
 ### ~~Silence Skipping (paid only)~~ — Canceled for web — Phase 3 (mobile) only
 - The Web Audio API's `createMediaElementSource()` zeroes out cross-origin audio (browser security). Podcast audio always goes through cross-origin tracking redirects (podtrac, vpixl, etc.) that don't send CORS headers, so the analyser gets no data.
@@ -48,7 +48,7 @@ Harden the web app with premium features, monetization, and UX improvements.
 - [x] Keyboard shortcuts (space = play/pause, arrow keys = seek)
 - [ ] New episode push notifications (per-podcast toggle; paid: name pattern filters)
 - [ ] ~~Audio ad clip before queue auto-advance~~ — moved to Phase 4 (Ad Monetization)
-- [ ] OPML import/export
+- [x] OPML import/export
 - [ ] Better empty states and onboarding flow
 
 ### Testing

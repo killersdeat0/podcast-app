@@ -168,6 +168,26 @@ Returns the current user's profile and listening stats.
 
 ---
 
+## OPML
+
+### `GET /api/opml/export`
+Exports the user's subscriptions as an OPML 2.0 file.
+
+**Response:** `text/xml` file download (`subscriptions.opml`) containing one `<outline type="rss">` per subscription.
+
+---
+
+### `POST /api/opml/import`
+Imports subscriptions from an OPML file. Accepts `multipart/form-data` with a `file` field.
+
+Fetches each RSS feed in parallel to resolve the canonical title and artwork URL. Skips feeds that already exist in the user's subscriptions (`ignoreDuplicates: true`). Capped at 200 feeds per import.
+
+**Response:** `{ imported: number }` — count of feeds added.
+
+**Errors:** `400` if no file, unparseable XML, or no feeds found. `401` if unauthenticated.
+
+---
+
 ## Stripe / Payments
 
 ### `POST /api/stripe/checkout`

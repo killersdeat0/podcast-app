@@ -31,6 +31,8 @@ export default function ProfilePage() {
   const [data, setData] = useState<ProfileData | null>(null)
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [downgrading, setDowngrading] = useState(false)
+  const [importStatus, setImportStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [importedCount, setImportedCount] = useState(0)
   const strings = useStrings()
   const { locale, setLocale } = useLocale()
 
@@ -48,6 +50,30 @@ export default function ProfilePage() {
       .then((subs) => { if (Array.isArray(subs)) setSubscriptions(subs) })
       .catch(() => {})
   }, [])
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setImportStatus('loading')
+    const form = new FormData()
+    form.append('file', file)
+    try {
+      const res = await fetch('/api/opml/import', { method: 'POST', body: form })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      setImportedCount(json.imported)
+      setImportStatus('success')
+      setSubscriptions([])
+      fetch('/api/subscriptions')
+        .then((r) => r.json())
+        .then((subs) => { if (Array.isArray(subs)) setSubscriptions(subs) })
+        .catch(() => {})
+      window.dispatchEvent(new Event('subscriptions-changed'))
+    } catch {
+      setImportStatus('error')
+    }
+  }
 
   async function handleDowngrade() {
     setDowngrading(true)
@@ -128,9 +154,39 @@ export default function ProfilePage() {
           </div>
 
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-6">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-              {strings.profile.subscriptions} ({subscriptions.length})
-            </p>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs text-gray-500 uppercase tracking-wider">
+                {strings.profile.subscriptions} ({subscriptions.length})
+              </p>
+              <div className="flex items-center gap-2">
+                <a
+                  href="/api/opml/export"
+                  download="subscriptions.opml"
+                  className="text-xs text-gray-400 hover:text-white transition-colors"
+                >
+                  {strings.profile.opml_export}
+                </a>
+                <span className="text-gray-700">|</span>
+                <label className="text-xs text-gray-400 hover:text-white transition-colors cursor-pointer">
+                  {importStatus === 'loading' ? strings.profile.opml_importing : strings.profile.opml_import}
+                  <input
+                    type="file"
+                    accept=".opml,.xml"
+                    className="sr-only"
+                    onChange={handleImport}
+                    disabled={importStatus === 'loading'}
+                  />
+                </label>
+              </div>
+            </div>
+            {importStatus === 'success' && (
+              <p className="text-xs text-green-400 mb-2">
+                {strings.profile.opml_import_success.replace('{{n}}', String(importedCount))}
+              </p>
+            )}
+            {importStatus === 'error' && (
+              <p className="text-xs text-red-400 mb-2">{strings.profile.opml_import_error}</p>
+            )}
             {subscriptions.length === 0 ? (
               <EmptyState
                 title={strings.profile.subscriptions_empty}
