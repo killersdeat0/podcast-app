@@ -21,6 +21,14 @@ npm run test:e2e    # run Playwright E2E tests (requires dev server on port 3000
 
 Unit tests live alongside source files (`*.test.ts`). E2E tests live in `tests/e2e/`.
 
+**Before committing:** always run unit tests (`npm test -- --run`).
+
+**Before committing large changes:** also run E2E tests (`npm run test:e2e`). Requires a running dev server (`npm run dev`) and `E2E_TEST_EMAIL` / `E2E_TEST_PASSWORD` in `.env.local`. Run E2E when touching:
+- Auth flow, middleware (`proxy.ts`), or redirect logic
+- Player, queue, or progress saving
+- API routes that the UI depends on
+- Any change that spans multiple components or pages
+
 ## Environment
 
 Requires `.env.local`:
