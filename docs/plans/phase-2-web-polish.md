@@ -39,6 +39,10 @@ Harden the web app with premium features, monetization, and UX improvements.
 - [ ] Episodes completed per week
 - [ ] Streak tracking
 
+### Discovery
+- [x] Trending/popular podcasts on discover page (Apple Top Charts + iTunes Lookup)
+- [x] Genre tabs for browsing by category (Comedy, Technology, News, etc.)
+
 ### UX Polish
 - [x] Show subscribed podcasts on the profile page
 - [x] Keyboard shortcuts (space = play/pause, arrow keys = seek)

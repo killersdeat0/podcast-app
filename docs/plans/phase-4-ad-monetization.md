@@ -32,6 +32,16 @@ Swap house ads for personalized, revenue-generating ads via Google Ad Manager + 
 - [ ] AdTonos SandstormSDK as alternative for mobile-specific audio ads
 - [ ] Unified ad impression tracking across web and mobile
 
+## Stage 4: Personalized Recommendations
+
+Leverage user subscription and listening data to surface relevant podcasts on the discover page, similar to how ads are personalized by behavior.
+
+- [ ] "Because you listen to X" recommendation sections on discover page
+- [ ] Collaborative filtering: users who subscribe to X also subscribe to Y
+- [ ] Genre-weighted suggestions based on subscription mix
+- [ ] Listening history signals (most-played genres, completion rates)
+- [ ] Blend personalized recommendations with trending results on discover page
+
 ## Notes
 
 - Spotify/Pandora play 15-30s unskippable ads personalized by demographics, location, and listening behavior

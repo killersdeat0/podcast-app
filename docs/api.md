@@ -32,6 +32,21 @@ Fetches a Podcast Namespace JSON chapter file.
 
 ---
 
+### `GET /api/podcasts/trending?genreId=<genreId>`
+Returns trending/popular podcasts. No auth required.
+
+Without `genreId` (or `genreId=0`): fetches Apple Top Charts, then enriches via iTunes Lookup API.
+With a positive `genreId`: fetches popular podcasts in that genre via iTunes Search API.
+
+Genre IDs: 1303 Comedy, 1318 Technology, 1489 News, 1488 True Crime, 1321 Business, 1304 Education, 1324 Society & Culture, 1545 Sports, 1512 Health & Fitness.
+
+**Response:**
+```json
+{ "results": [{ "collectionId": 123, "collectionName": "...", "artworkUrl600": "...", "feedUrl": "..." }] }
+```
+
+---
+
 ## Subscriptions
 
 ### `GET /api/subscriptions`

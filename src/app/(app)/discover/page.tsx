@@ -3,7 +3,29 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import type { ItunesResult } from '@/lib/itunes/search'
+import { PODCAST_GENRES } from '@/lib/itunes/trending'
 import { SkeletonPodcastCard } from '@/components/ui/Skeleton'
+
+function PodcastCard({ podcast }: { podcast: ItunesResult }) {
+  return (
+    <Link
+      href={`/podcast/${podcast.collectionId}?feed=${encodeURIComponent(podcast.feedUrl)}&title=${encodeURIComponent(podcast.collectionName)}&artwork=${encodeURIComponent(podcast.artworkUrl600)}`}
+      className="flex gap-4 bg-gray-900 hover:bg-gray-800 rounded-xl p-4 transition-colors"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={podcast.artworkUrl600}
+        alt={podcast.collectionName}
+        className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+      />
+      <div className="overflow-hidden">
+        <p className="font-medium text-sm text-white truncate">{podcast.collectionName}</p>
+        <p className="text-xs text-gray-400 truncate mt-1">{podcast.artistName}</p>
+        <p className="text-xs text-gray-500 mt-1">{podcast.primaryGenreName}</p>
+      </div>
+    </Link>
+  )
+}
 
 export default function DiscoverPage() {
   const [query, setQuery] = useState('')
@@ -17,6 +39,22 @@ export default function DiscoverPage() {
   const [showDropdown, setShowDropdown] = useState(false)
   const [loadingSuggestions, setLoadingSuggestions] = useState(false)
   const dropdownRef = useRef<HTMLFormElement>(null)
+
+  // Trending state
+  const [trendingResults, setTrendingResults] = useState<ItunesResult[]>([])
+  const [trendingLoading, setTrendingLoading] = useState(true)
+  const [activeGenre, setActiveGenre] = useState(0)
+
+  // Fetch trending on mount and when genre changes
+  useEffect(() => {
+    setTrendingLoading(true)
+    const params = activeGenre > 0 ? `?genreId=${activeGenre}` : ''
+    fetch(`/api/podcasts/trending${params}`)
+      .then((res) => res.json())
+      .then((data) => setTrendingResults(data.results ?? []))
+      .catch(() => setTrendingResults([]))
+      .finally(() => setTrendingLoading(false))
+  }, [activeGenre])
 
   // Debounced autocomplete search
   useEffect(() => {
@@ -75,8 +113,12 @@ export default function DiscoverPage() {
     }
   }
 
+  const showTrending = !searched
+  const displayResults = showTrending ? trendingResults : results
+  const isLoading = showTrending ? trendingLoading : loading
+
   return (
-    <div className="p-8 max-w-4xl">
+    <div className="p-8">
       <h1 className="text-2xl font-bold mb-6">Discover</h1>
 
       <form onSubmit={search} className="relative flex gap-3 mb-8" ref={dropdownRef}>
@@ -84,7 +126,10 @@ export default function DiscoverPage() {
           <input
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value)
+              if (!e.target.value.trim()) setSearched(false)
+            }}
             onFocus={() => {
               if (query.trim()) setShowDropdown(true)
             }}
@@ -141,28 +186,34 @@ export default function DiscoverPage() {
         <p className="text-red-400 text-sm mb-4">{error}</p>
       )}
 
+      {/* Genre tabs — shown when browsing trending */}
+      {showTrending && (
+        <>
+          <h2 className="text-lg font-semibold mb-4">Trending Podcasts</h2>
+          <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+            {PODCAST_GENRES.map((genre) => (
+              <button
+                key={genre.id}
+                onClick={() => setActiveGenre(genre.id)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                  activeGenre === genre.id
+                    ? 'bg-violet-600 text-white'
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                {genre.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
       <div className="grid grid-cols-2 gap-4">
-        {loading
+        {isLoading
           ? Array.from({ length: 6 }).map((_, i) => <SkeletonPodcastCard key={i} />)
-          : results.map((podcast) => (
-            <Link
-              key={podcast.collectionId}
-              href={`/podcast/${podcast.collectionId}?feed=${encodeURIComponent(podcast.feedUrl)}&title=${encodeURIComponent(podcast.collectionName)}&artwork=${encodeURIComponent(podcast.artworkUrl600)}`}
-              className="flex gap-4 bg-gray-900 hover:bg-gray-800 rounded-xl p-4 transition-colors"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={podcast.artworkUrl600}
-                alt={podcast.collectionName}
-                className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
-              />
-              <div className="overflow-hidden">
-                <p className="font-medium text-sm text-white truncate">{podcast.collectionName}</p>
-                <p className="text-xs text-gray-400 truncate mt-1">{podcast.artistName}</p>
-                <p className="text-xs text-gray-500 mt-1">{podcast.primaryGenreName}</p>
-              </div>
-            </Link>
-          ))}
+          : displayResults.map((podcast) => (
+              <PodcastCard key={podcast.collectionId} podcast={podcast} />
+            ))}
       </div>
 
       {searched && !loading && results.length === 0 && !error && (
