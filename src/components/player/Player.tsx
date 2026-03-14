@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { usePlayer } from './PlayerContext'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 
 const ALL_SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]
 const FREE_SPEEDS = [1, 2]
@@ -22,6 +23,14 @@ function formatTime(s: number) {
 export default function Player({ isFreeTier = false }: { isFreeTier?: boolean }) {
   const { nowPlaying, playing, speed, play, togglePlay, seek, setSpeed, audioRef } = usePlayer()
   const availableSpeeds = isFreeTier ? FREE_SPEEDS : ALL_SPEEDS
+
+  const seekBack = useCallback(() => {
+    if (audioRef.current) seek(audioRef.current.currentTime - 15)
+  }, [audioRef, seek])
+  const seekForward = useCallback(() => {
+    if (audioRef.current) seek(audioRef.current.currentTime + 30)
+  }, [audioRef, seek])
+  useKeyboardShortcuts({ togglePlay, seekBack, seekForward })
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [sleepMinutes, setSleepMinutes] = useState(0)

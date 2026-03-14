@@ -9,6 +9,13 @@ interface ProfileData {
   listeningSeconds: number
 }
 
+interface Subscription {
+  feed_url: string
+  title: string
+  artwork_url: string | null
+  collection_id: string | null
+}
+
 function formatHours(seconds: number): string {
   const hours = seconds / 3600
   if (hours < 1) return `${Math.round(seconds / 60)} min`
@@ -17,6 +24,7 @@ function formatHours(seconds: number): string {
 
 export default function ProfilePage() {
   const [data, setData] = useState<ProfileData | null>(null)
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [downgrading, setDowngrading] = useState(false)
 
   function fetchProfile() {
@@ -28,6 +36,10 @@ export default function ProfilePage() {
 
   useEffect(() => {
     fetchProfile()
+    fetch('/api/subscriptions')
+      .then((r) => r.json())
+      .then((subs) => { if (Array.isArray(subs)) setSubscriptions(subs) })
+      .catch(() => {})
   }, [])
 
   async function handleDowngrade() {
@@ -80,6 +92,40 @@ export default function ProfilePage() {
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-6">
             <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Listened (last 30 days)</p>
             <p className="text-white font-semibold text-3xl">{formatHours(data.listeningSeconds)}</p>
+          </div>
+
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6">
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
+              Subscriptions ({subscriptions.length})
+            </p>
+            {subscriptions.length === 0 ? (
+              <p className="text-gray-500 text-sm mt-2">No subscriptions yet.</p>
+            ) : (
+              <ul className="mt-3 space-y-3">
+                {subscriptions.map((sub) => (
+                  <li key={sub.feed_url}>
+                    <Link
+                      href={`/podcast/${sub.collection_id ?? encodeURIComponent(sub.feed_url)}?feed=${encodeURIComponent(sub.feed_url)}&title=${encodeURIComponent(sub.title)}&artwork=${encodeURIComponent(sub.artwork_url ?? '')}`}
+                      className="flex items-center gap-3 group"
+                    >
+                      {sub.artwork_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={sub.artwork_url}
+                          alt=""
+                          className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-gray-800 flex-shrink-0" />
+                      )}
+                      <span className="text-sm text-gray-300 group-hover:text-white truncate transition-colors">
+                        {sub.title}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       )}

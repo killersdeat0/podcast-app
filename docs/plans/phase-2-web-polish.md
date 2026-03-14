@@ -17,14 +17,14 @@ Harden the web app with premium features, monetization, and UX improvements.
 - [x] History: last 30 days only
 - [ ] New episode notifications: per-podcast toggle only
 - [x] Banner ad in player
-- [ ] Short audio ad clip before each queue auto-advance
+- [ ] ~~Short audio ad clip before each queue auto-advance~~ — moved to Phase 4 (Ad Monetization)
 
 **Paid tier unlocks:**
 - [x] Unlimited queue
 - [x] Full playback speed range selector (0.5x–3x)
 - [x] Full history (kept while subscribed)
 - [ ] Notification filters by name pattern (starts with / contains)
-- [x] No banner ads (audio ad not yet implemented for free tier either)
+- [x] No banner ads (audio ads moved to Phase 4)
 - [x] ~~Silence skipping~~ — canceled for web: Web Audio API can't analyse cross-origin audio (CORS); all podcast CDNs are cross-origin. Will be implemented in Phase 3 (mobile) where native audio APIs have no CORS restriction.
 - [ ] Listening stats & insights
 - [ ] OPML import/export
@@ -40,10 +40,10 @@ Harden the web app with premium features, monetization, and UX improvements.
 - [ ] Streak tracking
 
 ### UX Polish
-- [ ] Show subscribed podcasts on the profile page
-- [ ] Keyboard shortcuts (space = play/pause, arrow keys = seek)
+- [x] Show subscribed podcasts on the profile page
+- [x] Keyboard shortcuts (space = play/pause, arrow keys = seek)
 - [ ] New episode push notifications (per-podcast toggle; paid: name pattern filters)
-- [ ] Audio ad clip before queue auto-advance (free tier only) — stub exists in Player.tsx, needs implementation
+- [ ] ~~Audio ad clip before queue auto-advance~~ — moved to Phase 4 (Ad Monetization)
 - [ ] OPML import/export
 - [ ] Better empty states and onboarding flow
 
