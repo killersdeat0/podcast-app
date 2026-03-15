@@ -90,10 +90,11 @@ Two body variants:
 
 **Body A — Reorder:** `{ orderedFeedUrls: string[] }` — full ordered list of feed URLs. Runs parallel updates setting `position = index` for each.
 
-**Body B — Visit tracking / episode filter:** `{ feedUrl: string, latestEpisodePubDate?: string, lastVisitedAt?: string, episodeFilter?: string | null }`
+**Body B — Visit tracking / episode filter:** `{ feedUrl: string, latestEpisodePubDate?: string, lastVisitedAt?: string, newEpisodeCount?: number, episodeFilter?: string }`
 - `latestEpisodePubDate`: set on podcast detail page mount (after feed fetch) to the newest episode's `pubDate`
 - `lastVisitedAt`: set on podcast detail page unmount to record when the user last visited
-- `episodeFilter`: paid users only — substring filter controlling which episodes appear in the "New" section
+- `newEpisodeCount`: count of new episodes since last visit; set on mount alongside `latestEpisodePubDate`
+- `episodeFilter`: controls the ✨ New Episodes section. Sentinel values: `''` = no notifications (all users), `'*'` = all new episodes (all users), any other text = custom keyword filter (paid only — free users who send custom text are silently ignored). On downgrade, custom text filters are automatically reset to `'*'`.
 
 **Response:** `{ ok: true }`
 
@@ -199,6 +200,24 @@ Fetches each RSS feed in parallel to resolve the canonical title and artwork URL
 **Response:** `{ imported: number }` — count of feeds added.
 
 **Errors:** `400` if no file, unparseable XML, or no feeds found. `401` if unauthenticated.
+
+---
+
+## Dev (development only)
+
+Routes that return `404` in production.
+
+### `POST /api/dev/upgrade`
+Sets the current user's `tier` to `'paid'` without going through Stripe. Used for fast testing of paid features.
+
+**Response:** `{ ok: true }`
+
+---
+
+### `POST /api/dev/downgrade`
+Sets the current user's `tier` to `'free'` and clears `stripe_subscription_id`. Also resets any custom text `episode_filter` values on the user's subscriptions back to `'*'`.
+
+**Response:** `{ ok: true }`
 
 ---
 

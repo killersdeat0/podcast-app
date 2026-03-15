@@ -36,7 +36,7 @@ One row per user per podcast they're subscribed to.
 | `subscribed_at` | `timestamptz` | Auto-set |
 | `last_visited_at` | `timestamptz` | When user last opened this podcast's detail page (set on unmount) |
 | `latest_episode_pub_date` | `timestamptz` | Newest episode `pubDate` from the last feed fetch (set on mount) |
-| `episode_filter` | `text` | Paid only — substring filter for the "New" section on the detail page |
+| `episode_filter` | `text` | Controls the ✨ New Episodes section. Sentinels: `''` = no notifications (all users), `'*'` = all new episodes (all users), any other text = custom keyword filter (paid only). On downgrade, custom text is reset to `'*'`. |
 | `new_episode_count` | `integer` | Count of new episodes since last visit; set on podcast detail page mount, reset to 0 on unmount; drives count badge in sidebar and profile |
 
 **Unique constraint:** `(user_id, feed_url)`
