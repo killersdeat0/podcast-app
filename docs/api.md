@@ -270,24 +270,4 @@ Sets `last_visited_at` to 7 days ago, `new_episode_count` to 0, and `last_feed_c
 
 ## Stripe / Payments
 
-### `POST /api/stripe/checkout`
-Creates a Stripe Checkout session. Looks up or creates a Stripe customer for the user.
-
-**Body:** `{ priceId: string }` — must be a valid Stripe price ID.
-
-**Response:** `{ url: string }` — redirect to Stripe hosted checkout page.
-
-**Errors:** `401` if not authenticated, `400` if `priceId` missing.
-
----
-
-### `POST /api/stripe/webhook`
-Stripe webhook receiver. Verifies signature using `STRIPE_WEBHOOK_SECRET`.
-
-**Handled events:**
-- `customer.subscription.created` / `customer.subscription.updated` — sets `user_profiles.tier` to `'paid'` (or `'free'` if status is not active/trialing)
-- `customer.subscription.deleted` — sets tier to `'free'`, clears `stripe_subscription_id`
-
-All other events are acknowledged and ignored.
-
-**Auth:** Not session-based — uses Stripe signature verification. Raw body must not be parsed before this route receives it (`export const dynamic = 'force-dynamic'`).
+See `docs/stripe.md` for the full Stripe integration — checkout flow, webhook events, user lookup logic, and local development setup.

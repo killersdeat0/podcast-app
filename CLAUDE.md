@@ -51,6 +51,7 @@ NEXT_PUBLIC_STRIPE_YEARLY_PRICE_ID=
 Read any relevant docs before making changes
 
 - `docs/api.md` — all API routes, request/response shapes, freemium gates. Read before touching API routes.
+- `docs/stripe.md` — Stripe checkout flow, webhook events, user lookup logic, local dev setup. Read before touching anything in `src/app/api/stripe/`.
 - `docs/data-model.md` — DB tables, columns, RLS policies, key patterns. Read before touching DB schema or queries.
 - `docs/player.md` — player state machine, progress saving, queue auto-advance, chapters. Read before touching player/queue logic.
 - `docs/i18n.md` — i18n system: adding languages, string namespaces, EmptyState component, tone guidelines. Read before adding any user-visible text.

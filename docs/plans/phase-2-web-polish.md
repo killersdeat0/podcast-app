@@ -65,6 +65,6 @@ Harden the web app with premium features, monetization, and UX improvements.
 - [x] Unit tests for new episode retention (`mergeNewEpisodes`, `/api/podcasts/unseen`, `PATCH /api/subscriptions` episode cache)
 - [x] Unit tests for `computeNewEpisodes` — extracted from podcast page useMemo; covers guest guard, free/paid filter logic, stored episode merging
 - [x] Playwright E2E: guest browsing flow — `/discover` accessible, queue page accessible, auth modal fires for History/Profile nav, subscribe opens modal, nav warning does not fire for guests
-- [ ] Unit test for Stripe webhook handler
-- [ ] Playwright E2E: Stripe checkout flow (test mode)
-- [ ] Playwright E2E: navigation warning modal (unqueued new episodes → guard fires, Queue All & Leave queues and navigates, Stay keeps page)
+- [x] Unit test for Stripe webhook handler
+- [x] Playwright E2E: Stripe checkout flow (test mode)
+- [x] Playwright E2E: navigation warning modal (unqueued new episodes → guard fires, Queue All & Leave queues and navigates, Stay keeps page)
