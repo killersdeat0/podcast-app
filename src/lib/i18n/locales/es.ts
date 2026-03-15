@@ -77,6 +77,14 @@ const es = {
     sleep_45: '45 min',
     sleep_60: '60 min',
   },
+  podcast_page: {
+    nav_warning_title: 'Episodios nuevos sin encolar ✨',
+    nav_warning_body: 'Tienes {{n}} episodio(s) nuevo(s) que se marcarán como vistos al salir. Encólalos para escucharlos después.',
+    nav_warning_queue_and_leave: 'Encolar todo y salir',
+    nav_warning_leave: 'Salir de todas formas',
+    nav_warning_stay: 'Quedarse',
+    nav_warning_queuing: 'Encolando...',
+  },
 }
 
 export default es

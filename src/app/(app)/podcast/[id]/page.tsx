@@ -1,10 +1,12 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
-import { useSearchParams, useParams } from 'next/navigation'
+import { useEffect, useState, useMemo, useRef } from 'react'
+import { useSearchParams, useParams, useRouter } from 'next/navigation'
 import { usePlayer } from '@/components/player/PlayerContext'
 import { SkeletonEpisodeRow } from '@/components/ui/Skeleton'
 import type { PodcastFeed, Episode } from '@/lib/rss/parser'
+import { useStrings } from '@/lib/i18n/LocaleContext'
+import { mergeNewEpisodes } from '@/lib/subscriptions/mergeNewEpisodes'
 
 interface SubscriptionRow {
   feed_url: string
@@ -50,6 +52,8 @@ export default function PodcastPage() {
   const title = params.get('title') ?? ''
   const artwork = params.get('artwork') ?? ''
   const { play } = usePlayer()
+  const s = useStrings()
+  const router = useRouter()
 
   // Is `id` a numeric iTunes collection ID?
   const collectionId = /^\d+$/.test(id) ? id : null
@@ -69,6 +73,13 @@ export default function PodcastPage() {
   const [helpOpen, setHelpOpen] = useState(false)
   const [userTier, setUserTier] = useState<'free' | 'paid' | null>(null)
   const [episodePage, setEpisodePage] = useState(0)
+  const [storedNewEpisodes, setStoredNewEpisodes] = useState<Episode[]>([])
+
+  // Navigation warning modal state
+  const [navWarningOpen, setNavWarningOpen] = useState(false)
+  const [queuingAll, setQueuingAll] = useState(false)
+  const pendingNavRef = useRef<{ href: string } | null>(null)
+  const isBeforeUnloadRef = useRef(false)
 
   // iTunes episode search state
   const [itunesEpisodes, setItunesEpisodes] = useState<ItunesEpisode[] | null>(null)
@@ -115,6 +126,29 @@ export default function PodcastPage() {
       .catch(() => {})
   }, [feedUrl])
 
+  // Fetch stored unseen episodes from DB (supplements RSS for episodes aged out of the feed)
+  useEffect(() => {
+    if (!feedUrl || !oldLastVisitedAt || !subscribed) return
+    fetch(`/api/podcasts/unseen?feedUrl=${encodeURIComponent(feedUrl)}&since=${encodeURIComponent(oldLastVisitedAt)}`)
+      .then((r) => r.json())
+      .then((rows: Array<{
+        guid: string; title: string; audio_url: string; pub_date: string;
+        duration: number | null; artwork_url: string; chapter_url: string | null;
+      }>) => {
+        setStoredNewEpisodes(rows.map((r) => ({
+          guid: r.guid,
+          title: r.title,
+          audioUrl: r.audio_url,
+          pubDate: r.pub_date,
+          duration: r.duration,
+          description: '',
+          artworkUrl: r.artwork_url,
+          chapterUrl: r.chapter_url,
+        })))
+      })
+      .catch(() => {})
+  }, [feedUrl, oldLastVisitedAt, subscribed])
+
   // Fetch iTunes episodes lazily when user starts searching
   useEffect(() => {
     if (!searchQuery || !collectionId || itunesEpisodes !== null) return
@@ -129,12 +163,15 @@ export default function PodcastPage() {
   // New episodes since last visit
   // Paid episode_filter semantics: null/'' = no notifications, '*' = all new, any other text = custom filter
   // Free users: always show all new episodes (filter is a paid-only customisation)
+  // storedNewEpisodes supplements the RSS feed with episodes that may have aged out of the feed
   const newEpisodes = useMemo(() => {
     if (!feed) return []
     const filter = subscription?.episode_filter
-    const baseEps = oldLastVisitedAt
+    const rssBaseEps = oldLastVisitedAt
       ? feed.episodes.filter((ep) => new Date(ep.pubDate) > new Date(oldLastVisitedAt))
       : feed.episodes
+    // Merge stored episodes (aged out of RSS) with current RSS results, dedup by guid
+    const baseEps = mergeNewEpisodes(rssBaseEps, storedNewEpisodes)
     if (userTier !== 'paid') {
       // Free: '*' or null = all new episodes; '' = opted out
       return filter === '' ? [] : baseEps
@@ -143,7 +180,12 @@ export default function PodcastPage() {
     if (filter === '*') return baseEps        // paid, all episodes
     const f = filter.toLowerCase()
     return baseEps.filter((ep) => ep.title.toLowerCase().includes(f))
-  }, [feed, oldLastVisitedAt, userTier, subscription])
+  }, [feed, oldLastVisitedAt, userTier, subscription, storedNewEpisodes])
+
+  const unqueuedNewEpisodes = useMemo(
+    () => newEpisodes.filter((ep) => !queuedGuids.has(ep.guid)),
+    [newEpisodes, queuedGuids],
+  )
 
   // Search results: iTunes episodes filtered by query (falls back to RSS if no collectionId)
   const searchResults = useMemo((): Episode[] => {
@@ -169,6 +211,7 @@ export default function PodcastPage() {
   }, [feed, episodePage])
 
   // On mount (after feed + subscription loaded): update latest_episode_pub_date + new_episode_count
+  // Also cache the new episode metadata so they remain visible after aging out of the RSS feed
   useEffect(() => {
     if (!feed || !feedUrl || !subscribed) return
     const newestPubDate = feed.episodes[0]?.pubDate
@@ -180,9 +223,19 @@ export default function PodcastPage() {
         feedUrl,
         latestEpisodePubDate: newestPubDate,
         newEpisodeCount: newEpisodes.length,
+        newEpisodesToCache: newEpisodes.map((ep) => ({
+          guid: ep.guid,
+          title: ep.title,
+          audioUrl: ep.audioUrl,
+          pubDate: ep.pubDate,
+          duration: ep.duration,
+          artworkUrl: feed.artworkUrl ?? '',
+          podcastTitle: title,
+        })),
       }),
     })
     window.dispatchEvent(new Event('subscriptions-changed'))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feed, feedUrl, subscribed, newEpisodes.length])
 
   // On unmount: update last_visited_at + reset count
@@ -202,6 +255,83 @@ export default function PodcastPage() {
       window.dispatchEvent(new Event('subscriptions-changed'))
     }
   }, [feedUrl, subscribed])
+
+  // Navigation guard: intercepts link clicks + beforeunload when unqueued new episodes exist.
+  // Uses document capture-phase click listener rather than history.pushState patching —
+  // more reliable since Next.js App Router may not go through pushState for all navigations.
+  useEffect(() => {
+    if (unqueuedNewEpisodes.length === 0) return
+
+    function handleClick(e: MouseEvent) {
+      const anchor = (e.target as Element).closest('a')
+      if (!anchor) return
+      const href = anchor.getAttribute('href')
+      if (!href || !href.startsWith('/')) return
+      if (href === window.location.pathname) return
+      e.preventDefault()
+      e.stopPropagation()
+      pendingNavRef.current = { href }
+      isBeforeUnloadRef.current = false
+      setNavWarningOpen(true)
+    }
+
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault()
+      isBeforeUnloadRef.current = true
+      setNavWarningOpen(true)
+    }
+
+    document.addEventListener('click', handleClick, true)
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    return () => {
+      document.removeEventListener('click', handleClick, true)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [unqueuedNewEpisodes.length])
+
+  function proceedWithNavigation() {
+    setNavWarningOpen(false)
+    isBeforeUnloadRef.current = false
+    const pending = pendingNavRef.current
+    pendingNavRef.current = null
+    if (pending) {
+      router.push(pending.href)
+    }
+  }
+
+  async function queueAllAndLeave() {
+    setQueuingAll(true)
+    try {
+      await Promise.all(
+        unqueuedNewEpisodes.map((ep) =>
+          fetch('/api/queue', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              guid: ep.guid,
+              feedUrl,
+              title: ep.title,
+              audioUrl: ep.audioUrl,
+              artworkUrl: artwork || feed?.artworkUrl || '',
+              podcastTitle: title,
+              duration: ep.duration,
+              pubDate: ep.pubDate,
+              description: ep.description,
+            }),
+          }),
+        ),
+      )
+      setQueuedGuids((prev) => {
+        const next = new Set(prev)
+        unqueuedNewEpisodes.forEach((ep) => next.add(ep.guid))
+        return next
+      })
+    } finally {
+      setQueuingAll(false)
+    }
+    proceedWithNavigation()
+  }
 
   async function toggleSubscribe() {
     setSubscribing(true)
@@ -570,6 +700,43 @@ export default function PodcastPage() {
                     className="flex-1 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 transition-colors"
                   >
                     {savingFilter ? '...' : 'Save 🎯'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Navigation warning modal */}
+          {navWarningOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+              <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm shadow-xl">
+                <h3 className="text-base font-semibold text-white mb-1">
+                  {s.podcast_page.nav_warning_title}
+                </h3>
+                <p className="text-xs text-gray-400 mb-6">
+                  {s.podcast_page.nav_warning_body.replace('{{n}}', String(unqueuedNewEpisodes.length))}
+                </p>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={queueAllAndLeave}
+                    disabled={queuingAll}
+                    className="w-full py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 transition-colors"
+                  >
+                    {queuingAll ? s.podcast_page.nav_warning_queuing : s.podcast_page.nav_warning_queue_and_leave}
+                  </button>
+                  <button
+                    onClick={proceedWithNavigation}
+                    disabled={queuingAll}
+                    className="w-full py-2 rounded-lg text-sm bg-gray-800 text-gray-300 hover:text-white disabled:opacity-40 transition-colors"
+                  >
+                    {s.podcast_page.nav_warning_leave}
+                  </button>
+                  <button
+                    onClick={() => { setNavWarningOpen(false); pendingNavRef.current = null; isBeforeUnloadRef.current = false }}
+                    disabled={queuingAll}
+                    className="w-full py-2 rounded-lg text-sm bg-gray-800 text-gray-300 hover:text-white disabled:opacity-40 transition-colors"
+                  >
+                    {s.podcast_page.nav_warning_stay}
                   </button>
                 </div>
               </div>

@@ -47,6 +47,8 @@ Harden the web app with premium features, monetization, and UX improvements.
 - [x] Show subscribed podcasts on the profile page
 - [x] Keyboard shortcuts (space = play/pause, arrow keys = seek)
 - [x] New episode badge + episode search (see Freemium section above)
+- [x] New episode retention: cache new episodes to DB on visit so they survive RSS feed retention window
+- [x] Navigation warning modal when leaving podcast page with unqueued new episodes (Queue All & Leave / Leave Anyway / Stay)
 - [ ] ~~Audio ad clip before queue auto-advance~~ — moved to Phase 4 (Ad Monetization)
 - [x] OPML import/export
 - [ ] Better empty states and onboarding flow
@@ -57,5 +59,7 @@ Harden the web app with premium features, monetization, and UX improvements.
 ### Testing
 - [x] Unit tests for API routes (`/api/podcasts/search`, `/api/podcasts/feed`, `/api/progress`, `/api/queue`) — route handlers tested with mocked fetch and mocked Supabase client
 - [x] ~~Unit tests for silence-skipping logic~~ — canceled (silence skipping canceled for web)
+- [x] Unit tests for new episode retention (`mergeNewEpisodes`, `/api/podcasts/unseen`, `PATCH /api/subscriptions` episode cache)
 - [ ] Unit test for Stripe webhook handler
 - [ ] Playwright E2E: Stripe checkout flow (test mode)
+- [ ] Playwright E2E: navigation warning modal (unqueued new episodes → guard fires, Queue All & Leave queues and navigates, Stay keeps page)

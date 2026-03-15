@@ -51,6 +51,25 @@ export async function PATCH(request: NextRequest) {
         .eq('user_id', user.id)
         .eq('feed_url', body.feedUrl)
     }
+
+    // Cache new episode metadata so they remain visible even after aging out of the RSS feed
+    if (Array.isArray(body.newEpisodesToCache) && body.newEpisodesToCache.length > 0) {
+      const rows = (body.newEpisodesToCache as Array<{
+        guid: string; title: string; audioUrl: string; pubDate: string;
+        duration: number | null; artworkUrl: string; podcastTitle: string;
+      }>).map((ep) => ({
+        feed_url: body.feedUrl as string,
+        guid: ep.guid,
+        title: ep.title,
+        audio_url: ep.audioUrl,
+        pub_date: ep.pubDate,
+        duration: ep.duration,
+        artwork_url: ep.artworkUrl,
+        podcast_title: ep.podcastTitle,
+      }))
+      await supabase.from('episodes').upsert(rows, { onConflict: 'feed_url,guid' })
+    }
+
     return NextResponse.json({ ok: true })
   }
 

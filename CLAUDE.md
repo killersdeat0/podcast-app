@@ -107,7 +107,7 @@ The Sidebar fetches subscriptions on mount and re-fetches on the custom `subscri
 
 ### Documentation
 
-When committing, first check if it significantly altering a function or API route (changing behavior, parameters, return shape, or side effects). update `CLAUDE.md` if the change affects anything documented there, and create or update a focused doc file in `docs/` covering the changed area (e.g. `docs/api.md`, `docs/player.md`). Phase plan files in `docs/plans/` should also be updated if a planned item is completed or changed in scope.
+When asked to commit, first check if it significantly altering a function or API route (changing behavior, parameters, return shape, or side effects). ALWAYS tell me: update `CLAUDE.md` , and create or update a focused doc file in `docs/` covering the changed area (e.g. `docs/api.md`, `docs/player.md`). Phase plan files in `docs/plans/` should also be updated if a planned item is completed or changed in scope.
 
 ### ESLint intentional suppressions
 
@@ -115,6 +115,7 @@ Several files use `// eslint-disable-next-line` for patterns that are deliberate
 
 - `PlayerContext.tsx`, `Sidebar.tsx`, `LocaleContext.tsx` — `react-hooks/set-state-in-effect`: `setState` called directly inside `useEffect` to restore `localStorage` state on mount. This is intentional to avoid SSR hydration mismatches (initial state can't read `localStorage` on the server).
 - `Player.tsx` — `react-hooks/refs`: `isDragging.current` read during render to control the slider value while dragging. Intentional — a state variable would cause unwanted re-renders.
+- `podcast/[id]/page.tsx` — `react-hooks/exhaustive-deps` on the on-mount subscription PATCH effect: intentionally uses `newEpisodes.length` (not the full array or `title`) as the dependency. `title` is a URL param stable for the component lifetime; the array ref changes every render but we only want to re-fire when the count changes.
 
 Do not remove these suppressions or refactor these patterns without understanding the SSR/performance trade-offs.
 

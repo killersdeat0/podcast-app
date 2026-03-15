@@ -135,7 +135,10 @@ Reserved for mobile (Phase 3). Tracks downloaded episode files.
 ## Key Patterns
 
 ### Episode upsert cache
-`episodes` is written to by two routes — `POST /api/queue` and `POST /api/progress`. Neither creates episodes upfront; they upsert metadata alongside the user action. This means an episode row exists only after at least one user has interacted with it.
+`episodes` is written to by three routes:
+- `POST /api/queue` — upserts episode metadata when a user adds to queue
+- `POST /api/progress` — upserts episode metadata when progress is saved
+- `PATCH /api/subscriptions` (via `newEpisodesToCache`) — upserts new episode metadata on podcast detail page mount, so episodes are cached even before any user interaction. This ensures new episodes remain visible via `GET /api/podcasts/unseen` even after they age out of the RSS feed's retention window. Description is intentionally omitted from this cache path (it's large and not needed for the new episodes UI); it gets filled in when a user queues or plays the episode.
 
 ### Artwork URL priority
 When returning queue or history items, the API always prefers `subscriptions.artwork_url` over `episodes.artwork_url`. iTunes CDN URLs are stable and don't have hotlink restrictions; RSS artwork URLs often do.

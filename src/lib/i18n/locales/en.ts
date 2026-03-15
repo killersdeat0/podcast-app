@@ -77,6 +77,14 @@ const en = {
     sleep_45: '45 min',
     sleep_60: '60 min',
   },
+  podcast_page: {
+    nav_warning_title: 'Unqueued new episodes ✨',
+    nav_warning_body: 'You have {{n}} new episode(s) that will be marked as seen when you leave. Queue them to listen later.',
+    nav_warning_queue_and_leave: 'Queue All & Leave',
+    nav_warning_leave: 'Leave Anyway',
+    nav_warning_stay: 'Stay',
+    nav_warning_queuing: 'Queuing...',
+  },
 }
 
 export default en

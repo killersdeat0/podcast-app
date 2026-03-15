@@ -43,6 +43,21 @@ Proxies the iTunes Lookup API to fetch up to 200 episodes for a podcast. No auth
 
 ---
 
+### `GET /api/podcasts/unseen?feedUrl=<url>&since=<isoDate>`
+Returns episodes stored in the `episodes` DB cache for a given feed that have a `pub_date` newer than `since`. Used by the podcast detail page to supplement the current RSS feed with episodes that may have aged out of the feed's retention window.
+
+**Auth required.** Requires a valid user session.
+
+**Query params:**
+- `feedUrl` — the podcast feed URL
+- `since` — ISO 8601 timestamp (the user's `last_visited_at`)
+
+**Response:** Array of episode objects: `guid`, `title`, `audio_url`, `pub_date`, `duration`, `description`, `artwork_url`, `chapter_url`
+
+**Errors:** `400` if either param is missing, `500` on DB error.
+
+---
+
 ### `GET /api/podcasts/trending?genreId=<genreId>`
 Returns trending/popular podcasts. No auth required.
 
@@ -90,11 +105,12 @@ Two body variants:
 
 **Body A — Reorder:** `{ orderedFeedUrls: string[] }` — full ordered list of feed URLs. Runs parallel updates setting `position = index` for each.
 
-**Body B — Visit tracking / episode filter:** `{ feedUrl: string, latestEpisodePubDate?: string, lastVisitedAt?: string, newEpisodeCount?: number, episodeFilter?: string }`
+**Body B — Visit tracking / episode filter:** `{ feedUrl: string, latestEpisodePubDate?: string, lastVisitedAt?: string, newEpisodeCount?: number, episodeFilter?: string, newEpisodesToCache?: EpisodeCache[] }`
 - `latestEpisodePubDate`: set on podcast detail page mount (after feed fetch) to the newest episode's `pubDate`
 - `lastVisitedAt`: set on podcast detail page unmount to record when the user last visited
 - `newEpisodeCount`: count of new episodes since last visit; set on mount alongside `latestEpisodePubDate`
 - `episodeFilter`: controls the ✨ New Episodes section. Sentinel values: `''` = no notifications (all users), `'*'` = all new episodes (all users), any other text = custom keyword filter (paid only — free users who send custom text are silently ignored). On downgrade, custom text filters are automatically reset to `'*'`.
+- `newEpisodesToCache`: array of new episode metadata `{ guid, title, audioUrl, pubDate, duration, description, artworkUrl, podcastTitle }` to upsert into the shared `episodes` table. This ensures new episodes remain queryable via `GET /api/podcasts/unseen` even after they age out of the RSS feed's retention window. Uses `{ onConflict: 'feed_url,guid' }`. Empty array is a no-op.
 
 **Response:** `{ ok: true }`
 
