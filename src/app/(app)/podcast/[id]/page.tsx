@@ -80,6 +80,7 @@ export default function PodcastPage() {
   const [queuingAll, setQueuingAll] = useState(false)
   const pendingNavRef = useRef<{ href: string } | null>(null)
   const isBeforeUnloadRef = useRef(false)
+  const hasResetRef = useRef(false)
 
   // iTunes episode search state
   const [itunesEpisodes, setItunesEpisodes] = useState<ItunesEpisode[] | null>(null)
@@ -238,10 +239,11 @@ export default function PodcastPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feed, feedUrl, subscribed, newEpisodes.length])
 
-  // On unmount: update last_visited_at + reset count
+  // On unmount: update last_visited_at + reset count (skipped if already done in proceedWithNavigation)
   useEffect(() => {
     if (!feedUrl || !subscribed) return
     return () => {
+      if (hasResetRef.current) return
       fetch('/api/subscriptions', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -290,11 +292,21 @@ export default function PodcastPage() {
     }
   }, [unqueuedNewEpisodes.length])
 
-  function proceedWithNavigation() {
+  async function proceedWithNavigation() {
     setNavWarningOpen(false)
     isBeforeUnloadRef.current = false
     const pending = pendingNavRef.current
     pendingNavRef.current = null
+    // Eagerly reset before navigating so the sidebar re-fetch sees the cleared count immediately
+    if (feedUrl && subscribed) {
+      hasResetRef.current = true
+      await fetch('/api/subscriptions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedUrl, lastVisitedAt: new Date().toISOString(), newEpisodeCount: 0 }),
+      }).catch(() => {})
+      window.dispatchEvent(new Event('subscriptions-changed'))
+    }
     if (pending) {
       router.push(pending.href)
     }

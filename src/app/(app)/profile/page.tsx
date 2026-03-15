@@ -33,6 +33,7 @@ export default function ProfilePage() {
   const [data, setData] = useState<ProfileData | null>(null)
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [downgrading, setDowngrading] = useState(false)
+  const [resettingLastVisited, setResettingLastVisited] = useState(false)
   const [importStatus, setImportStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [importedCount, setImportedCount] = useState(0)
   const strings = useStrings()
@@ -84,6 +85,21 @@ export default function ProfilePage() {
     setDowngrading(false)
   }
 
+  async function handleResetLastVisited() {
+    setResettingLastVisited(true)
+    await fetch('/api/dev/reset-last-visited', { method: 'POST' })
+    // Clear client-side gate so the refresh fires immediately
+    localStorage.removeItem('feed_refresh_last_called')
+    // Recompute new_episode_count for all subscriptions
+    const res = await fetch('/api/subscriptions/refresh', { method: 'POST' })
+    if (res.ok) {
+      const { subscriptions } = await res.json()
+      setSubscriptions(subscriptions)
+    }
+    window.dispatchEvent(new Event('subscriptions-changed'))
+    setResettingLastVisited(false)
+  }
+
   return (
     <div className="max-w-lg mx-auto px-6 py-12">
       <h1 className="text-2xl font-bold text-white mb-8">{strings.profile.heading}</h1>
@@ -104,21 +120,35 @@ export default function ProfilePage() {
               <p className="text-white font-semibold text-lg capitalize">{data.tier}</p>
             </div>
             {data.tier === 'free' && (
-              <Link
-                href="/upgrade"
-                className="bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-              >
-                {strings.profile.upgrade_cta}
-              </Link>
+              <div className="flex flex-col items-end gap-2">
+                <Link
+                  href="/upgrade"
+                  className="bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                >
+                  {strings.profile.upgrade_cta}
+                </Link>
+                {process.env.NODE_ENV === 'development' && (
+                  <button onClick={handleResetLastVisited} disabled={resettingLastVisited}
+                    className="text-xs text-yellow-500 underline">
+                    {resettingLastVisited ? 'Resetting…' : 'DEV: Reset last seen → 7 days ago'}
+                  </button>
+                )}
+              </div>
             )}
             {data.tier === 'paid' && (
               <div className="flex flex-col items-end">
                 <span className="text-violet-400 text-sm font-medium">{strings.profile.pro_label}</span>
                 {process.env.NODE_ENV === 'development' && (
-                  <button onClick={handleDowngrade} disabled={downgrading}
-                    className="mt-2 text-xs text-red-400 underline">
-                    {strings.profile.dev_downgrade}
-                  </button>
+                  <div className="flex flex-col items-end gap-1 mt-2">
+                    <button onClick={handleDowngrade} disabled={downgrading}
+                      className="text-xs text-red-400 underline">
+                      {strings.profile.dev_downgrade}
+                    </button>
+                    <button onClick={handleResetLastVisited} disabled={resettingLastVisited}
+                      className="text-xs text-yellow-500 underline">
+                      {resettingLastVisited ? 'Resetting…' : 'DEV: Reset last seen → 7 days ago'}
+                    </button>
+                  </div>
                 )}
               </div>
             )}

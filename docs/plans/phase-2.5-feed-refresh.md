@@ -6,9 +6,37 @@ Build a periodic feed-checking mechanism so new episode badges stay accurate wit
 
 ---
 
+## Status
+
+**Complete.** All web-side work is shipped. The remaining Phase 3 item is the Supabase Edge Function cron — see Mobile Handoff below.
+
+### Completed
+
+| Item | File(s) |
+|---|---|
+| `last_visited_at`, `latest_episode_pub_date`, `episode_filter` columns | `supabase/migrations/20260314000000_subscription_visit_tracking.sql` |
+| `new_episode_count` column | `supabase/migrations/20260314000001_subscription_episode_count.sql` |
+| `last_feed_checked_at` column | `supabase/migrations/20260315000000_subscription_feed_cache.sql` |
+| `PATCH /api/subscriptions` Body B — visit tracking + episode cache upsert | `src/app/api/subscriptions/route.ts` |
+| `POST /api/subscriptions/refresh` — background feed refresh endpoint | `src/app/api/subscriptions/refresh/route.ts` |
+| `GET /api/podcasts/unseen` — aged-out episode cache lookup | `src/app/api/podcasts/unseen/route.ts` |
+| Podcast detail page — on-mount count update, on-unmount reset, episode filter UI, nav warning, eager badge clear on leave | `src/app/(app)/podcast/[id]/page.tsx` |
+| Sidebar — badge rendering + `maybeRefresh()` on mount + hourly `setInterval` | `src/components/ui/Sidebar.tsx` |
+| Episode dedup + merge utility | `src/lib/subscriptions/mergeNewEpisodes.ts` |
+| Dev: reset all `last_visited_at` to 7 days ago (profile page button) | `src/app/api/dev/reset-last-visited/route.ts` |
+| Docs: `data-model.md`, `api.md` updated | — |
+
+### Remaining (Phase 3)
+
+| Item | Notes |
+|---|---|
+| Supabase Edge Function cron | Runs hourly server-side for all users; required for mobile badge freshness without BackgroundFetch. See Mobile Handoff below. |
+
+---
+
 ## Problem
 
-Currently `new_episode_count` and `latest_episode_pub_date` only update when the user opens a specific podcast's detail page. Sidebar and profile badges are stale until then — defeating the purpose of a badge system.
+Currently `new_episode_count` and `latest_episode_pub_date` only update when the user opens a specific podcast's detail page. Sidebar badges are stale until then — defeating the purpose of a badge system.
 
 Phase 3 (mobile) needs push notifications for new episodes, which requires server-side knowledge of new episodes on a schedule — independent of user interaction.
 
@@ -42,7 +70,7 @@ alter table public.subscriptions
   add column if not exists last_feed_checked_at timestamptz;
 ```
 
-(`latest_episode_pub_date`, `last_visited_at`, `episode_filter` already exist from Phase 2.)
+(`latest_episode_pub_date`, `last_visited_at`, `episode_filter`, `new_episode_count` already exist.)
 
 ---
 
@@ -97,20 +125,30 @@ This replaces the local subscription state with fresh counts, which re-renders b
 
 ## Mobile Handoff (Phase 3)
 
-`last_feed_checked_at` is the shared cache key. Phase 3 options:
+`last_feed_checked_at` is the shared cache key. The web sidebar's `maybeRefresh()` only fires when the web app is open — if a user only uses mobile, the DB stays stale until a server-side or mobile-side trigger runs.
+
+### Refresh trigger comparison
+
+| Trigger | Web fresh? | Mobile fresh? | Works when app closed? |
+|---|---|---|---|
+| Web sidebar only (current) | Yes | No | No |
+| Mobile BackgroundFetch calling same endpoint (Option B) | Yes | Yes | Unreliable (iOS throttles) |
+| **Supabase Edge Function cron (Option A — preferred)** | **Yes** | **Yes** | **Yes** |
 
 **Option A — Supabase Edge Function cron (preferred):**
-- Runs every hour; iterates all subscriptions across all users
-- Updates DB directly; mobile reads fresh counts on next launch
+- Runs every hour server-side; iterates all subscriptions across all users
+- Updates DB directly; both web and mobile read fresh counts on next load
 - Enables server-side push notifications via Expo Push API
-- No mobile background task needed
+- Neither platform needs to trigger a refresh — they just read the DB
+- The web `maybeRefresh()` becomes a useful fallback for the gap between cron runs
 
 **Option B — Expo BackgroundFetch:**
-- Mobile background task calls the same refresh endpoint
+- Mobile background task calls the same `POST /api/subscriptions/refresh` endpoint
 - Triggers local notification if `new_episode_count` increased
 - Less reliable on iOS (OS can throttle/defer background tasks)
+- Still doesn't update data for web-only users when mobile is closed
 
-Option A is preferred — centralised, works even when the app isn't running, and the infrastructure serves both web and mobile.
+Option A is the correct long-term fix — centralised, works even when neither app is running, and serves both platforms from a single source of truth.
 
 ---
 
@@ -119,19 +157,6 @@ Option A is preferred — centralised, works even when the app isn't running, an
 - Push notifications (Phase 3 — requires APNs/FCM + Expo Push setup)
 - Supabase Edge Function cron (Phase 3 — implement when building mobile)
 - Per-subscription configurable refresh interval
-
----
-
-## Critical Files
-
-| File | Change |
-|---|---|
-| `supabase/migrations/20260315000000_subscription_feed_cache.sql` | New — `last_feed_checked_at` column |
-| `src/app/api/subscriptions/refresh/route.ts` | New — POST handler |
-| `src/components/ui/Sidebar.tsx` | Call `maybeRefresh()` after initial load |
-| `docs/api.md` | Document `POST /api/subscriptions/refresh` |
-| `docs/data-model.md` | Document `last_feed_checked_at` column |
-| `docs/plans/phase-3-mobile.md` | Note Supabase cron as preferred push notification mechanism |
 
 ---
 

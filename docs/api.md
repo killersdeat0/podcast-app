@@ -100,6 +100,19 @@ Unsubscribe from a podcast.
 
 ---
 
+### `POST /api/subscriptions/refresh`
+Background feed refresh. Fetches RSS for all subscriptions where `last_feed_checked_at` is null or older than 1 hour, recomputes `new_episode_count` and `latest_episode_pub_date` for each, and returns the full updated subscription list.
+
+**Episode filter logic** (mirrors podcast detail page):
+- Free users: `episode_filter = ''` → 0 count; anything else → count all new episodes since `last_visited_at`
+- Paid users: `episode_filter = null` → 0; `'*'` → all new; any other text → filtered by episode title keyword
+
+Feeds are fetched in parallel capped at 10 concurrent. Individual feed failures are silently skipped. The client (Sidebar) gates calls with a `localStorage` key `feed_refresh_last_called` to avoid calling more than once per hour across tabs. The `setInterval` in the Sidebar also re-fires this every hour while the tab stays open.
+
+**Response:** `{ subscriptions: SubscriptionRow[] }` — same shape as `GET /api/subscriptions`
+
+---
+
 ### `PATCH /api/subscriptions`
 Two body variants:
 
@@ -232,6 +245,13 @@ Sets the current user's `tier` to `'paid'` without going through Stripe. Used fo
 
 ### `POST /api/dev/downgrade`
 Sets the current user's `tier` to `'free'` and clears `stripe_subscription_id`. Also resets any custom text `episode_filter` values on the user's subscriptions back to `'*'`.
+
+**Response:** `{ ok: true }`
+
+---
+
+### `POST /api/dev/reset-last-visited`
+Sets `last_visited_at` to 7 days ago, `new_episode_count` to 0, and `last_feed_checked_at` to null on all of the user's subscriptions. Nulling `last_feed_checked_at` forces the next `POST /api/subscriptions/refresh` call to re-fetch all feeds. The profile page clears the `localStorage` gate and immediately calls the refresh endpoint after this, so badges recompute without a page reload.
 
 **Response:** `{ ok: true }`
 

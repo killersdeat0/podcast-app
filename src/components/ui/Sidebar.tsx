@@ -132,9 +132,26 @@ export default function Sidebar() {
         .then((data) => { if (Array.isArray(data)) setSubscriptions(data) })
         .catch(() => {})
     }
+
+    async function maybeRefresh() {
+      const lastCalled = Number(localStorage.getItem('feed_refresh_last_called') ?? 0)
+      if (Date.now() - lastCalled < 60 * 60 * 1000) return
+      localStorage.setItem('feed_refresh_last_called', String(Date.now()))
+      const res = await fetch('/api/subscriptions/refresh', { method: 'POST' })
+      if (!res.ok) return
+      const { subscriptions } = await res.json()
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSubscriptions(subscriptions)
+    }
+
     fetchSubs()
+    maybeRefresh()
+    const interval = setInterval(maybeRefresh, 60 * 60 * 1000)
     window.addEventListener('subscriptions-changed', fetchSubs)
-    return () => window.removeEventListener('subscriptions-changed', fetchSubs)
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('subscriptions-changed', fetchSubs)
+    }
   }, [])
 
   function handleDragEnd(event: DragEndEvent) {
