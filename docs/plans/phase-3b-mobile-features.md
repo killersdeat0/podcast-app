@@ -1,25 +1,9 @@
-# Phase 3 — Mobile (React Native / Expo)
+# Phase 3b — Mobile Features
 
 ## Goal
-Port the web app to Android (and eventually iOS) using React Native + Expo, sharing the same Supabase backend. Single shared codebase — Android first, iOS to follow. Same freemium model as web ($4.99/month or $50/year).
-
-The mobile app lives in `/mobile` inside the existing monorepo (web app moves to `/web`).
+Implement full feature parity with the web app plus mobile-only features (downloads, lock screen, push notifications, silence skipping), then ship to Google Play and the App Store.
 
 ## Planned
-
-### Setup
-- [ ] Restructure repo into monorepo (`/web`, `/mobile`, shared `/packages`)
-- [ ] Initialize Expo project in `/mobile`
-- [ ] Configure Supabase client for React Native
-- [ ] Set up navigation (Expo Router)
-
-### API Architecture
-Mobile uses Supabase directly — no Next.js API layer needed for data.
-
-- [ ] Extract `/api/podcasts/feed` (RSS parser) → Supabase Edge Function
-- [ ] Extract `/api/podcasts/search` (iTunes proxy) → Supabase Edge Function
-- [ ] Update web app to call Edge Functions instead of its own API routes (single source of truth)
-- [ ] Mobile calls Supabase client directly for all data (progress, queue, subscriptions, history) — RLS enforces security
 
 ### Core Features (parity with web)
 - [ ] Auth (email + Google sign-in, Apple sign-in for iOS)
@@ -27,7 +11,7 @@ Mobile uses Supabase directly — no Next.js API layer needed for data.
 - [ ] Episode list + playback
 - [ ] Background audio playback (`expo-av` or `react-native-track-player`)
 - [ ] Sync (progress, subscriptions, queue, history)
-- [ ] Playlists — create, edit, delete; play from playlist with sequential auto-advance; share public playlists via URL
+- [ ] Playlists — create, edit, delete; sequential auto-advance; share public playlists via URL
 
 ### Mobile-specific
 - [ ] Download manager with local storage (free tier: 3 downloads/day; paid tier: unlimited)
