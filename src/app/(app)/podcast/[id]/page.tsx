@@ -11,6 +11,7 @@ import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { computeNewEpisodes } from '@/lib/subscriptions/computeNewEpisodes'
 import { mergeEpisodeSources } from '@/lib/episodes/mergeEpisodeSources'
 import AuthPromptModal from '@/components/ui/AuthPromptModal'
+import UpgradeModal from '@/components/ui/UpgradeModal'
 
 interface SubscriptionRow {
   feed_url: string
@@ -94,6 +95,8 @@ export default function PodcastPage() {
   // Navigation warning modal state
   const [navWarningOpen, setNavWarningOpen] = useState(false)
   const [queuingAll, setQueuingAll] = useState(false)
+  const [queueLimitMessage, setQueueLimitMessage] = useState<string | null>(null)
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
   const pendingNavRef = useRef<{ href: string } | null>(null)
   const isBeforeUnloadRef = useRef(false)
   const hasResetRef = useRef(false)
@@ -261,25 +264,28 @@ export default function PodcastPage() {
     if (!feed || !feedUrl || !subscribed) return
     const newestPubDate = feed.episodes[0]?.pubDate
     if (!newestPubDate) return
-    fetch('/api/subscriptions', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        feedUrl,
-        latestEpisodePubDate: newestPubDate,
-        newEpisodeCount: newEpisodes.length,
-        newEpisodesToCache: newEpisodes.map((ep) => ({
-          guid: ep.guid,
-          title: ep.title,
-          audioUrl: ep.audioUrl,
-          pubDate: ep.pubDate,
-          duration: ep.duration,
-          artworkUrl: feed.artworkUrl ?? '',
-          podcastTitle: title,
-        })),
-      }),
-    })
-    window.dispatchEvent(new Event('subscriptions-changed'))
+    async function update() {
+      await fetch('/api/subscriptions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          feedUrl,
+          latestEpisodePubDate: newestPubDate,
+          newEpisodeCount: newEpisodes.length,
+          newEpisodesToCache: newEpisodes.map((ep) => ({
+            guid: ep.guid,
+            title: ep.title,
+            audioUrl: ep.audioUrl,
+            pubDate: ep.pubDate,
+            duration: ep.duration,
+            artworkUrl: feed.artworkUrl ?? '',
+            podcastTitle: title,
+          })),
+        }),
+      })
+      window.dispatchEvent(new Event('subscriptions-changed'))
+    }
+    update().catch(() => {})
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feed, feedUrl, subscribed, newEpisodes.length])
 
@@ -357,6 +363,11 @@ export default function PodcastPage() {
   }
 
   async function queueAllAndLeave() {
+    if (contextTier !== 'paid' && queuedGuids.size + unqueuedNewEpisodes.length > 10) {
+      setNavWarningOpen(false)
+      setUpgradeModalOpen(true)
+      return
+    }
     setQueuingAll(true)
     try {
       await Promise.all(
@@ -418,6 +429,11 @@ export default function PodcastPage() {
     }
   }
 
+  function showQueueLimit(msg: string) {
+    setQueueLimitMessage(msg)
+    setTimeout(() => setQueueLimitMessage(null), 4000)
+  }
+
   async function toggleQueue(episode: Episode) {
     const inQueue = queuedGuids.has(episode.guid)
     if (isGuest) {
@@ -425,6 +441,10 @@ export default function PodcastPage() {
         dequeueClient(episode.guid)
         setQueuedGuids((prev) => { const s = new Set(prev); s.delete(episode.guid); return s })
       } else {
+        if (clientQueue.length >= 10) {
+          showQueueLimit(s.queue.limit_reached_guest)
+          return
+        }
         enqueueClient({
           guid: episode.guid,
           feedUrl,
@@ -451,7 +471,7 @@ export default function PodcastPage() {
         return s
       })
     } else {
-      await fetch('/api/queue', {
+      const res = await fetch('/api/queue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -466,6 +486,10 @@ export default function PodcastPage() {
           description: episode.description,
         }),
       })
+      if (!res.ok) {
+        if (res.status === 403) showQueueLimit(s.queue.limit_reached_free)
+        return
+      }
       setQueuedGuids((prev) => new Set([...prev, episode.guid]))
     }
   }
@@ -575,6 +599,12 @@ export default function PodcastPage() {
 
   return (
     <div>
+      {queueLimitMessage && (
+        <div className="fixed bottom-6 right-4 z-50 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 shadow-xl max-w-xs flex items-start gap-3">
+          <p className="text-sm text-gray-200 flex-1">{queueLimitMessage}</p>
+          <button onClick={() => setQueueLimitMessage(null)} className="text-gray-500 hover:text-gray-300 flex-shrink-0 leading-none mt-0.5" aria-label="Dismiss">✕</button>
+        </div>
+      )}
       {/* Hero header — blurred artwork backdrop */}
       <div className="relative overflow-hidden mb-6">
         {artwork && (
@@ -661,11 +691,12 @@ export default function PodcastPage() {
                       await fetch('/api/subscriptions', {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ feedUrl, episodeFilter: '' }),
+                        body: JSON.stringify({ feedUrl, episodeFilter: '', newEpisodeCount: 0 }),
                       })
                       setSubscription((prev) => prev ? { ...prev, episode_filter: '' } : prev)
                       setEpisodeFilter('')
                       setSavingFilter(false)
+                      window.dispatchEvent(new Event('subscriptions-changed'))
                     }}
                     disabled={savingFilter}
                     className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors disabled:opacity-50 ${
@@ -737,10 +768,11 @@ export default function PodcastPage() {
                     await fetch('/api/subscriptions', {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ feedUrl, episodeFilter: next }),
+                      body: JSON.stringify({ feedUrl, episodeFilter: next, ...(next === '' ? { newEpisodeCount: 0 } : {}) }),
                     })
                     setSubscription((prev) => prev ? { ...prev, episode_filter: next } : prev)
                     setSavingFilter(false)
+                    if (next === '') window.dispatchEvent(new Event('subscriptions-changed'))
                   }}
                   disabled={savingFilter}
                   className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors disabled:opacity-50 ${
@@ -758,10 +790,11 @@ export default function PodcastPage() {
                     await fetch('/api/subscriptions', {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ feedUrl, episodeFilter: '' }),
+                      body: JSON.stringify({ feedUrl, episodeFilter: '', newEpisodeCount: 0 }),
                     })
                     setSubscription((prev) => prev ? { ...prev, episode_filter: '' } : prev)
                     setSavingFilter(false)
+                    window.dispatchEvent(new Event('subscriptions-changed'))
                   }}
                   disabled={savingFilter}
                   className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors disabled:opacity-50 ${
@@ -822,6 +855,7 @@ export default function PodcastPage() {
               onClose={() => setAuthPromptOpen(false)}
               returnTo={typeof window !== 'undefined' ? window.location.pathname + window.location.search : undefined}
             />
+            <UpgradeModal open={upgradeModalOpen} onClose={() => setUpgradeModalOpen(false)} />
 
             {/* Navigation warning modal */}
             {navWarningOpen && (

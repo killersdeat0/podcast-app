@@ -66,9 +66,10 @@ describe('GET /api/queue', () => {
       audio_url: 'https://a.mp3', duration: 1800, artwork_url: 'https://art.jpg', podcast_title: 'Podcast',
     }
     mockFrom
-      .mockImplementationOnce(() => makeChain({ data: [queueRow], error: null }))  // queue select
-      .mockImplementationOnce(() => makeChain({ data: [episode], error: null }))   // episodes
-      .mockImplementationOnce(() => makeChain({ data: [], error: null }))           // subscriptions
+      .mockImplementationOnce(() => makeChain({ data: [queueRow], error: null }))                          // queue select
+      .mockImplementationOnce(() => makeChain({ data: [episode], error: null }))                           // episodes
+      .mockImplementationOnce(() => makeChain({ data: [], error: null }))                                  // subscriptions
+      .mockImplementationOnce(() => makeChain({ data: [{ episode_guid: 'ep1', position_seconds: 120 }], error: null })) // playback_progress
     const res = await GET()
     expect(res.status).toBe(200)
     const body = await res.json()
@@ -76,6 +77,7 @@ describe('GET /api/queue', () => {
     expect(body[0].episode_guid).toBe('ep1')
     expect(body[0].episode.title).toBe('Ep 1')
     expect(body[0].episode.duration).toBe(1800)
+    expect(body[0].position_seconds).toBe(120)
   })
 })
 

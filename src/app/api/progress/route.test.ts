@@ -103,6 +103,22 @@ describe('POST /api/progress', () => {
     expect(await res.json()).toEqual({ ok: true })
   })
 
+  it('caps positionSeconds to duration when positionSeconds exceeds duration and completed is false', async () => {
+    mockGetUser.mockResolvedValue(AUTH)
+    const upsertMock = vi.fn().mockResolvedValue({ data: null, error: null })
+    const chain = makeChain({ data: null, error: null })
+    ;(chain as Record<string, unknown>).upsert = upsertMock
+    mockFrom.mockReturnValue(chain)
+    const req = new NextRequest('http://localhost/api/progress', {
+      method: 'POST',
+      body: JSON.stringify({ guid: 'ep1', feedUrl: 'https://example.com/feed', positionSeconds: 4000, duration: 3600, completed: false }),
+    })
+    const res = await POST(req)
+    expect(res.status).toBe(200)
+    const upsertArg = upsertMock.mock.calls[0][0]
+    expect(upsertArg.position_seconds).toBe(3600)
+  })
+
   it('returns 500 when the database write fails', async () => {
     mockGetUser.mockResolvedValue(AUTH)
     mockFrom.mockReturnValue(makeChain({ data: null, error: { message: 'DB error' } }))

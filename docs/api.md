@@ -136,8 +136,10 @@ Returns the user's queue ordered by `position`, with episode metadata joined fro
 
 **Response:**
 ```json
-[{ "episode_guid": "...", "feed_url": "...", "position": 0, "episode": { "title": "...", "audio_url": "...", "duration": 3600, "artwork_url": "...", "podcast_title": "..." } }]
+[{ "episode_guid": "...", "feed_url": "...", "position": 0, "position_seconds": 120, "episode": { "title": "...", "audio_url": "...", "duration": 3600, "artwork_url": "...", "podcast_title": "..." } }]
 ```
+
+`position_seconds` is joined from `playback_progress` (defaults to `0` if no saved progress). Used by the queue page to render a progress-fill bar on each item.
 
 ---
 
@@ -190,6 +192,8 @@ Fetch playback progress for all episodes in a feed that have been listened to (`
 Save playback position. Also upserts episode metadata into `episodes` if `title` and `audioUrl` are provided.
 
 **Body:** `{ guid, feedUrl, positionSeconds, completed?, title?, audioUrl?, duration?, artworkUrl?, podcastTitle? }`
+
+**Position capping:** When `completed` is falsy and `duration` is provided, `positionSeconds` is capped to `duration` before saving. This guards against RSS metadata duration mismatches where the actual audio is longer than the feed-reported duration, which would otherwise produce progress values above 100%.
 
 **Response:** `{ ok: true }`
 

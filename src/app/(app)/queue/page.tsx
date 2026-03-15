@@ -25,6 +25,7 @@ interface QueueItem {
   episode_guid: string
   feed_url: string
   position: number
+  position_seconds: number
   episode: {
     title: string
     audio_url: string
@@ -55,6 +56,10 @@ function SortableQueueItem({
     id: item.episode_guid,
   })
 
+  const pct = (item.position_seconds > 0 && item.episode?.duration)
+    ? Math.min(100, Math.round((item.position_seconds / item.episode.duration) * 100))
+    : null
+
   return (
     <div
       ref={setNodeRef}
@@ -72,8 +77,16 @@ function SortableQueueItem({
       <button
         onClick={() => onPlay(item)}
         disabled={!item.episode}
-        className="flex-1 flex items-center gap-3 text-left bg-gray-900 hover:bg-gray-800 rounded-xl px-4 py-3 transition-colors disabled:opacity-50"
+        className="relative flex-1 flex items-center gap-3 text-left bg-gray-900 hover:bg-gray-800 rounded-xl px-4 py-3 transition-colors disabled:opacity-50 overflow-hidden"
       >
+        {pct !== null && (
+          <div
+            className="absolute inset-0 rounded-xl pointer-events-none"
+            style={{
+              background: `linear-gradient(to right, rgba(34,197,94,0.12) ${pct}%, rgba(139,92,246,0.10) ${pct}%)`,
+            }}
+          />
+        )}
         {item.episode?.artwork_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={item.episode.artwork_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />

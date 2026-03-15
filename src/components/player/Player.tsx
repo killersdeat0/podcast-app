@@ -6,6 +6,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
+import { COMPLETION_THRESHOLD_PCT } from '@/lib/player/constants'
 
 const ALL_SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]
 const FREE_SPEEDS = [1, 2]
@@ -42,6 +43,15 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
   const [artworkError, setArtworkError] = useState(false)
   const [mobileMenu, setMobileMenu] = useState<null | 'main' | 'speed'>(null)
   const [chapters, setChapters] = useState<Chapter[]>([])
+  const [dbQueue, setDbQueue] = useState<Array<{ episode_guid: string; feed_url: string; episode: { title: string; audio_url: string; duration: number | null; artwork_url: string | null; podcast_title: string | null } | null }>>([])
+
+  useEffect(() => {
+    if (isGuest || !nowPlaying) return
+    fetch('/api/queue')
+      .then((r) => r.json())
+      .then((items) => { if (Array.isArray(items)) setDbQueue(items) })
+      .catch(() => {})
+  }, [nowPlaying, isGuest])
   const sleepTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEscapeKey(() => setMobileMenu(null), !!mobileMenu)
@@ -63,6 +73,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
   const playingRef = useRef(playing)
   const clientQueueRef = useRef(clientQueue)
   const isDragging = useRef(false)
+  const hasCompletedRef = useRef(false)
   const [sliderValue, setSliderValue] = useState(0)
 
   useEffect(() => {
@@ -89,6 +100,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
     audio.src = nowPlaying.audioUrl
     audio.playbackRate = speed
     setCurrentTime(0)
+    hasCompletedRef.current = false
 
     if (isGuest) {
       if (playingRef.current) audio.play().catch(() => {})
@@ -103,6 +115,98 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
     }
   }, [nowPlaying]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const skipToNext = useCallback((np: { guid: string; feedUrl: string; title: string; audioUrl: string; duration: number; artworkUrl: string; podcastTitle: string }) => {
+    const audio = audioRef.current
+    // Save current position without marking complete so the user can resume
+    if (audio && audio.currentTime > 5) {
+      fetch('/api/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          guid: np.guid,
+          feedUrl: np.feedUrl,
+          positionSeconds: Math.floor(audio.currentTime),
+          completed: false,
+          title: np.title,
+          audioUrl: np.audioUrl,
+          duration: np.duration,
+          artworkUrl: np.artworkUrl,
+          podcastTitle: np.podcastTitle,
+        }),
+      }).catch(() => {})
+    }
+    fetch('/api/queue')
+      .then((r) => r.json())
+      .then((items: Array<{ episode_guid: string; feed_url: string; episode: { title: string; audio_url: string; duration: number | null; artwork_url: string | null; podcast_title: string | null } | null }>) => {
+        if (!Array.isArray(items)) return
+        const idx = items.findIndex((i) => i.episode_guid === np.guid)
+        fetch('/api/queue', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ guid: np.guid }),
+        }).catch(() => {})
+        const next = items[idx + 1]
+        if (next?.episode) {
+          play({
+            guid: next.episode_guid,
+            feedUrl: next.feed_url,
+            title: next.episode.title,
+            podcastTitle: next.episode.podcast_title ?? '',
+            artworkUrl: next.episode.artwork_url ?? '',
+            audioUrl: next.episode.audio_url,
+            duration: next.episode.duration ?? 0,
+          })
+        }
+      })
+      .catch(() => {})
+  }, [audioRef, play])
+
+  const completeAndAdvance = useCallback((np: { guid: string; feedUrl: string; title: string; audioUrl: string; duration: number; artworkUrl: string; podcastTitle: string }) => {
+    const audio = audioRef.current
+    fetch('/api/progress', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        guid: np.guid,
+        feedUrl: np.feedUrl,
+        positionSeconds: Math.floor(audio?.currentTime || audio?.duration || 0),
+        completed: true,
+        title: np.title,
+        audioUrl: np.audioUrl,
+        duration: np.duration,
+        artworkUrl: np.artworkUrl,
+        podcastTitle: np.podcastTitle,
+      }),
+    }).catch(() => {})
+
+    // TODO: play audio ad clip here for free tier before advancing
+
+    fetch('/api/queue')
+      .then((r) => r.json())
+      .then((items: Array<{ episode_guid: string; feed_url: string; episode: { title: string; audio_url: string; duration: number | null; artwork_url: string | null; podcast_title: string | null } | null }>) => {
+        if (!Array.isArray(items)) return
+        const idx = items.findIndex((i) => i.episode_guid === np.guid)
+        fetch('/api/queue', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ guid: np.guid }),
+        }).catch(() => {})
+        const next = items[idx + 1]
+        if (next?.episode) {
+          play({
+            guid: next.episode_guid,
+            feedUrl: next.feed_url,
+            title: next.episode.title,
+            podcastTitle: next.episode.podcast_title ?? '',
+            artworkUrl: next.episode.artwork_url ?? '',
+            audioUrl: next.episode.audio_url,
+            duration: next.episode.duration ?? 0,
+          })
+        }
+      })
+      .catch(() => {})
+  }, [audioRef, play])
+
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
@@ -111,6 +215,14 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
       if (!isDragging.current) setCurrentTime(audio.currentTime)
       const now = Date.now()
       const np = nowPlayingRef.current
+      if (!isGuest && np && audio.duration > 0 && !hasCompletedRef.current) {
+        const pct = (audio.currentTime / audio.duration) * 100
+        if (pct >= COMPLETION_THRESHOLD_PCT) {
+          hasCompletedRef.current = true
+          completeAndAdvance(np)
+          return
+        }
+      }
       if (!isGuest && np && audio.currentTime > 5 && now - lastSavedAt.current > 10000) {
         lastSavedAt.current = now
         fetch('/api/progress', {
@@ -137,7 +249,6 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
       if (!np) return
 
       if (isGuest) {
-        // Guest: advance through client queue
         const queue = clientQueueRef.current
         const idx = queue.findIndex((e) => e.guid === np.guid)
         dequeueClient(np.guid)
@@ -146,52 +257,11 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
         return
       }
 
-      // Mark completed
-      fetch('/api/progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          guid: np.guid,
-          feedUrl: np.feedUrl,
-          positionSeconds: Math.floor(audio.duration || 0),
-          completed: true,
-          title: np.title,
-          audioUrl: np.audioUrl,
-          duration: np.duration,
-          artworkUrl: np.artworkUrl,
-          podcastTitle: np.podcastTitle,
-        }),
-      }).catch(() => {})
-
-      // TODO: play audio ad clip here for free tier before advancing
-
-      // Remove from queue and play next
-      fetch('/api/queue')
-        .then((r) => r.json())
-        .then((items: Array<{ episode_guid: string; feed_url: string; episode: { title: string; audio_url: string; duration: number | null; artwork_url: string | null; podcast_title: string | null } | null }>) => {
-          if (!Array.isArray(items)) return
-          const idx = items.findIndex((i) => i.episode_guid === np.guid)
-          // Remove current from queue
-          fetch('/api/queue', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ guid: np.guid }),
-          }).catch(() => {})
-          // Play next if available
-          const next = items[idx + 1]
-          if (next?.episode) {
-            play({
-              guid: next.episode_guid,
-              feedUrl: next.feed_url,
-              title: next.episode.title,
-              podcastTitle: next.episode.podcast_title ?? '',
-              artworkUrl: next.episode.artwork_url ?? '',
-              audioUrl: next.episode.audio_url,
-              duration: next.episode.duration ?? 0,
-            })
-          }
-        })
-        .catch(() => {})
+      // 98% threshold already handled in onTime; onEnded is a fallback
+      if (!hasCompletedRef.current) {
+        hasCompletedRef.current = true
+        completeAndAdvance(np)
+      }
     }
 
     audio.addEventListener('timeupdate', onTime)
@@ -213,6 +283,15 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
       setSleepMinutes(0)
     }, minutes * 60 * 1000)
   }
+
+  const hasNextInQueue = (() => {
+    if (isGuest) {
+      const idx = clientQueue.findIndex((e) => e.guid === nowPlaying?.guid)
+      return idx !== -1 && idx < clientQueue.length - 1
+    }
+    const idx = dbQueue.findIndex((e) => e.episode_guid === nowPlaying?.guid)
+    return idx !== -1 && idx < dbQueue.length - 1
+  })()
 
   return (
     <>
@@ -249,6 +328,20 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
               {playing ? '❚❚' : '▶'}
             </button>
             <button onClick={() => seek(currentTime + 30)} className="text-gray-400 hover:text-white text-sm">+30</button>
+            {hasNextInQueue && (
+              <button
+                onClick={() => {
+                  const np = nowPlayingRef.current
+                  if (np) skipToNext(np)
+                }}
+                title="Next episode"
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+                </svg>
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-2 w-full max-w-lg">
             <span className="text-xs text-gray-400 w-10 text-right">{formatTime(currentTime)}</span>
@@ -333,8 +426,8 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
         </div>
 
         {/* Speed + Sleep timer */}
-        <div className="hidden md:flex items-center gap-3 w-48 justify-end flex-shrink-0">
-          <div className="flex flex-col items-end gap-0.5">
+        <div className="hidden md:flex flex-col items-start gap-0.5 w-48 justify-end flex-shrink-0">
+          <div className="flex items-center gap-3">
             <select
               value={availableSpeeds.includes(speed) ? speed : availableSpeeds[availableSpeeds.length - 1]}
               onChange={(e) => handleSetSpeed(Number(e.target.value))}
@@ -344,25 +437,25 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
                 <option key={s} value={s}>{s}x</option>
               ))}
             </select>
-            {isFreeTier && (
-              <a href="/upgrade" className="text-[10px] text-violet-400 hover:text-violet-300 leading-none">
-                {strings.player.upgrade_for_speeds}
-              </a>
-            )}
+            <select
+              value={sleepMinutes}
+              onChange={(e) => startSleepTimer(Number(e.target.value))}
+              className="bg-gray-800 text-white text-xs rounded px-2 py-1 outline-none"
+            >
+              <option value={0}>{strings.player.sleep_off}</option>
+              <option value={5}>{strings.player.sleep_5}</option>
+              <option value={10}>{strings.player.sleep_10}</option>
+              <option value={15}>{strings.player.sleep_15}</option>
+              <option value={30}>{strings.player.sleep_30}</option>
+              <option value={45}>{strings.player.sleep_45}</option>
+              <option value={60}>{strings.player.sleep_60}</option>
+            </select>
           </div>
-          <select
-            value={sleepMinutes}
-            onChange={(e) => startSleepTimer(Number(e.target.value))}
-            className="bg-gray-800 text-white text-xs rounded px-2 py-1 outline-none"
-          >
-            <option value={0}>{strings.player.sleep_off}</option>
-            <option value={5}>{strings.player.sleep_5}</option>
-            <option value={10}>{strings.player.sleep_10}</option>
-            <option value={15}>{strings.player.sleep_15}</option>
-            <option value={30}>{strings.player.sleep_30}</option>
-            <option value={45}>{strings.player.sleep_45}</option>
-            <option value={60}>{strings.player.sleep_60}</option>
-          </select>
+          {isFreeTier && (
+            <a href="/upgrade" className="text-[10px] text-violet-400 hover:text-violet-300 leading-none whitespace-nowrap">
+              {strings.player.upgrade_for_speeds}
+            </a>
+          )}
         </div>
       </div>
     </div>

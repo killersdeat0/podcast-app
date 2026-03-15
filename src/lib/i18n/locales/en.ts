@@ -12,6 +12,12 @@ const en = {
     empty_title: 'Your queue is empty 🎧',
     empty_description: 'Add episodes from any podcast and they\'ll line up here, ready to play.',
     empty_cta: 'Browse podcasts',
+    limit_reached_guest: 'Queue limit reached — sign in and upgrade for unlimited queue 🚀',
+    limit_reached_free: 'Queue limit reached — upgrade to add more episodes ✨',
+    upgrade_modal_title: 'Queue limit reached 🎧',
+    upgrade_modal_body: 'Free accounts can hold up to 10 episodes in the queue. Upgrade to unlock unlimited queueing.',
+    upgrade_modal_cta: 'Upgrade',
+    upgrade_modal_cancel: 'Maybe later',
   },
   history: {
     heading: 'History',
@@ -68,7 +74,7 @@ const en = {
   } as Record<number, string>,
   player: {
     playback_speed: 'Playback Speed',
-    upgrade_for_speeds: 'Upgrade for more speeds',
+    upgrade_for_speeds: 'Upgrade for more playback speeds',
     sleep_off: 'Sleep off',
     sleep_5: '5 min',
     sleep_10: '10 min',

@@ -99,7 +99,7 @@ export default function Sidebar() {
   const sensors = useSensors(useSensor(PointerSensor))
   const strings = useStrings()
   const { isGuest, tier } = useUser()
-  const { clearNowPlaying } = usePlayer()
+  const { clearNowPlaying, clearClientQueue } = usePlayer()
 
   function openAuthPrompt(returnTo: string, title: string) {
     setAuthReturnTo(returnTo)
@@ -182,6 +182,7 @@ export default function Sidebar() {
     const supabase = createClient()
     await supabase.auth.signOut()
     clearNowPlaying()
+    clearClientQueue()
     localStorage.removeItem('guestToastShown')
     localStorage.removeItem('welcomeToastShownAt')
     router.push('/login')

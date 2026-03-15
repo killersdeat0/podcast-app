@@ -38,7 +38,7 @@ export async function GET() {
   const guids = queue.map((q) => q.episode_guid)
   const feedUrls = [...new Set(queue.map((q) => q.feed_url))]
 
-  const [{ data: episodes }, { data: subscriptions }] = await Promise.all([
+  const [{ data: episodes }, { data: subscriptions }, { data: progress }] = await Promise.all([
     supabase
       .from('episodes')
       .select('guid, feed_url, title, audio_url, duration, artwork_url, podcast_title')
@@ -47,18 +47,26 @@ export async function GET() {
       .from('subscriptions')
       .select('feed_url, artwork_url')
       .in('feed_url', feedUrls),
+    supabase
+      .from('playback_progress')
+      .select('episode_guid, position_seconds')
+      .eq('user_id', user.id)
+      .in('episode_guid', guids),
   ])
 
   const subArtworkMap = new Map((subscriptions ?? []).map((s) => [s.feed_url, s.artwork_url]))
   const episodeMap = new Map((episodes ?? []).map((e) => [e.guid, e]))
+  const progressMap = new Map((progress ?? []).map((p) => [p.episode_guid, p]))
 
   const result = queue.map((q) => {
     const ep = episodeMap.get(q.episode_guid) ?? null
+    const prog = progressMap.get(q.episode_guid)
     return {
       ...q,
       episode: ep
         ? { ...ep, artwork_url: subArtworkMap.get(q.feed_url) || ep.artwork_url || null }
         : null,
+      position_seconds: prog?.position_seconds ?? 0,
     }
   })
 

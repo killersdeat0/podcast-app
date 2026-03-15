@@ -69,7 +69,15 @@ When `nowPlaying` changes:
 
 On every `timeupdate` event, if at least 10 seconds have passed since the last save and `currentTime > 5`, it throttles a `POST /api/progress` call with the current position. The 10-second throttle uses `lastSavedAt` ref (not state, to avoid re-renders).
 
-### Episode end flow (`onEnded`)
+### Completion threshold
+
+Episodes are considered complete when `(currentTime / duration) * 100 >= COMPLETION_THRESHOLD_PCT` (currently **98%**). This constant lives in `src/lib/player/constants.ts` and is shared with the history page's "Done" indicator.
+
+A `hasCompletedRef` (reset on every episode change) prevents double-completion if both the `onTime` 98% check and the `onEnded` fallback fire for the same episode.
+
+### Episode completion flow (`completeAndAdvance`)
+
+Triggered at 98% via `onTime`, with `onEnded` as a fallback (only fires if `!hasCompletedRef.current`).
 
 **Authenticated users:**
 1. `POST /api/progress` with `completed: true` and `positionSeconds = audio.duration`
@@ -83,6 +91,22 @@ On every `timeupdate` event, if at least 10 seconds have passed since the last s
 - Uses `clientQueue` from `PlayerContext` for auto-advance: dequeues via `dequeueClient`, calls `play()` with the next item
 
 > **TODO:** Play an audio ad clip between steps 1 and 5 for free-tier users (see comment in source).
+
+### Next episode button (`skipToNext`)
+
+A skip-forward button appears in the player when there's a next item in the queue. Unlike `completeAndAdvance`, this does **not** mark the episode as complete — it lets the user resume from where they left off.
+
+**Authenticated users:**
+1. If `currentTime > 5`, `POST /api/progress` with `completed: false` and the current position (so the user can resume)
+2. `GET /api/queue` to find the current episode's index
+3. `DELETE /api/queue` to remove the current episode from the queue
+4. Call `play()` with the next item
+
+**Guests:**
+- No API calls; uses `clientQueue` for next-item lookup
+- Dequeues via `dequeueClient`, calls `play()` with the next item
+
+**Queue state for the next button:** `Player` maintains a `dbQueue` state (fetched from `/api/queue` whenever `nowPlaying` changes) for authenticated users. For guests, `clientQueue` from `PlayerContext` is used. `hasNextInQueue` is derived from whichever is active. The button is hidden when `!hasNextInQueue`.
 
 ### Chapters
 

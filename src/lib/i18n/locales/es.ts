@@ -12,6 +12,12 @@ const es = {
     empty_title: 'Tu cola está vacía 🎧',
     empty_description: 'Añade episodios de cualquier podcast y aparecerán aquí, listos para escuchar.',
     empty_cta: 'Explorar podcasts',
+    limit_reached_guest: 'Límite de cola alcanzado — inicia sesión y mejora tu plan para cola ilimitada 🚀',
+    limit_reached_free: 'Límite de cola alcanzado — mejora tu plan para añadir más episodios ✨',
+    upgrade_modal_title: 'Límite de cola alcanzado 🎧',
+    upgrade_modal_body: 'Las cuentas gratuitas pueden tener hasta 10 episodios en la cola. Mejora tu plan para cola ilimitada.',
+    upgrade_modal_cta: 'Mejorar plan',
+    upgrade_modal_cancel: 'Quizás luego',
   },
   history: {
     heading: 'Historial',
@@ -68,7 +74,7 @@ const es = {
   } as Record<number, string>,
   player: {
     playback_speed: 'Velocidad',
-    upgrade_for_speeds: 'Mejora para más velocidades',
+    upgrade_for_speeds: 'Mejora para más velocidades de reproducción',
     sleep_off: 'Sin temporizador',
     sleep_5: '5 min',
     sleep_10: '10 min',

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { usePlayer } from '@/components/player/PlayerContext'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useStrings } from '@/lib/i18n/LocaleContext'
+import { COMPLETION_THRESHOLD_PCT } from '@/lib/player/constants'
 
 interface HistoryItem {
   episode_guid: string
@@ -30,8 +31,14 @@ function formatDuration(s: number | null) {
 
 function formatProgress(positionSeconds: number, duration: number | null) {
   if (!duration) return formatDuration(positionSeconds) + ' played'
-  const pct = Math.round((positionSeconds / duration) * 100)
+  const pct = Math.min(100, Math.round((positionSeconds / duration) * 100))
   return `${pct}%`
+}
+
+function progressPct(positionSeconds: number, duration: number | null, completed: boolean): number | null {
+  if (completed) return 100
+  if (!duration) return null
+  return Math.min(100, Math.round((positionSeconds / duration) * 100))
 }
 
 export default function HistoryPage() {
@@ -80,13 +87,25 @@ export default function HistoryPage() {
         />
       ) : (
         <div className="space-y-2">
-          {items.map((item) => (
+          {items.map((item) => {
+            const pct = progressPct(item.position_seconds, item.episode?.duration ?? null, item.completed)
+            return (
             <button
               key={item.episode_guid}
               onClick={() => playItem(item)}
               disabled={!item.episode}
-              className="w-full flex items-center gap-3 text-left bg-gray-900 hover:bg-gray-800 rounded-xl px-4 py-3 transition-colors disabled:opacity-50"
+              className="relative w-full flex items-center gap-3 text-left bg-gray-900 hover:bg-gray-800 rounded-xl px-4 py-3 transition-colors disabled:opacity-50 overflow-hidden"
             >
+              {pct !== null && (
+                <div
+                  className="absolute inset-0 rounded-xl pointer-events-none"
+                  style={{
+                    background: pct >= 100
+                      ? 'rgba(34,197,94,0.12)'
+                      : `linear-gradient(to right, rgba(34,197,94,0.12) ${pct}%, rgba(139,92,246,0.10) ${pct}%)`,
+                  }}
+                />
+              )}
               {item.episode?.artwork_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -111,7 +130,7 @@ export default function HistoryPage() {
                 </div>
               </div>
               <div className="flex-shrink-0 text-right">
-                {item.completed ? (
+                {(item.completed || (pct !== null && pct >= COMPLETION_THRESHOLD_PCT)) ? (
                   <span className="text-xs text-green-400">Done</span>
                 ) : (
                   <span className="text-xs text-gray-500">
@@ -123,7 +142,8 @@ export default function HistoryPage() {
                 </p>
               </div>
             </button>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

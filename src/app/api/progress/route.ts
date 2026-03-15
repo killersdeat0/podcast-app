@@ -50,11 +50,17 @@ export async function POST(request: NextRequest) {
     }, { onConflict: 'feed_url,guid' })
   }
 
+  // Cap position to duration to prevent >100% progress from RSS metadata mismatches.
+  // When marking completed, keep the actual audio position (may slightly exceed RSS duration).
+  const safePosition = (!completed && duration && positionSeconds > duration)
+    ? duration
+    : positionSeconds
+
   const { error } = await supabase.from('playback_progress').upsert({
     user_id: user.id,
     episode_guid: guid,
     feed_url: feedUrl,
-    position_seconds: positionSeconds,
+    position_seconds: safePosition,
     completed: completed ?? false,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id,episode_guid' })
