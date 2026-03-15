@@ -6,8 +6,11 @@ import { usePlayer } from '@/components/player/PlayerContext'
 import { SkeletonEpisodeRow } from '@/components/ui/Skeleton'
 import type { PodcastFeed, Episode } from '@/lib/rss/parser'
 import { useStrings } from '@/lib/i18n/LocaleContext'
-import { mergeNewEpisodes } from '@/lib/subscriptions/mergeNewEpisodes'
+import { useUser } from '@/lib/auth/UserContext'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { computeNewEpisodes } from '@/lib/subscriptions/computeNewEpisodes'
 import { mergeEpisodeSources } from '@/lib/episodes/mergeEpisodeSources'
+import AuthPromptModal from '@/components/ui/AuthPromptModal'
 
 interface SubscriptionRow {
   feed_url: string
@@ -52,7 +55,8 @@ export default function PodcastPage() {
   const feedUrl = params.get('feed') ?? ''
   const title = params.get('title') ?? ''
   const artwork = params.get('artwork') ?? ''
-  const { play } = usePlayer()
+  const { play, clientQueue, enqueueClient, dequeueClient } = usePlayer()
+  const { isGuest, tier: contextTier } = useUser()
   const s = useStrings()
   const router = useRouter()
 
@@ -72,7 +76,7 @@ export default function PodcastPage() {
   const [savingFilter, setSavingFilter] = useState(false)
   const [filterModalOpen, setFilterModalOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
-  const [userTier, setUserTier] = useState<'free' | 'paid' | null>(null)
+  const [authPromptOpen, setAuthPromptOpen] = useState(false)
   const [episodePage, setEpisodePage] = useState(0)
   const [searchPage, setSearchPage] = useState(0)
   const [storedNewEpisodes, setStoredNewEpisodes] = useState<Episode[]>([])
@@ -87,6 +91,9 @@ export default function PodcastPage() {
   // iTunes episode search state
   const [itunesEpisodes, setItunesEpisodes] = useState<ItunesEpisode[] | null>(null)
   const [itunesLoading, setItunesLoading] = useState(false)
+
+  useEscapeKey(() => setFilterModalOpen(false), filterModalOpen)
+  useEscapeKey(() => { setNavWarningOpen(false); pendingNavRef.current = null; isBeforeUnloadRef.current = false }, navWarningOpen)
 
   useEffect(() => {
     if (!feedUrl) return
@@ -105,6 +112,12 @@ export default function PodcastPage() {
   // Check subscription status + current queue + tier
   useEffect(() => {
     if (!feedUrl) return
+    if (isGuest) {
+      setSubscribed(false)
+      setSubscription(null)
+      setQueuedGuids(new Set(clientQueue.map((e) => e.guid)))
+      return
+    }
     fetch('/api/subscriptions')
       .then((r) => r.json())
       .then((subs: SubscriptionRow[]) => {
@@ -123,11 +136,7 @@ export default function PodcastPage() {
         setQueuedGuids(new Set(items.map((i) => i.episode_guid)))
       })
       .catch(() => {})
-    fetch('/api/profile')
-      .then((r) => r.json())
-      .then((d) => { if (d?.tier) setUserTier(d.tier) })
-      .catch(() => {})
-  }, [feedUrl])
+  }, [feedUrl, isGuest]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch stored unseen episodes from DB (supplements RSS for episodes aged out of the feed)
   useEffect(() => {
@@ -169,21 +178,15 @@ export default function PodcastPage() {
   // storedNewEpisodes supplements the RSS feed with episodes that may have aged out of the feed
   const newEpisodes = useMemo(() => {
     if (!feed) return []
-    const filter = subscription?.episode_filter
-    const rssBaseEps = oldLastVisitedAt
-      ? feed.episodes.filter((ep) => new Date(ep.pubDate) > new Date(oldLastVisitedAt))
-      : feed.episodes
-    // Merge stored episodes (aged out of RSS) with current RSS results, dedup by guid
-    const baseEps = mergeNewEpisodes(rssBaseEps, storedNewEpisodes)
-    if (userTier !== 'paid') {
-      // Free: '*' or null = all new episodes; '' = opted out
-      return filter === '' ? [] : baseEps
-    }
-    if (!filter) return []                    // paid, no setting: no notifications
-    if (filter === '*') return baseEps        // paid, all episodes
-    const f = filter.toLowerCase()
-    return baseEps.filter((ep) => ep.title.toLowerCase().includes(f))
-  }, [feed, oldLastVisitedAt, userTier, subscription, storedNewEpisodes])
+    return computeNewEpisodes({
+      episodes: feed.episodes,
+      storedNewEpisodes,
+      oldLastVisitedAt,
+      subscription,
+      tier: contextTier ?? 'free',
+      isGuest,
+    })
+  }, [feed, oldLastVisitedAt, contextTier, subscription, storedNewEpisodes, isGuest])
 
   const unqueuedNewEpisodes = useMemo(
     () => newEpisodes.filter((ep) => !queuedGuids.has(ep.guid)),
@@ -351,6 +354,10 @@ export default function PodcastPage() {
   }
 
   async function toggleSubscribe() {
+    if (isGuest) {
+      setAuthPromptOpen(true)
+      return
+    }
     setSubscribing(true)
     try {
       if (subscribed) {
@@ -377,6 +384,25 @@ export default function PodcastPage() {
 
   async function toggleQueue(episode: Episode) {
     const inQueue = queuedGuids.has(episode.guid)
+    if (isGuest) {
+      if (inQueue) {
+        dequeueClient(episode.guid)
+        setQueuedGuids((prev) => { const s = new Set(prev); s.delete(episode.guid); return s })
+      } else {
+        enqueueClient({
+          guid: episode.guid,
+          feedUrl,
+          title: episode.title,
+          audioUrl: episode.audioUrl,
+          artworkUrl: artwork || feed?.artworkUrl || '',
+          podcastTitle: title,
+          duration: episode.duration ?? 0,
+          chapterUrl: episode.chapterUrl,
+        })
+        setQueuedGuids((prev) => new Set([...prev, episode.guid]))
+      }
+      return
+    }
     if (inQueue) {
       await fetch('/api/queue', {
         method: 'DELETE',
@@ -562,7 +588,7 @@ export default function PodcastPage() {
             />
 
             {/* Filter skeleton */}
-            {subscribed && userTier === null && (
+            {subscribed && contextTier === null && (
               <div className="flex items-center gap-2 mb-4 animate-pulse">
                 <div className="h-4 w-24 bg-gray-800 rounded-full" />
                 <div className="h-6 w-14 bg-gray-800 rounded-full" />
@@ -571,7 +597,7 @@ export default function PodcastPage() {
             )}
 
             {/* Episode filter — paid: compact pill row */}
-            {subscribed && userTier === 'paid' && (
+            {subscribed && contextTier === 'paid' && (
               <div className="mb-4">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs text-gray-600">Notifications</span>
@@ -648,7 +674,7 @@ export default function PodcastPage() {
             )}
 
             {/* Episode filter — free: compact pill row */}
-            {subscribed && userTier === 'free' && (
+            {subscribed && contextTier === 'free' && (
               <div className="flex items-center gap-2 flex-wrap mb-4">
                 <span className="text-xs text-gray-600">Notifications</span>
                 <button
@@ -736,6 +762,13 @@ export default function PodcastPage() {
                 </div>
               </div>
             )}
+
+            {/* Auth prompt modal for guests */}
+            <AuthPromptModal
+              open={authPromptOpen}
+              onClose={() => setAuthPromptOpen(false)}
+              returnTo={typeof window !== 'undefined' ? window.location.pathname + window.location.search : undefined}
+            />
 
             {/* Navigation warning modal */}
             {navWarningOpen && (

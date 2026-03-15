@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { usePlayer } from './PlayerContext'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useStrings } from '@/lib/i18n/LocaleContext'
+import { useUser } from '@/lib/auth/UserContext'
 
 const ALL_SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]
 const FREE_SPEEDS = [1, 2]
@@ -22,7 +24,8 @@ function formatTime(s: number) {
 }
 
 export default function Player({ isFreeTier = false }: { isFreeTier?: boolean }) {
-  const { nowPlaying, playing, speed, play, togglePlay, seek, setSpeed, audioRef } = usePlayer()
+  const { nowPlaying, playing, speed, play, togglePlay, seek, setSpeed, audioRef, clientQueue, dequeueClient } = usePlayer()
+  const { isGuest } = useUser()
   const availableSpeeds = isFreeTier ? FREE_SPEEDS : ALL_SPEEDS
   const strings = useStrings()
 
@@ -41,12 +44,15 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
   const [chapters, setChapters] = useState<Chapter[]>([])
   const sleepTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  useEscapeKey(() => setMobileMenu(null), !!mobileMenu)
+
   useEffect(() => {
     if (!isFreeTier) {
       const stored = localStorage.getItem('playback-speed')
       if (stored) setSpeed(Number(stored))
     }
   }, [isFreeTier]) // eslint-disable-line react-hooks/exhaustive-deps
+
 
   function handleSetSpeed(s: number) {
     setSpeed(s)
@@ -55,12 +61,14 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
   const lastSavedAt = useRef(0)
   const nowPlayingRef = useRef(nowPlaying)
   const playingRef = useRef(playing)
+  const clientQueueRef = useRef(clientQueue)
   const isDragging = useRef(false)
   const [sliderValue, setSliderValue] = useState(0)
 
   useEffect(() => {
     nowPlayingRef.current = nowPlaying
     playingRef.current = playing
+    clientQueueRef.current = clientQueue
   })
 
   useEffect(() => {
@@ -82,13 +90,17 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
     audio.playbackRate = speed
     setCurrentTime(0)
 
-    fetch(`/api/progress?guid=${encodeURIComponent(nowPlaying.guid)}&feedUrl=${encodeURIComponent(nowPlaying.feedUrl)}`)
-      .then((r) => r.json())
-      .then(({ positionSeconds }) => {
-        if (positionSeconds > 5) audio.currentTime = positionSeconds
-        if (playingRef.current) audio.play().catch(() => {})
-      })
-      .catch(() => { if (playingRef.current) audio.play().catch(() => {}) })
+    if (isGuest) {
+      if (playingRef.current) audio.play().catch(() => {})
+    } else {
+      fetch(`/api/progress?guid=${encodeURIComponent(nowPlaying.guid)}&feedUrl=${encodeURIComponent(nowPlaying.feedUrl)}`)
+        .then((r) => r.json())
+        .then(({ positionSeconds }) => {
+          if (positionSeconds > 5) audio.currentTime = positionSeconds
+          if (playingRef.current) audio.play().catch(() => {})
+        })
+        .catch(() => { if (playingRef.current) audio.play().catch(() => {}) })
+    }
   }, [nowPlaying]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -99,7 +111,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
       if (!isDragging.current) setCurrentTime(audio.currentTime)
       const now = Date.now()
       const np = nowPlayingRef.current
-      if (np && audio.currentTime > 5 && now - lastSavedAt.current > 10000) {
+      if (!isGuest && np && audio.currentTime > 5 && now - lastSavedAt.current > 10000) {
         lastSavedAt.current = now
         fetch('/api/progress', {
           method: 'POST',
@@ -123,6 +135,16 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
     const onEnded = () => {
       const np = nowPlayingRef.current
       if (!np) return
+
+      if (isGuest) {
+        // Guest: advance through client queue
+        const queue = clientQueueRef.current
+        const idx = queue.findIndex((e) => e.guid === np.guid)
+        dequeueClient(np.guid)
+        const next = queue[idx + 1] ?? queue[0]
+        if (next && next.guid !== np.guid) play(next)
+        return
+      }
 
       // Mark completed
       fetch('/api/progress', {
@@ -180,7 +202,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
       audio.removeEventListener('durationchange', onDuration)
       audio.removeEventListener('ended', onEnded)
     }
-  }, [audioRef, play])
+  }, [audioRef, play, isGuest, dequeueClient])
 
   function startSleepTimer(minutes: number) {
     if (sleepTimer.current) clearTimeout(sleepTimer.current)

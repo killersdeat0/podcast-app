@@ -25,6 +25,11 @@ interface PlayerControls {
   seek: (seconds: number) => void
   setSpeed: (speed: number) => void
   audioRef: React.RefObject<HTMLAudioElement | null>
+  clientQueue: NowPlaying[]
+  enqueueClient: (ep: NowPlaying) => void
+  dequeueClient: (guid: string) => void
+  clearClientQueue: () => void
+  clearNowPlaying: () => void
 }
 
 const PlayerContext = createContext<(PlayerState & PlayerControls) | null>(null)
@@ -34,12 +39,23 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [nowPlaying, setNowPlaying] = useState<NowPlaying | null>(null)
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeedState] = useState(1)
+  const [clientQueue, setClientQueue] = useState<NowPlaying[]>([])
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem('nowPlaying')
       // eslint-disable-next-line react-hooks/set-state-in-effect
       if (raw) setNowPlaying(JSON.parse(raw))
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('guestQueue')
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (raw) setClientQueue(JSON.parse(raw))
     } catch {
       // ignore
     }
@@ -72,9 +88,39 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     if (audioRef.current) audioRef.current.playbackRate = s
   }, [])
 
+  const enqueueClient = useCallback((ep: NowPlaying) => {
+    setClientQueue((prev) => {
+      if (prev.find((e) => e.guid === ep.guid)) return prev
+      if (prev.length >= 10) return prev
+      const next = [...prev, ep]
+      localStorage.setItem('guestQueue', JSON.stringify(next))
+      return next
+    })
+  }, [])
+
+  const dequeueClient = useCallback((guid: string) => {
+    setClientQueue((prev) => {
+      const next = prev.filter((e) => e.guid !== guid)
+      localStorage.setItem('guestQueue', JSON.stringify(next))
+      return next
+    })
+  }, [])
+
+  const clearClientQueue = useCallback(() => {
+    setClientQueue([])
+    localStorage.removeItem('guestQueue')
+  }, [])
+
+  const clearNowPlaying = useCallback(() => {
+    audioRef.current?.pause()
+    setNowPlaying(null)
+    setPlaying(false)
+    localStorage.removeItem('nowPlaying')
+  }, [])
+
   return (
     <PlayerContext.Provider
-      value={{ nowPlaying, playing, speed, play, togglePlay, seek, setSpeed, audioRef }}
+      value={{ nowPlaying, playing, speed, play, togglePlay, seek, setSpeed, audioRef, clientQueue, enqueueClient, dequeueClient, clearClientQueue, clearNowPlaying }}
     >
       {children}
     </PlayerContext.Provider>

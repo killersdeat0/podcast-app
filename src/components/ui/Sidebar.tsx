@@ -20,6 +20,9 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { createClient } from '@/lib/supabase/client'
 import { useStrings } from '@/lib/i18n/LocaleContext'
+import { useUser } from '@/lib/auth/UserContext'
+import { usePlayer } from '@/components/player/PlayerContext'
+import AuthPromptModal from '@/components/ui/AuthPromptModal'
 interface Subscription {
   feed_url: string
   title: string
@@ -89,17 +92,27 @@ export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
-  const [tier, setTier] = useState<'free' | 'paid' | null>(null)
   const [open, setOpen] = useState(true)
+  const [authPromptOpen, setAuthPromptOpen] = useState(false)
+  const [authPromptTitle, setAuthPromptTitle] = useState<string | undefined>()
+  const [authReturnTo, setAuthReturnTo] = useState<string | undefined>()
   const sensors = useSensors(useSensor(PointerSensor))
   const strings = useStrings()
+  const { isGuest, tier } = useUser()
+  const { clearNowPlaying } = usePlayer()
+
+  function openAuthPrompt(returnTo: string, title: string) {
+    setAuthReturnTo(returnTo)
+    setAuthPromptTitle(title)
+    setAuthPromptOpen(true)
+  }
 
   const navItems = [
-    { href: '/discover', label: strings.nav.discover, icon: navIcons.discover },
-    { href: '/queue',    label: strings.nav.queue,    icon: navIcons.queue },
-    { href: '/history',  label: strings.nav.history,  icon: navIcons.history },
-    { href: '/upgrade',  label: strings.nav.upgrade,  icon: navIcons.upgrade },
-    { href: '/profile',  label: strings.nav.profile,  icon: navIcons.profile },
+    { href: '/discover', label: strings.nav.discover, icon: navIcons.discover, guestModal: null },
+    { href: '/queue',    label: strings.nav.queue,    icon: navIcons.queue,    guestModal: null },
+    { href: '/history',  label: strings.nav.history,  icon: navIcons.history,  guestModal: { title: strings.guest.auth_prompt_history_title } },
+    { href: '/upgrade',  label: strings.nav.upgrade,  icon: navIcons.upgrade,  guestModal: { title: strings.guest.auth_prompt_upgrade_title } },
+    { href: '/profile',  label: strings.nav.profile,  icon: navIcons.profile,  guestModal: { title: strings.guest.auth_prompt_profile_title } },
   ]
 
   useEffect(() => {
@@ -119,13 +132,8 @@ export default function Sidebar() {
   }
 
   useEffect(() => {
-    fetch('/api/profile')
-      .then((r) => r.json())
-      .then((data) => { if (data?.tier) setTier(data.tier) })
-      .catch(() => {})
-  }, [])
+    if (isGuest) return
 
-  useEffect(() => {
     function fetchSubs() {
       fetch('/api/subscriptions')
         .then((r) => r.json())
@@ -140,7 +148,6 @@ export default function Sidebar() {
       const res = await fetch('/api/subscriptions/refresh', { method: 'POST' })
       if (!res.ok) return
       const { subscriptions } = await res.json()
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSubscriptions(subscriptions)
     }
 
@@ -152,7 +159,7 @@ export default function Sidebar() {
       clearInterval(interval)
       window.removeEventListener('subscriptions-changed', fetchSubs)
     }
-  }, [])
+  }, [isGuest])
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
@@ -174,6 +181,9 @@ export default function Sidebar() {
   async function handleSignOut() {
     const supabase = createClient()
     await supabase.auth.signOut()
+    clearNowPlaying()
+    localStorage.removeItem('guestToastShown')
+    localStorage.removeItem('welcomeToastShownAt')
     router.push('/login')
     router.refresh()
   }
@@ -202,26 +212,34 @@ export default function Sidebar() {
       {open && (
         <>
           <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-            {navItems.filter(({ href }) => !(href === '/upgrade' && tier === 'paid')).map(({ href, label, icon }) => (
-              <Link
-                key={href}
-                href={href}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  pathname.startsWith(href)
-                    ? 'bg-violet-600 text-white'
-                    : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                }`}
-              >
-                {icon}
-                {label}
-              </Link>
-            ))}
+            {navItems.filter(({ href }) => !(href === '/upgrade' && tier === 'paid')).map(({ href, label, icon, guestModal }) => {
+              const isActive = pathname.startsWith(href)
+              const cls = `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full ${
+                isActive ? 'bg-violet-600 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+              }`
+              if (isGuest && guestModal) {
+                return (
+                  <button key={href} onClick={() => openAuthPrompt(href, guestModal.title)} className={cls}>
+                    {icon}{label}
+                  </button>
+                )
+              }
+              return (
+                <Link key={href} href={href} className={cls}>
+                  {icon}{label}
+                </Link>
+              )
+            })}
 
             <>
               <p className="px-3 pt-4 pb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 {strings.sidebar.my_podcasts}
               </p>
-              {subscriptions.length === 0 ? (
+              {isGuest ? (
+                <div className="px-3 py-2">
+                  <p className="text-xs text-gray-600">{strings.guest.sidebar_sign_in_hint}</p>
+                </div>
+              ) : subscriptions.length === 0 ? (
                 <div className="px-3 py-2">
                   <p className="text-xs text-gray-600 mb-2">{strings.sidebar.empty_hint}</p>
                   <Link
@@ -246,16 +264,32 @@ export default function Sidebar() {
             </>
           </nav>
           <div className="px-3 pt-1 pb-2 border-t border-gray-800">
-            <button
-              onClick={handleSignOut}
-              className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1"/></svg>
-              {strings.nav.sign_out}
-            </button>
+            {isGuest ? (
+              <Link
+                href="/login"
+                className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+                {strings.guest.toast_signin}
+              </Link>
+            ) : (
+              <button
+                onClick={handleSignOut}
+                className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1"/></svg>
+                {strings.nav.sign_out}
+              </button>
+            )}
           </div>
         </>
       )}
+      <AuthPromptModal
+        open={authPromptOpen}
+        onClose={() => setAuthPromptOpen(false)}
+        returnTo={authReturnTo}
+        title={authPromptTitle}
+      />
     </aside>
   )
 }

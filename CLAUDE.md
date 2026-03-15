@@ -68,7 +68,7 @@ Read any relevant docs before making changes
 
 ### Auth guard
 
-`src/proxy.ts` is the Next.js 16 equivalent of `middleware.ts`. It protects all `(app)` routes and redirects unauthenticated users to `/login`.
+`src/proxy.ts` is the Next.js 16 equivalent of `middleware.ts`. It redirects unauthenticated users to `/login` for protected routes. Public routes (defined in `PUBLIC_PATHS`) are accessible without login: `/discover`, `/podcast`, `/queue`, `/login`, `/signup`, `/auth/callback`, and read-only podcast API routes (`/api/podcasts/*`). Guests who reach public `(app)` routes get the full shell (sidebar, player) with guest-mode UI via `UserContext` — see `src/lib/auth/UserContext.tsx`.
 
 ### Data flow
 

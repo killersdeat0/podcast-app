@@ -71,11 +71,16 @@ On every `timeupdate` event, if at least 10 seconds have passed since the last s
 
 ### Episode end flow (`onEnded`)
 
+**Authenticated users:**
 1. `POST /api/progress` with `completed: true` and `positionSeconds = audio.duration`
 2. `GET /api/queue` to fetch the current queue
 3. Find the current episode's index in the queue
 4. `DELETE /api/queue` to remove the completed episode
 5. If there's a next item in the queue, call `play()` with it
+
+**Guests:**
+- Steps 1–4 are skipped (no API calls)
+- Uses `clientQueue` from `PlayerContext` for auto-advance: dequeues via `dequeueClient`, calls `play()` with the next item
 
 > **TODO:** Play an audio ad clip between steps 1 and 5 for free-tier users (see comment in source).
 

@@ -30,6 +30,8 @@ export default function AuthForm({ mode }: { mode: Mode }) {
       return
     }
 
+    localStorage.removeItem('guestQueue')
+    localStorage.removeItem('guestToastShown')
     router.push('/discover')
     router.refresh()
   }
@@ -104,6 +106,12 @@ export default function AuthForm({ mode }: { mode: Mode }) {
         </svg>
         Continue with Google
       </button>
+
+      <p className="text-center text-sm text-gray-500 mt-4">
+        <a href="/discover" className="text-violet-400 hover:text-violet-300">
+          Continue browsing as guest →
+        </a>
+      </p>
     </div>
   )
 }

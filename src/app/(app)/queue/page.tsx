@@ -19,6 +19,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { usePlayer } from '@/components/player/PlayerContext'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useStrings } from '@/lib/i18n/LocaleContext'
+import { useUser } from '@/lib/auth/UserContext'
 
 interface QueueItem {
   episode_guid: string
@@ -107,17 +108,22 @@ function SortableQueueItem({
 export default function QueuePage() {
   const [items, setItems] = useState<QueueItem[]>([])
   const [loading, setLoading] = useState(true)
-  const { play } = usePlayer()
+  const { play, clientQueue, dequeueClient } = usePlayer()
+  const { isGuest } = useUser()
   const strings = useStrings()
 
   const sensors = useSensors(useSensor(PointerSensor))
 
   useEffect(() => {
+    if (isGuest) {
+      setLoading(false)
+      return
+    }
     fetch('/api/queue')
       .then((r) => r.json())
       .then((data) => { if (Array.isArray(data)) setItems(data) })
       .finally(() => setLoading(false))
-  }, [])
+  }, [isGuest])
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
@@ -156,6 +162,56 @@ export default function QueuePage() {
       audioUrl: item.episode.audio_url,
       duration: item.episode.duration ?? 0,
     })
+  }
+
+  if (isGuest) {
+    return (
+      <div className="p-4 md:p-8">
+        <h1 className="text-2xl font-bold mb-4">{strings.queue.heading}</h1>
+        <div className="flex items-start gap-3 bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 mb-6">
+          <p className="text-sm text-gray-400 flex-1">
+            {strings.guest.queue_sync_hint}{' '}
+            <a href="/login" className="text-violet-400 hover:text-violet-300 font-medium">{strings.guest.queue_sync_cta}</a>
+          </p>
+        </div>
+        {clientQueue.length === 0 ? (
+          <EmptyState
+            title={strings.queue.empty_title}
+            description={strings.queue.empty_description}
+            cta={{ label: strings.queue.empty_cta, href: '/discover' }}
+          />
+        ) : (
+          <div className="space-y-2">
+            {clientQueue.map((ep) => (
+              <div key={ep.guid} className="flex items-center gap-2">
+                <button
+                  onClick={() => play(ep)}
+                  className="flex-1 flex items-center gap-3 text-left bg-gray-900 hover:bg-gray-800 rounded-xl px-4 py-3 transition-colors"
+                >
+                  {ep.artworkUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={ep.artworkUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-gray-700 flex-shrink-0" />
+                  )}
+                  <div className="overflow-hidden">
+                    <p className="text-sm font-medium text-white truncate">{ep.title}</p>
+                    <p className="text-xs text-gray-400 truncate">{ep.podcastTitle}</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => dequeueClient(ep.guid)}
+                  title="Remove from queue"
+                  className="p-3 text-gray-500 hover:text-red-400 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (

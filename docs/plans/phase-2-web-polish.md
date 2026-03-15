@@ -56,11 +56,15 @@ Harden the web app with premium features, monetization, and UX improvements.
 
 ### Known Bugs
 - [x] Episode search incomplete — fixed by merging RSS `feed.episodes` with iTunes results client-side (`mergeEpisodeSources`). RSS entries take priority (richer metadata); iTunes fills in episodes not in the current RSS window. Search is paginated (20/page).
+- [x] Navigation warning fires for guests — when a guest visits a podcast page, `oldLastVisitedAt` is `null` so all feed episodes counted as "new", triggering the "Unqueued new episodes" modal on every navigation attempt. Fixed by returning `[]` from `newEpisodes` useMemo when `isGuest`.
+- [ ] Guests should see a login prompt on the podcast page encouraging them to sign in to track new episodes (currently the "New ✨" section and notification filter are silently hidden for guests with no explanation).
 
 ### Testing
 - [x] Unit tests for API routes (`/api/podcasts/search`, `/api/podcasts/feed`, `/api/progress`, `/api/queue`) — route handlers tested with mocked fetch and mocked Supabase client
 - [x] ~~Unit tests for silence-skipping logic~~ — canceled (silence skipping canceled for web)
 - [x] Unit tests for new episode retention (`mergeNewEpisodes`, `/api/podcasts/unseen`, `PATCH /api/subscriptions` episode cache)
+- [x] Unit tests for `computeNewEpisodes` — extracted from podcast page useMemo; covers guest guard, free/paid filter logic, stored episode merging
+- [x] Playwright E2E: guest browsing flow — `/discover` accessible, queue page accessible, auth modal fires for History/Profile nav, subscribe opens modal, nav warning does not fire for guests
 - [ ] Unit test for Stripe webhook handler
 - [ ] Playwright E2E: Stripe checkout flow (test mode)
 - [ ] Playwright E2E: navigation warning modal (unqueued new episodes → guard fires, Queue All & Leave queues and navigates, Stay keeps page)
