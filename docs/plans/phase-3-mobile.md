@@ -27,6 +27,7 @@ Mobile uses Supabase directly — no Next.js API layer needed for data.
 - [ ] Episode list + playback
 - [ ] Background audio playback (`expo-av` or `react-native-track-player`)
 - [ ] Sync (progress, subscriptions, queue, history)
+- [ ] Playlists — create, edit, delete; play from playlist with sequential auto-advance; share public playlists via URL
 
 ### Mobile-specific
 - [ ] Download manager with local storage (free tier: 3 downloads/day; paid tier: unlimited)

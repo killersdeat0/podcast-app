@@ -42,6 +42,10 @@ Leverage user subscription and listening data to surface relevant podcasts on th
 - [ ] Listening history signals (most-played genres, completion rates)
 - [ ] Blend personalized recommendations with trending results on discover page
 
+## Notes on Playlist Compatibility
+
+Playlist auto-advance goes through the same `completeAndAdvance` path in `Player.tsx` as queue auto-advance. Phase 4 audio ad interstitials (Stage 1/2) will apply to playlist playback automatically without additional changes.
+
 ## Notes
 
 - Spotify/Pandora play 15-30s unskippable ads personalized by demographics, location, and listening behavior
