@@ -30,13 +30,19 @@ export async function PATCH(request: NextRequest) {
     if (body.lastVisitedAt !== undefined) update.last_visited_at = body.lastVisitedAt
     if (body.newEpisodeCount !== undefined) update.new_episode_count = body.newEpisodeCount
     if (body.episodeFilter !== undefined) {
-      // Only paid users can set episode filter
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('tier')
-        .eq('id', user.id)
-        .single()
-      if (profile?.tier === 'paid') update.episode_filter = body.episodeFilter
+      const isSentinel = body.episodeFilter === '' || body.episodeFilter === '*'
+      if (isSentinel) {
+        // All users can toggle all/off
+        update.episode_filter = body.episodeFilter
+      } else {
+        // Custom text filter: paid only
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('tier')
+          .eq('user_id', user.id)
+          .single()
+        if (profile?.tier === 'paid') update.episode_filter = body.episodeFilter
+      }
     }
     if (Object.keys(update).length > 0) {
       await supabase

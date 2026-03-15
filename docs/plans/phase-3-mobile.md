@@ -31,7 +31,7 @@ Mobile uses Supabase directly — no Next.js API layer needed for data.
 ### Mobile-specific
 - [ ] Download manager with local storage (free tier: 3 downloads/day; paid tier: unlimited)
 - [ ] Lock screen / notification controls
-- [ ] Push notifications for new episodes
+- [ ] Push notifications for new episodes — implement as a Supabase Edge Function cron (see `docs/plans/phase-2.5-feed-refresh.md`); the `last_feed_checked_at` cache column is already in place from Phase 2.5
 - [ ] Silence skipping (paid only) — native audio APIs have no CORS restriction, so real-time silence detection works. Canceled for web (Phase 2) where browser security blocks cross-origin audio analysis.
 
 ### Testing

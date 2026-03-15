@@ -73,12 +73,33 @@ export async function POST(request: NextRequest) {
           .update({ tier: 'free', stripe_subscription_id: null })
           .eq('user_id', userId)
         if (error) console.error('Webhook: failed to downgrade user_profiles by user_id', error)
+        await supabase
+          .from('subscriptions')
+          .update({ episode_filter: '*' })
+          .eq('user_id', userId)
+          .not('episode_filter', 'is', null)
+          .neq('episode_filter', '')
+          .neq('episode_filter', '*')
       } else {
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('user_id')
+          .eq('stripe_customer_id', customerId)
+          .single()
         const { error } = await supabase
           .from('user_profiles')
           .update({ tier: 'free', stripe_subscription_id: null })
           .eq('stripe_customer_id', customerId)
         if (error) console.error('Webhook: failed to downgrade user_profiles by stripe_customer_id', error)
+        if (profile?.user_id) {
+          await supabase
+            .from('subscriptions')
+            .update({ episode_filter: '*' })
+            .eq('user_id', profile.user_id)
+            .not('episode_filter', 'is', null)
+            .neq('episode_filter', '')
+            .neq('episode_filter', '*')
+        }
       }
 
       break

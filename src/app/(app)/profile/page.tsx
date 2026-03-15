@@ -20,6 +20,7 @@ interface Subscription {
   artwork_url: string | null
   collection_id: string | null
   new_episode_count: number
+  episode_filter: string | null
 }
 
 function formatHours(seconds: number): string {
@@ -219,9 +220,21 @@ export default function ProfilePage() {
                           </span>
                         )}
                       </div>
-                      <span className="text-sm text-gray-300 group-hover:text-white truncate transition-colors">
-                        {sub.title}
-                      </span>
+                      <div className="min-w-0">
+                        <span className="text-sm text-gray-300 group-hover:text-white truncate transition-colors block">
+                          {sub.title}
+                        </span>
+                        {sub.episode_filter === '*' && (
+                          <span className="text-[11px] text-violet-400 bg-violet-500/10 px-1.5 py-0.5 rounded mt-0.5 inline-block">
+                            📻 All episodes
+                          </span>
+                        )}
+                        {sub.episode_filter && sub.episode_filter !== '*' && (
+                          <span className="text-[11px] text-violet-400 bg-violet-500/10 px-1.5 py-0.5 rounded mt-0.5 inline-block truncate max-w-full">
+                            🎯 {sub.episode_filter}
+                          </span>
+                        )}
+                      </div>
                     </Link>
                   </li>
                 ))}

@@ -9,6 +9,7 @@ const YEARLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_YEARLY_PRICE_ID ?? ''
 export default function UpgradePage() {
   const [tier, setTier] = useState<'free' | 'paid' | null>(null)
   const [loading, setLoading] = useState<'monthly' | 'yearly' | null>(null)
+  const [upgrading, setUpgrading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
   useEffect(() => {
@@ -134,6 +135,21 @@ export default function UpgradePage() {
             </div>
           </div>
         </>
+      )}
+
+      {process.env.NODE_ENV === 'development' && tier === 'free' && (
+        <button
+          onClick={async () => {
+            setUpgrading(true)
+            await fetch('/api/dev/upgrade', { method: 'POST' })
+            setTier('paid')
+            setUpgrading(false)
+          }}
+          disabled={upgrading}
+          className="mt-6 text-xs text-green-400 underline disabled:opacity-50"
+        >
+          {upgrading ? '...' : '[dev] upgrade to paid instantly'}
+        </button>
       )}
 
       {tier === 'paid' && (

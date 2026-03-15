@@ -12,18 +12,8 @@ export async function POST() {
 
   await supabase
     .from('user_profiles')
-    .update({ tier: 'free', stripe_subscription_id: null })
+    .update({ tier: 'paid' })
     .eq('user_id', user.id)
-
-  // Reset any custom text episode filters back to '*' (all episodes)
-  // Free users can't have custom filters, but can keep all/off sentinels
-  await supabase
-    .from('subscriptions')
-    .update({ episode_filter: '*' })
-    .eq('user_id', user.id)
-    .not('episode_filter', 'is', null)
-    .neq('episode_filter', '')
-    .neq('episode_filter', '*')
 
   return NextResponse.json({ ok: true })
 }
