@@ -84,6 +84,7 @@ const es = {
     sleep_60: '60 min',
   },
   welcome_toast: "¡Bienvenido de vuelta! 🎧 Nos alegra verte — tus podcasts te echaban de menos.",
+  welcome_toast_new_user: "¡Bienvenido! 🎉 Empieza buscando un podcast que te guste.",
   guest: {
     toast_message: 'Reproduciendo como invitado — inicia sesión para guardar tu progreso en todos tus dispositivos',
     toast_signin: 'Iniciar sesión',
@@ -101,6 +102,10 @@ const es = {
     auth_prompt_upgrade_title: 'Inicia sesión para mejorar 🚀',
   },
   podcast_page: {
+    guest_nudge_title: 'Inicia sesión para seguir episodios nuevos ✨',
+    guest_nudge_description: 'Recibe notificaciones cuando salgan episodios nuevos y nunca pierdas tu lugar.',
+    guest_nudge_login: 'Iniciar sesión',
+    guest_nudge_signup: 'Crear cuenta',
     search_placeholder: 'Buscar todos los episodios... 🔍',
     nav_warning_title: 'Episodios nuevos sin encolar ✨',
     nav_warning_body: 'Tienes {{n}} episodio(s) nuevo(s) que se marcarán como vistos al salir. Encólalos para escucharlos después.',

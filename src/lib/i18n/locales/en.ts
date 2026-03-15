@@ -84,6 +84,7 @@ const en = {
     sleep_60: '60 min',
   },
   welcome_toast: "Welcome back! 🎧 Great to see you again — your podcasts missed you.",
+  welcome_toast_new_user: "Welcome! 🎉 Start by searching for a podcast you love.",
   guest: {
     toast_message: 'Playing as guest — sign in to save your progress across devices',
     toast_signin: 'Sign in',
@@ -101,6 +102,10 @@ const en = {
     auth_prompt_upgrade_title: 'Sign in to upgrade 🚀',
   },
   podcast_page: {
+    guest_nudge_title: 'Sign in to track new episodes ✨',
+    guest_nudge_description: 'Get notified when new episodes drop and never lose your place.',
+    guest_nudge_login: 'Sign in',
+    guest_nudge_signup: 'Create account',
     search_placeholder: 'Search all episodes... 🔍',
     nav_warning_title: 'Unqueued new episodes ✨',
     nav_warning_body: 'You have {{n}} new episode(s) that will be marked as seen when you leave. Queue them to listen later.',

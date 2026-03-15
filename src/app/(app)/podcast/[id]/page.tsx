@@ -661,6 +661,24 @@ export default function PodcastPage() {
           <p className="text-gray-400 text-sm">No episodes found.</p>
         ) : (
           <>
+            {/* Guest nudge — sign in to track new episodes */}
+            {isGuest && (
+              <div className="flex items-center gap-3 bg-violet-950/50 border border-violet-800/40 rounded-xl px-4 py-3 mb-4">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white">{s.podcast_page.guest_nudge_title}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{s.podcast_page.guest_nudge_description}</p>
+                </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  <a href={`/login?returnTo=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '')}`} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/10 hover:bg-white/20 text-white transition-colors">
+                    {s.podcast_page.guest_nudge_login}
+                  </a>
+                  <a href="/signup" className="px-3 py-1.5 rounded-lg text-xs font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors">
+                    {s.podcast_page.guest_nudge_signup}
+                  </a>
+                </div>
+              </div>
+            )}
+
             {/* Search */}
             <input
               type="search"

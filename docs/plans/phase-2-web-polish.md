@@ -52,12 +52,12 @@ Harden the web app with premium features, monetization, and UX improvements.
 - [ ] ~~Audio ad clip before queue auto-advance~~ — moved to Phase 4 (Ad Monetization)
 - [x] OPML import/export
 - [x] Podcast detail page redesign: blurred artwork hero, flat episode rows (play icon on hover, SVG queue icons), new episode indicator (violet dot + "New" badge inline, no separate card), compact notification filter pill row, full-width layout (max-w-3xl removed from podcast, queue, and history pages)
-- [ ] Better empty states and onboarding flow
+- [x] Better empty states and onboarding flow — EmptyState component used across queue/history/discover/profile; guest nudge banner on podcast page; new-user welcome toast on first sign-up
 
 ### Known Bugs
 - [x] Episode search incomplete — fixed by merging RSS `feed.episodes` with iTunes results client-side (`mergeEpisodeSources`). RSS entries take priority (richer metadata); iTunes fills in episodes not in the current RSS window. Search is paginated (20/page).
 - [x] Navigation warning fires for guests — when a guest visits a podcast page, `oldLastVisitedAt` is `null` so all feed episodes counted as "new", triggering the "Unqueued new episodes" modal on every navigation attempt. Fixed by returning `[]` from `newEpisodes` useMemo when `isGuest`.
-- [ ] Guests should see a login prompt on the podcast page encouraging them to sign in to track new episodes (currently the "New ✨" section and notification filter are silently hidden for guests with no explanation).
+- [x] Guests should see a login prompt on the podcast page encouraging them to sign in to track new episodes — inline nudge banner above the episode list with Sign in / Create account CTAs.
 
 ### Testing
 - [x] Unit tests for API routes (`/api/podcasts/search`, `/api/podcasts/feed`, `/api/progress`, `/api/queue`) — route handlers tested with mocked fetch and mocked Supabase client
