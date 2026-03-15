@@ -39,7 +39,7 @@ Proxies the iTunes Lookup API to fetch up to 200 episodes for a podcast. No auth
 
 **Errors:** `400` if `collectionId` missing, `502` if iTunes lookup fails.
 
-**Note:** Only works when the podcast has a numeric iTunes `collectionId`. Used client-side to power episode search (fetched lazily on first search, then filtered client-side). Known bug: some episodes may not appear — iTunes API response coverage is inconsistent.
+**Note:** Only works when the podcast has a numeric iTunes `collectionId`. Used client-side to power episode search — fetched lazily on first keystroke, then merged with the already-loaded RSS `feed.episodes` client-side (dedup by guid, RSS wins on collision) via `src/lib/episodes/mergeEpisodeSources.ts`. This means search covers both the iTunes-indexed episodes (up to 200) and whatever the RSS feed currently exposes. RSS results appear immediately; the "Loading more…" indicator shows while iTunes is in flight.
 
 ---
 

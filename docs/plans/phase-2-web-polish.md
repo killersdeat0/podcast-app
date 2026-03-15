@@ -51,10 +51,11 @@ Harden the web app with premium features, monetization, and UX improvements.
 - [x] Navigation warning modal when leaving podcast page with unqueued new episodes (Queue All & Leave / Leave Anyway / Stay)
 - [ ] ~~Audio ad clip before queue auto-advance~~ — moved to Phase 4 (Ad Monetization)
 - [x] OPML import/export
+- [x] Podcast detail page redesign: blurred artwork hero, flat episode rows (play icon on hover, SVG queue icons), new episode indicator (violet dot + "New" badge inline, no separate card), compact notification filter pill row, full-width layout (max-w-3xl removed from podcast, queue, and history pages)
 - [ ] Better empty states and onboarding flow
 
 ### Known Bugs
-- [ ] Episode search (iTunes lookup via `/api/podcasts/episodes`) not returning episodes that are known to exist — suspected cause: iTunes Lookup API returning unexpected field names or omitting episodes; needs investigation (logging the raw API response is a good first step)
+- [x] Episode search incomplete — fixed by merging RSS `feed.episodes` with iTunes results client-side (`mergeEpisodeSources`). RSS entries take priority (richer metadata); iTunes fills in episodes not in the current RSS window. Search is paginated (20/page).
 
 ### Testing
 - [x] Unit tests for API routes (`/api/podcasts/search`, `/api/podcasts/feed`, `/api/progress`, `/api/queue`) — route handlers tested with mocked fetch and mocked Supabase client

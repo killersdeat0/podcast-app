@@ -22,7 +22,8 @@ Build a periodic feed-checking mechanism so new episode badges stay accurate wit
 | `GET /api/podcasts/unseen` — aged-out episode cache lookup | `src/app/api/podcasts/unseen/route.ts` |
 | Podcast detail page — on-mount count update, on-unmount reset, episode filter UI, nav warning, eager badge clear on leave | `src/app/(app)/podcast/[id]/page.tsx` |
 | Sidebar — badge rendering + `maybeRefresh()` on mount + hourly `setInterval` | `src/components/ui/Sidebar.tsx` |
-| Episode dedup + merge utility | `src/lib/subscriptions/mergeNewEpisodes.ts` |
+| Episode dedup + merge utility (new episodes) | `src/lib/subscriptions/mergeNewEpisodes.ts` |
+| Episode search merge utility (RSS + iTunes, dedup by guid) | `src/lib/episodes/mergeEpisodeSources.ts` |
 | Dev: reset all `last_visited_at` to 7 days ago (profile page button) | `src/app/api/dev/reset-last-visited/route.ts` |
 | Docs: `data-model.md`, `api.md` updated | — |
 

@@ -7,6 +7,7 @@ import { SkeletonEpisodeRow } from '@/components/ui/Skeleton'
 import type { PodcastFeed, Episode } from '@/lib/rss/parser'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { mergeNewEpisodes } from '@/lib/subscriptions/mergeNewEpisodes'
+import { mergeEpisodeSources } from '@/lib/episodes/mergeEpisodeSources'
 
 interface SubscriptionRow {
   feed_url: string
@@ -73,6 +74,7 @@ export default function PodcastPage() {
   const [helpOpen, setHelpOpen] = useState(false)
   const [userTier, setUserTier] = useState<'free' | 'paid' | null>(null)
   const [episodePage, setEpisodePage] = useState(0)
+  const [searchPage, setSearchPage] = useState(0)
   const [storedNewEpisodes, setStoredNewEpisodes] = useState<Episode[]>([])
 
   // Navigation warning modal state
@@ -188,20 +190,17 @@ export default function PodcastPage() {
     [newEpisodes, queuedGuids],
   )
 
-  // Search results: iTunes episodes filtered by query (falls back to RSS if no collectionId)
+  // Search results: merge RSS + iTunes episodes (dedup by guid), filter by query
   const searchResults = useMemo((): Episode[] => {
     if (!searchQuery) return []
-    if (collectionId) {
-      if (!itunesEpisodes) return []
-      const q = searchQuery.toLowerCase()
-      return itunesEpisodes
-        .filter((ep) => ep.trackName?.toLowerCase().includes(q))
-        .map(itunesToEpisode)
-    }
-    // Fallback: filter RSS episodes
-    if (!feed) return []
     const q = searchQuery.toLowerCase()
-    return feed.episodes.filter((ep) => ep.title.toLowerCase().includes(q))
+    const rssEps = feed?.episodes ?? []
+    if (collectionId) {
+      const merged = mergeEpisodeSources(rssEps, (itunesEpisodes ?? []).map(itunesToEpisode))
+      return merged.filter((ep) => ep.title.toLowerCase().includes(q))
+    }
+    // No collectionId: search RSS only
+    return rssEps.filter((ep) => ep.title.toLowerCase().includes(q))
   }, [searchQuery, collectionId, itunesEpisodes, feed])
 
   const PAGE_SIZE = 20
@@ -210,6 +209,12 @@ export default function PodcastPage() {
     const all = feed?.episodes ?? []
     return all.slice(episodePage * PAGE_SIZE, (episodePage + 1) * PAGE_SIZE)
   }, [feed, episodePage])
+
+  const searchTotalPages = Math.ceil(searchResults.length / PAGE_SIZE)
+  const pagedSearchResults = useMemo(
+    () => searchResults.slice(searchPage * PAGE_SIZE, (searchPage + 1) * PAGE_SIZE),
+    [searchResults, searchPage],
+  )
 
   // On mount (after feed + subscription loaded): update latest_episode_pub_date + new_episode_count
   // Also cache the new episode metadata so they remain visible after aging out of the RSS feed
@@ -437,173 +442,142 @@ export default function PodcastPage() {
     setOldLastVisitedAt(sevenDaysAgo)
   }
 
-  function renderEpisodeRow(ep: Episode) {
+  function renderEpisodeRow(ep: Episode, isNew = false) {
+    const inQueue = queuedGuids.has(ep.guid)
     return (
-      <div key={ep.guid} className="flex items-center gap-2">
+      <div key={ep.guid} className="group flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-lg transition-colors">
+        {/* New dot */}
+        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isNew ? 'bg-violet-400' : 'opacity-0'}`} />
+
+        {/* Play button — fades in on hover */}
         <button
           onClick={() => playEpisode(ep)}
-          className="flex-1 text-left bg-gray-900 hover:bg-gray-800 rounded-xl px-5 py-4 transition-colors"
+          title="Play"
+          className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all text-transparent bg-transparent group-hover:bg-violet-600 group-hover:text-white"
         >
-          <p className="text-sm font-medium text-white">{ep.title}</p>
-          <div className="flex gap-3 mt-1">
+          <svg className="w-3.5 h-3.5 ml-0.5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M5 3l14 9-14 9V3z" />
+          </svg>
+        </button>
+
+        {/* Title + metadata */}
+        <button onClick={() => playEpisode(ep)} className="flex-1 text-left min-w-0">
+          <p className="text-sm font-medium text-white truncate">{ep.title}</p>
+          <div className="flex items-center gap-2 mt-0.5">
             <span className="text-xs text-gray-500">{new Date(ep.pubDate).toLocaleDateString()}</span>
-            {ep.duration && (
-              <span className="text-xs text-gray-500">{formatDuration(ep.duration)}</span>
-            )}
+            {ep.duration && <span className="text-xs text-gray-500">{formatDuration(ep.duration)}</span>}
+            {isNew && <span className="text-[10px] font-semibold uppercase tracking-wide text-violet-400">New</span>}
           </div>
         </button>
+
+        {/* Queue button — hidden until hover, stays visible when queued */}
         <button
           onClick={() => toggleQueue(ep)}
-          title={queuedGuids.has(ep.guid) ? 'Remove from queue' : 'Add to queue'}
-          className={`p-3 rounded-lg text-lg transition-colors ${
-            queuedGuids.has(ep.guid)
-              ? 'text-violet-400 hover:text-red-400'
-              : 'text-gray-500 hover:text-white'
+          title={inQueue ? 'Remove from queue' : 'Add to queue'}
+          className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all ${
+            inQueue
+              ? 'text-violet-400 hover:text-red-400 bg-violet-500/10'
+              : 'text-gray-600 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100'
           }`}
         >
-          {queuedGuids.has(ep.guid) ? '✓' : '+'}
+          {inQueue ? (
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+          ) : (
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          )}
         </button>
       </div>
     )
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-3xl">
-      {/* Header */}
-      <div className="flex gap-6 mb-8">
+    <div>
+      {/* Hero header — blurred artwork backdrop */}
+      <div className="relative overflow-hidden mb-6">
         {artwork && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={artwork} alt={title} className="w-24 h-24 md:w-32 md:h-32 rounded-xl object-cover flex-shrink-0" />
+          <div
+            className="absolute inset-0 scale-110 blur-2xl opacity-60"
+            style={{ backgroundImage: `url(${artwork})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+          />
         )}
-        <div className="flex flex-col justify-end gap-3 min-w-0">
-          <h1 className="text-2xl font-bold">{title}</h1>
-          {feed && <p className="text-gray-400 text-sm line-clamp-3">{feed.description}</p>}
-          <button
-            onClick={toggleSubscribe}
-            disabled={subscribing}
-            className={`self-start px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
-              subscribed
-                ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                : 'bg-violet-600 hover:bg-violet-500 text-white'
-            }`}
-          >
-            {subscribing ? '...' : subscribed ? 'Subscribed' : 'Subscribe'}
-          </button>
-          {process.env.NODE_ENV === 'development' && subscribed && (
-            <button
-              onClick={devResetLastVisited}
-              className="self-start text-xs text-red-400 underline"
-            >
-              [dev] reset last visited → 7 days ago
-            </button>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/85" />
+        <div className="relative flex gap-4 md:gap-5 items-end px-4 md:px-8 pt-8 md:pt-10 pb-6">
+          {artwork && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={artwork} alt={title} className="w-24 h-24 md:w-36 md:h-36 rounded-xl md:rounded-2xl object-cover flex-shrink-0 shadow-2xl ring-1 ring-white/10" />
           )}
+          <div className="min-w-0 pb-1">
+            <h1 className="text-2xl md:text-3xl font-bold text-white leading-tight mb-1">{title}</h1>
+            {feed && <p className="text-gray-300/80 text-sm line-clamp-2 mb-3 leading-relaxed">{feed.description}</p>}
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                onClick={toggleSubscribe}
+                disabled={subscribing}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors disabled:opacity-50 ${
+                  subscribed
+                    ? 'bg-white/10 hover:bg-white/20 text-white ring-1 ring-white/20'
+                    : 'bg-violet-600 hover:bg-violet-500 text-white'
+                }`}
+              >
+                {subscribing ? '...' : subscribed ? 'Subscribed ✓' : 'Subscribe'}
+              </button>
+              {process.env.NODE_ENV === 'development' && subscribed && (
+                <button onClick={devResetLastVisited} className="text-xs text-red-400 underline">
+                  [dev] reset last visited → 7 days ago
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Episode list */}
-      {error ? (
-        <div className="text-center py-12">
-          <p className="text-gray-400 mb-3">Failed to load episodes.</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="text-violet-400 hover:text-violet-300 text-sm"
-          >
-            Try again
-          </button>
-        </div>
-      ) : loading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 8 }).map((_, i) => <SkeletonEpisodeRow key={i} />)}
-        </div>
-      ) : feed?.episodes.length === 0 ? (
-        <p className="text-gray-400 text-sm">No episodes found.</p>
-      ) : (
-        <>
-          {/* Search */}
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setEpisodePage(0) }}
-            placeholder={collectionId ? 'Search all episodes via iTunes... 🔍' : 'Search episodes... 🔍'}
-            className="w-full bg-gray-900 rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-violet-500 mb-3"
-          />
+      {/* Content */}
+      <div className="px-4 md:px-8 pb-8">
+        {error ? (
+          <div className="text-center py-12">
+            <p className="text-gray-400 mb-3">Failed to load episodes.</p>
+            <button onClick={() => window.location.reload()} className="text-violet-400 hover:text-violet-300 text-sm">
+              Try again
+            </button>
+          </div>
+        ) : loading ? (
+          <div className="space-y-1 mt-2">
+            {Array.from({ length: 8 }).map((_, i) => <SkeletonEpisodeRow key={i} />)}
+          </div>
+        ) : feed?.episodes.length === 0 ? (
+          <p className="text-gray-400 text-sm">No episodes found.</p>
+        ) : (
+          <>
+            {/* Search */}
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setEpisodePage(0); setSearchPage(0) }}
+              placeholder={s.podcast_page.search_placeholder}
+              className="w-full bg-gray-900 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-violet-500 mb-4"
+            />
 
-          {/* Skeleton while subscription/tier data is still loading */}
-          {userTier === null && (
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-3 animate-pulse">
-              <div className="h-3 bg-gray-800 rounded w-32 mb-3" />
-              <div className="flex gap-2 mb-3">
-                <div className="flex-1 h-9 bg-gray-800 rounded-lg" />
-                <div className="flex-1 h-9 bg-gray-800 rounded-lg" />
+            {/* Filter skeleton */}
+            {subscribed && userTier === null && (
+              <div className="flex items-center gap-2 mb-4 animate-pulse">
+                <div className="h-4 w-24 bg-gray-800 rounded-full" />
+                <div className="h-6 w-14 bg-gray-800 rounded-full" />
+                <div className="h-6 w-14 bg-gray-800 rounded-full" />
               </div>
-              <div className="h-10 bg-gray-800 rounded-lg" />
-            </div>
-          )}
+            )}
 
-          {/* Episode filter — paid: two buttons + current setting */}
-          {subscribed && userTier === 'paid' && (
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-3">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs text-gray-500 uppercase tracking-wider">🎯 New episode filter</p>
-                <button
-                  onClick={() => setHelpOpen((v) => !v)}
-                  className="text-gray-600 hover:text-gray-400 transition-colors text-sm leading-none"
-                  title="What is this?"
-                >
-                  ⓘ
-                </button>
-              </div>
-              {helpOpen && (
-                <p className="text-xs text-gray-400 bg-gray-800 rounded-lg px-3 py-2 mb-3">
-                  Control which new episodes appear in your ✨ New Episodes section for this podcast. <strong className="text-gray-300">All episodes</strong> notifies you about everything new. <strong className="text-gray-300">Custom filter</strong> narrows it to episodes matching a keyword — great for podcasts that mix shows or topics. Select neither to turn off new episode tracking entirely. 🔕
-                </p>
-              )}
-              <div className="flex gap-2 mb-3">
-                <button
-                  onClick={async () => {
-                    const next = subscription?.episode_filter === '*' ? '' : '*'
-                    setSavingFilter(true)
-                    await fetch('/api/subscriptions', {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ feedUrl, episodeFilter: next }),
-                    })
-                    setSubscription((prev) => prev ? { ...prev, episode_filter: next } : prev)
-                    setEpisodeFilter('')
-                    setSavingFilter(false)
-                  }}
-                  disabled={savingFilter}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
-                    subscription?.episode_filter === '*'
-                      ? 'bg-violet-600 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:text-white'
-                  }`}
-                >
-                  📻 All episodes
-                </button>
-                <button
-                  onClick={() => setFilterModalOpen(true)}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    subscription?.episode_filter && subscription.episode_filter !== '*'
-                      ? 'bg-violet-600 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:text-white'
-                  }`}
-                >
-                  🎯 Custom filter
-                </button>
-              </div>
-              <div className="flex items-center justify-between bg-gray-800 rounded-lg px-3 py-2">
-                <div>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Current setting</p>
-                  <p className="text-sm text-violet-300 font-medium">
-                    {!subscription?.episode_filter && '🔕 No notifications'}
-                    {subscription?.episode_filter === '*' && '📻 All episodes'}
-                    {subscription?.episode_filter && subscription.episode_filter !== '*' && `🎯 "${subscription.episode_filter}"`}
-                  </p>
-                </div>
-                {subscription?.episode_filter && (
+            {/* Episode filter — paid: compact pill row */}
+            {subscribed && userTier === 'paid' && (
+              <div className="mb-4">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-gray-600">Notifications</span>
                   <button
                     onClick={async () => {
+                      if (subscription?.episode_filter === '') return
                       setSavingFilter(true)
                       await fetch('/api/subscriptions', {
                         method: 'PATCH',
@@ -614,19 +588,69 @@ export default function PodcastPage() {
                       setEpisodeFilter('')
                       setSavingFilter(false)
                     }}
-                    title="Turn off notifications"
-                    className="text-gray-500 hover:text-red-400 transition-colors p-1 text-base"
+                    disabled={savingFilter}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors disabled:opacity-50 ${
+                      subscription?.episode_filter === ''
+                        ? 'bg-gray-700 text-white'
+                        : 'bg-gray-800 text-gray-400 hover:text-white'
+                    }`}
                   >
-                    🗑️
+                    🔕 Off
                   </button>
+                  <button
+                    onClick={async () => {
+                      if (subscription?.episode_filter === '*') return
+                      setSavingFilter(true)
+                      await fetch('/api/subscriptions', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ feedUrl, episodeFilter: '*' }),
+                      })
+                      setSubscription((prev) => prev ? { ...prev, episode_filter: '*' } : prev)
+                      setEpisodeFilter('')
+                      setSavingFilter(false)
+                    }}
+                    disabled={savingFilter}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors disabled:opacity-50 ${
+                      subscription?.episode_filter === '*'
+                        ? 'bg-violet-600 text-white'
+                        : 'bg-gray-800 text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    📻 All
+                  </button>
+                  <button
+                    onClick={() => setFilterModalOpen(true)}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                      subscription?.episode_filter && subscription.episode_filter !== '*'
+                        ? 'bg-violet-600 text-white'
+                        : 'bg-gray-800 text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {subscription?.episode_filter && subscription.episode_filter !== '*'
+                      ? `🎯 "${subscription.episode_filter}"`
+                      : '🎯 Custom'}
+                  </button>
+                  <button
+                    onClick={() => setHelpOpen((v) => !v)}
+                    className="text-gray-700 hover:text-gray-400 transition-colors text-sm leading-none"
+                    title="What is this?"
+                  >
+                    ⓘ
+                  </button>
+                </div>
+                {helpOpen && (
+                  <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+                    Control which new episodes appear in your New section. <strong className="text-gray-400">All</strong> notifies you about everything. <strong className="text-gray-400">Custom</strong> narrows it to a keyword — great for podcasts that mix topics. 🔕 turns off notifications entirely.
+                  </p>
                 )}
               </div>
-            </div>
-          )}
-          {subscribed && userTier === 'free' && (
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-3">
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">🎯 New episode filter</p>
-              <div className="flex gap-2 mb-3">
+            )}
+
+            {/* Episode filter — free: compact pill row */}
+            {subscribed && userTier === 'free' && (
+              <div className="flex items-center gap-2 flex-wrap mb-4">
+                <span className="text-xs text-gray-600">Notifications</span>
                 <button
                   onClick={async () => {
                     const next = subscription?.episode_filter === '*' ? '' : '*'
@@ -640,13 +664,13 @@ export default function PodcastPage() {
                     setSavingFilter(false)
                   }}
                   disabled={savingFilter}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors disabled:opacity-50 ${
                     subscription?.episode_filter !== ''
                       ? 'bg-violet-600 text-white'
                       : 'bg-gray-800 text-gray-400 hover:text-white'
                   }`}
                 >
-                  📻 All episodes
+                  📻 All
                 </button>
                 <button
                   onClick={async () => {
@@ -661,7 +685,7 @@ export default function PodcastPage() {
                     setSavingFilter(false)
                   }}
                   disabled={savingFilter}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors disabled:opacity-50 ${
                     subscription?.episode_filter === ''
                       ? 'bg-gray-700 text-white'
                       : 'bg-gray-800 text-gray-400 hover:text-white'
@@ -669,160 +693,151 @@ export default function PodcastPage() {
                 >
                   🔕 Off
                 </button>
+                <a href="/upgrade" className="text-xs text-gray-600 hover:text-violet-400 transition-colors ml-1">
+                  Pro: custom filters →
+                </a>
               </div>
-              <div className="bg-gray-800 rounded-lg px-3 py-2.5">
-                <p className="text-xs text-gray-400">
-                  ✨ <span className="text-gray-300 font-medium">Pro</span> unlocks custom keyword filters — only get notified about episodes that match a topic or series name. <a href="/upgrade" className="text-violet-400 hover:text-violet-300 transition-colors">Upgrade →</a>
-                </p>
-              </div>
-            </div>
-          )}
+            )}
 
-          {/* Custom filter modal */}
-          {filterModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-              <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm shadow-xl">
-                <h3 className="text-base font-semibold text-white mb-1">🎯 Custom episode filter</h3>
-                <p className="text-xs text-gray-400 mb-4">
-                  Only episodes whose title contains this keyword will appear in your ✨ New Episodes section. Leave blank to see all.
-                </p>
-
-
-                <input
-                  type="text"
-                  value={episodeFilter}
-                  onChange={(e) => setEpisodeFilter(e.target.value)}
-                  placeholder="e.g. 90 Day, interview, recap..."
-                  autoFocus
-                  className="w-full bg-gray-800 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-violet-500 mb-4"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') saveEpisodeFilter().then(() => setFilterModalOpen(false))
-                  }}
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => { setEpisodeFilter(subscription?.episode_filter ?? ''); setFilterModalOpen(false) }}
-                    className="flex-1 py-2 rounded-lg text-sm bg-gray-800 text-gray-300 hover:text-white transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => saveEpisodeFilter().then(() => setFilterModalOpen(false))}
-                    disabled={savingFilter}
-                    className="flex-1 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 transition-colors"
-                  >
-                    {savingFilter ? '...' : 'Save 🎯'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Navigation warning modal */}
-          {navWarningOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-              <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm shadow-xl">
-                <h3 className="text-base font-semibold text-white mb-1">
-                  {s.podcast_page.nav_warning_title}
-                </h3>
-                <p className="text-xs text-gray-400 mb-6">
-                  {s.podcast_page.nav_warning_body.replace('{{n}}', String(unqueuedNewEpisodes.length))}
-                </p>
-                <div className="flex flex-col gap-2">
-                  <button
-                    onClick={queueAllAndLeave}
-                    disabled={queuingAll}
-                    className="w-full py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 transition-colors"
-                  >
-                    {queuingAll ? s.podcast_page.nav_warning_queuing : s.podcast_page.nav_warning_queue_and_leave}
-                  </button>
-                  <button
-                    onClick={proceedWithNavigation}
-                    disabled={queuingAll}
-                    className="w-full py-2 rounded-lg text-sm bg-gray-800 text-gray-300 hover:text-white disabled:opacity-40 transition-colors"
-                  >
-                    {s.podcast_page.nav_warning_leave}
-                  </button>
-                  <button
-                    onClick={() => { setNavWarningOpen(false); pendingNavRef.current = null; isBeforeUnloadRef.current = false }}
-                    disabled={queuingAll}
-                    className="w-full py-2 rounded-lg text-sm bg-gray-800 text-gray-300 hover:text-white disabled:opacity-40 transition-colors"
-                  >
-                    {s.podcast_page.nav_warning_stay}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Search results */}
-          {searchQuery ? (
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">
-                Search Results
-              </h2>
-              <div className="space-y-2">
-                {itunesLoading ? (
-                  Array.from({ length: 4 }).map((_, i) => <SkeletonEpisodeRow key={i} />)
-                ) : searchResults.length === 0 ? (
-                  <p className="text-gray-500 text-sm py-4 text-center">No episodes found.</p>
-                ) : (
-                  searchResults.map(renderEpisodeRow)
-                )}
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* New episodes section */}
-              {subscribed && newEpisodes.length > 0 && (
-                <section className="bg-violet-950/20 border border-violet-900/30 rounded-xl p-4 mb-3">
-                  <h2 className="text-xs font-semibold uppercase tracking-wider text-violet-400 mb-3">
-                    New Episodes ✨
-                  </h2>
-                  <div className="space-y-2">
-                    {newEpisodes.map(renderEpisodeRow)}
+            {/* Custom filter modal */}
+            {filterModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm shadow-xl">
+                  <h3 className="text-base font-semibold text-white mb-1">🎯 Custom episode filter</h3>
+                  <p className="text-xs text-gray-400 mb-4">
+                    Only episodes whose title contains this keyword will appear in your ✨ New Episodes section. Leave blank to see all.
+                  </p>
+                  <input
+                    type="text"
+                    value={episodeFilter}
+                    onChange={(e) => setEpisodeFilter(e.target.value)}
+                    placeholder="e.g. 90 Day, interview, recap..."
+                    autoFocus
+                    className="w-full bg-gray-800 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-violet-500 mb-4"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') saveEpisodeFilter().then(() => setFilterModalOpen(false))
+                    }}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setEpisodeFilter(subscription?.episode_filter ?? ''); setFilterModalOpen(false) }}
+                      className="flex-1 py-2 rounded-lg text-sm bg-gray-800 text-gray-300 hover:text-white transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => saveEpisodeFilter().then(() => setFilterModalOpen(false))}
+                      disabled={savingFilter}
+                      className="flex-1 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 transition-colors"
+                    >
+                      {savingFilter ? '...' : 'Save 🎯'}
+                    </button>
                   </div>
-                </section>
-              )}
+                </div>
+              </div>
+            )}
 
-              {/* All episodes */}
-              <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    All Episodes
-                  </h2>
-                  {totalPages > 1 && (
-                    <span className="text-xs text-gray-600">
-                      {episodePage + 1} / {totalPages}
-                    </span>
+            {/* Navigation warning modal */}
+            {navWarningOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm shadow-xl">
+                  <h3 className="text-base font-semibold text-white mb-1">
+                    {s.podcast_page.nav_warning_title}
+                  </h3>
+                  <p className="text-xs text-gray-400 mb-6">
+                    {s.podcast_page.nav_warning_body.replace('{{n}}', String(unqueuedNewEpisodes.length))}
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={queueAllAndLeave}
+                      disabled={queuingAll}
+                      className="w-full py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 transition-colors"
+                    >
+                      {queuingAll ? s.podcast_page.nav_warning_queuing : s.podcast_page.nav_warning_queue_and_leave}
+                    </button>
+                    <button
+                      onClick={proceedWithNavigation}
+                      disabled={queuingAll}
+                      className="w-full py-2 rounded-lg text-sm bg-gray-800 text-gray-300 hover:text-white disabled:opacity-40 transition-colors"
+                    >
+                      {s.podcast_page.nav_warning_leave}
+                    </button>
+                    <button
+                      onClick={() => { setNavWarningOpen(false); pendingNavRef.current = null; isBeforeUnloadRef.current = false }}
+                      disabled={queuingAll}
+                      className="w-full py-2 rounded-lg text-sm bg-gray-800 text-gray-300 hover:text-white disabled:opacity-40 transition-colors"
+                    >
+                      {s.podcast_page.nav_warning_stay}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Search results or episode list */}
+            {searchQuery ? (
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-gray-600">
+                    Search Results{!itunesLoading && searchResults.length > 0 ? ` (${searchResults.length})` : ''}
+                  </span>
+                  <div className="flex-1 h-px bg-gray-800/60" />
+                  {itunesLoading && collectionId && (
+                    <span className="text-xs text-gray-600 animate-pulse">Loading more…</span>
+                  )}
+                  {searchTotalPages > 1 && (
+                    <span className="text-xs text-gray-700">{searchPage + 1} / {searchTotalPages}</span>
                   )}
                 </div>
-                <div className="space-y-2">
-                  {pagedEpisodes.map(renderEpisodeRow)}
-                </div>
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-800">
-                    <button
-                      onClick={() => setEpisodePage((p) => Math.max(0, p - 1))}
-                      disabled={episodePage === 0}
-                      className="px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                    >
-                      ← Previous
-                    </button>
-                    <button
-                      onClick={() => setEpisodePage((p) => Math.min(totalPages - 1, p + 1))}
-                      disabled={episodePage === totalPages - 1}
-                      className="px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Next →
-                    </button>
+                {pagedSearchResults.length === 0 && itunesLoading ? (
+                  <div className="space-y-1 mt-1">
+                    {Array.from({ length: 4 }).map((_, i) => <SkeletonEpisodeRow key={i} />)}
+                  </div>
+                ) : pagedSearchResults.length === 0 ? (
+                  <p className="text-gray-500 text-sm py-8 text-center">No episodes found.</p>
+                ) : (
+                  pagedSearchResults.map((ep) => renderEpisodeRow(ep))
+                )}
+                {searchTotalPages > 1 && (
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-800/60">
+                    <button onClick={() => setSearchPage((p) => Math.max(0, p - 1))} disabled={searchPage === 0} className="px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">← Previous</button>
+                    <button onClick={() => setSearchPage((p) => Math.min(searchTotalPages - 1, p + 1))} disabled={searchPage === searchTotalPages - 1} className="px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">Next →</button>
                   </div>
                 )}
               </div>
-            </>
-          )}
-        </>
-      )}
+            ) : (
+              <>
+                {/* New episodes — flat rows with violet accent, no card wrapper */}
+                {subscribed && newEpisodes.length > 0 && (
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-violet-400">New ✨</span>
+                      <div className="flex-1 h-px bg-violet-900/40" />
+                    </div>
+                    {newEpisodes.map((ep) => renderEpisodeRow(ep, true))}
+                  </div>
+                )}
+
+                {/* All episodes — flat list */}
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-gray-600">All Episodes</span>
+                    <div className="flex-1 h-px bg-gray-800/60" />
+                    {totalPages > 1 && <span className="text-xs text-gray-700">{episodePage + 1} / {totalPages}</span>}
+                  </div>
+                  {pagedEpisodes.map((ep) => renderEpisodeRow(ep))}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-800/60">
+                      <button onClick={() => setEpisodePage((p) => Math.max(0, p - 1))} disabled={episodePage === 0} className="px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">← Previous</button>
+                      <button onClick={() => setEpisodePage((p) => Math.min(totalPages - 1, p + 1))} disabled={episodePage === totalPages - 1} className="px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">Next →</button>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </div>
     </div>
   )
 }
