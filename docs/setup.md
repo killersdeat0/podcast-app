@@ -141,4 +141,4 @@ E2E tests require `E2E_TEST_EMAIL` and `E2E_TEST_PASSWORD` set to a real Supabas
 | Listening stats | ✗ | ✓ |
 | OPML import/export | ✓ | ✓ |
 
-When a paid subscription lapses, a background job clears history older than 30 days.
+A nightly pg_cron job (03:00 UTC) deletes `playback_progress` rows older than 30 days for all free-tier users. This covers both always-free users and lapsed paid users (who are downgraded to free by the Stripe webhook).

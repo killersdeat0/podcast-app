@@ -8,7 +8,7 @@ Harden the web app with premium features, monetization, and UX improvements.
 ### Freemium / Payments
 - [x] Stripe integration (subscription checkout — $4.99/month or $50/year)
 - [x] Webhook to update `user_profiles.tier` on payment
-- [ ] Background job: when paid subscription lapses, clear history older than 30 days
+- [x] Background job: nightly pg_cron job deletes `playback_progress` rows older than 30 days for all free-tier users (covers lapsed paid users too, since the Stripe webhook already downgrades them to free)
 - [x] Dev-only downgrade button on profile page (resets tier to free without Stripe)
 
 **Free tier limits:**

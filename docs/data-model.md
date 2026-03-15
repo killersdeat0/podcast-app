@@ -86,6 +86,8 @@ Stores the last known playback position per user per episode. Also serves as the
 
 **RLS:** Users can manage only their own rows.
 
+**Cleanup:** A nightly pg_cron job (03:00 UTC) deletes rows older than 30 days for all `tier = 'free'` users. See `supabase/migrations/20260315000001_cron_cleanup_free_history.sql`.
+
 ---
 
 ### `queue`
