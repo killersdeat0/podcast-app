@@ -14,6 +14,9 @@ import AuthPromptModal from '@/components/ui/AuthPromptModal'
 
 interface SubscriptionRow {
   feed_url: string
+  title: string
+  artwork_url: string | null
+  collection_id: string | null
   last_visited_at: string | null
   latest_episode_pub_date: string | null
   episode_filter: string | null
@@ -52,9 +55,9 @@ function formatDuration(s: number | null) {
 export default function PodcastPage() {
   const params = useSearchParams()
   const { id } = useParams<{ id: string }>()
-  const feedUrl = params.get('feed') ?? ''
-  const title = params.get('title') ?? ''
-  const artwork = params.get('artwork') ?? ''
+  const paramFeedUrl = params.get('feed') ?? ''
+  const paramTitle = params.get('title') ?? ''
+  const paramArtwork = params.get('artwork') ?? ''
   const { play, clientQueue, enqueueClient, dequeueClient } = usePlayer()
   const { isGuest, tier: contextTier } = useUser()
   const s = useStrings()
@@ -62,6 +65,12 @@ export default function PodcastPage() {
 
   // Is `id` a numeric iTunes collection ID?
   const collectionId = /^\d+$/.test(id) ? id : null
+
+  // feedUrl/title/artwork start from URL params (present for discover links) and are
+  // backfilled from subscription data or RSS response for clean subscribed-only URLs.
+  const [feedUrl, setFeedUrl] = useState(paramFeedUrl)
+  const [title, setTitle] = useState(paramTitle)
+  const [artwork, setArtwork] = useState(paramArtwork)
 
   const [feed, setFeed] = useState<PodcastFeed | null>(null)
   const [loading, setLoading] = useState(true)
@@ -80,6 +89,7 @@ export default function PodcastPage() {
   const [episodePage, setEpisodePage] = useState(0)
   const [searchPage, setSearchPage] = useState(0)
   const [storedNewEpisodes, setStoredNewEpisodes] = useState<Episode[]>([])
+  const [episodeProgress, setEpisodeProgress] = useState<Map<string, { positionSeconds: number; completed: boolean }>>(new Map())
 
   // Navigation warning modal state
   const [navWarningOpen, setNavWarningOpen] = useState(false)
@@ -104,14 +114,17 @@ export default function PodcastPage() {
         if (!r.ok) throw new Error()
         return r.json()
       })
-      .then((data) => setFeed(data))
+      .then((data: PodcastFeed) => {
+        setFeed(data)
+        if (!title && data.title) setTitle(data.title)
+        if (!artwork && data.artworkUrl) setArtwork(data.artworkUrl)
+      })
       .catch(() => setError(true))
       .finally(() => setLoading(false))
-  }, [feedUrl])
+  }, [feedUrl]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Check subscription status + current queue + tier
   useEffect(() => {
-    if (!feedUrl) return
     if (isGuest) {
       setSubscribed(false)
       setSubscription(null)
@@ -121,7 +134,19 @@ export default function PodcastPage() {
     fetch('/api/subscriptions')
       .then((r) => r.json())
       .then((subs: SubscriptionRow[]) => {
-        const sub = subs.find((s) => s.feed_url === feedUrl) ?? null
+        // Match by feed URL param (discover links), iTunes collection ID, or encoded feed URL
+        const sub = subs.find((s) => {
+          if (paramFeedUrl && s.feed_url === paramFeedUrl) return true
+          if (s.collection_id && s.collection_id === id) return true
+          if (encodeURIComponent(s.feed_url) === id) return true
+          return false
+        }) ?? null
+        if (sub) {
+          // Backfill feedUrl/title/artwork from subscription if not already in URL params
+          if (!feedUrl) setFeedUrl(sub.feed_url)
+          if (!title) setTitle(sub.title)
+          if (!artwork) setArtwork(sub.artwork_url ?? '')
+        }
         setSubscribed(!!sub)
         setSubscription(sub)
         setOldLastVisitedAt(sub?.last_visited_at ?? null)
@@ -136,7 +161,7 @@ export default function PodcastPage() {
         setQueuedGuids(new Set(items.map((i) => i.episode_guid)))
       })
       .catch(() => {})
-  }, [feedUrl, isGuest]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id, isGuest]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch stored unseen episodes from DB (supplements RSS for episodes aged out of the feed)
   useEffect(() => {
@@ -160,6 +185,17 @@ export default function PodcastPage() {
       })
       .catch(() => {})
   }, [feedUrl, oldLastVisitedAt, subscribed])
+
+  // Fetch episode progress for this feed to show played/partial indicators
+  useEffect(() => {
+    if (!feedUrl || isGuest) return
+    fetch(`/api/progress/completed?feedUrl=${encodeURIComponent(feedUrl)}`)
+      .then((r) => r.json())
+      .then((data: { progress: Array<{ guid: string; positionSeconds: number; completed: boolean }> }) => {
+        setEpisodeProgress(new Map((data.progress ?? []).map((p) => [p.guid, p])))
+      })
+      .catch(() => {})
+  }, [feedUrl, isGuest])
 
   // Fetch iTunes episodes lazily when user starts searching
   useEffect(() => {
@@ -470,6 +506,14 @@ export default function PodcastPage() {
 
   function renderEpisodeRow(ep: Episode, isNew = false) {
     const inQueue = queuedGuids.has(ep.guid)
+    const prog = episodeProgress.get(ep.guid)
+    const isPlayed = prog?.completed ?? false
+    const pct = (!isPlayed && prog && ep.duration && ep.duration > 0)
+      ? Math.min(100, Math.round((prog.positionSeconds / ep.duration) * 100))
+      : null
+    const remaining = (pct !== null && ep.duration)
+      ? formatDuration(ep.duration - prog!.positionSeconds)
+      : null
     return (
       <div key={ep.guid} className="group flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-lg transition-colors">
         {/* New dot */}
@@ -488,12 +532,21 @@ export default function PodcastPage() {
 
         {/* Title + metadata */}
         <button onClick={() => playEpisode(ep)} className="flex-1 text-left min-w-0">
-          <p className="text-sm font-medium text-white truncate">{ep.title}</p>
+          <p className={`text-sm font-medium truncate ${isPlayed ? 'text-gray-400' : 'text-white'}`}>{ep.title}</p>
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-xs text-gray-500">{new Date(ep.pubDate).toLocaleDateString()}</span>
             {ep.duration && <span className="text-xs text-gray-500">{formatDuration(ep.duration)}</span>}
             {isNew && <span className="text-[10px] font-semibold uppercase tracking-wide text-violet-400">New</span>}
+            {isPlayed && !isNew && <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-600">✓ Played</span>}
+            {pct !== null && remaining && (
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">{remaining} left</span>
+            )}
           </div>
+          {pct !== null && (
+            <div className="mt-1.5 h-0.5 w-full bg-gray-800 rounded-full overflow-hidden">
+              <div className="h-full bg-violet-500/60 rounded-full" style={{ width: `${pct}%` }} />
+            </div>
+          )}
         </button>
 
         {/* Queue button — hidden until hover, stays visible when queued */}

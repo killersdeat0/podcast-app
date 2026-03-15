@@ -230,7 +230,7 @@ export default function ProfilePage() {
                 {subscriptions.map((sub) => (
                   <li key={sub.feed_url}>
                     <Link
-                      href={`/podcast/${sub.collection_id ?? encodeURIComponent(sub.feed_url)}?feed=${encodeURIComponent(sub.feed_url)}&title=${encodeURIComponent(sub.title)}&artwork=${encodeURIComponent(sub.artwork_url ?? '')}`}
+                      href={`/podcast/${sub.collection_id ?? encodeURIComponent(sub.feed_url)}`}
                       className="flex items-center gap-3 group"
                     >
                       <div className="relative w-10 h-10 flex-shrink-0">

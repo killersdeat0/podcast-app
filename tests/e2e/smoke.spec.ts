@@ -135,6 +135,14 @@ test.describe('core user flow', () => {
     const expectedSubscribeText = wasSubscribed ? 'Subscribe' : 'Subscribed'
     await expect(subscribeBtn).toHaveText(expectedSubscribeText, { timeout: 10_000 })
 
+    // ─── Step 7b+: verify sidebar link uses clean URL (no query params) ────
+    // After subscribing, the sidebar re-fetches via 'subscriptions-changed' and
+    // renders the podcast as a SortableSub with a clean /podcast/[id] href.
+    const sidebarPodcastLink = page.locator('nav a[href^="/podcast/"]').first()
+    await expect(sidebarPodcastLink).toBeVisible({ timeout: 10_000 })
+    const sidebarHref = await sidebarPodcastLink.getAttribute('href')
+    expect(sidebarHref).not.toContain('?')
+
     // ─── Step 7c: play the first episode ─────────────────────────────────
     // Each episode row has a flex-1 play button. Clicking it calls play()
     // on PlayerContext, which sets nowPlaying and updates the <audio> src.

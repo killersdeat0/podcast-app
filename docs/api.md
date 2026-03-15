@@ -179,6 +179,13 @@ Fetch saved position for an episode. Returns `{ positionSeconds: 0 }` for unauth
 
 ---
 
+### `GET /api/progress/completed?feedUrl=<feedUrl>`
+Fetch playback progress for all episodes in a feed that have been listened to (`position_seconds > 0`). Used by the podcast page to show played/partial indicators. Returns `{ progress: [] }` for unauthenticated users or missing `feedUrl` (no 401).
+
+**Response:** `{ progress: Array<{ guid: string, positionSeconds: number, completed: boolean }> }`
+
+---
+
 ### `POST /api/progress`
 Save playback position. Also upserts episode metadata into `episodes` if `title` and `audioUrl` are provided.
 

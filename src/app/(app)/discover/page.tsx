@@ -11,7 +11,7 @@ import { useStrings } from '@/lib/i18n/LocaleContext'
 function PodcastCard({ podcast }: { podcast: ItunesResult }) {
   return (
     <Link
-      href={`/podcast/${podcast.collectionId}?feed=${encodeURIComponent(podcast.feedUrl)}&title=${encodeURIComponent(podcast.collectionName)}&artwork=${encodeURIComponent(podcast.artworkUrl600)}`}
+      href={`/podcast/${podcast.collectionId}?feed=${encodeURIComponent(podcast.feedUrl)}`}
       className="flex gap-4 bg-gray-900 hover:bg-gray-800 rounded-xl p-4 transition-colors"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -150,7 +150,7 @@ export default function DiscoverPage() {
                   {suggestions.map((podcast) => (
                     <li key={podcast.collectionId}>
                       <Link
-                        href={`/podcast/${podcast.collectionId}?feed=${encodeURIComponent(podcast.feedUrl)}&title=${encodeURIComponent(podcast.collectionName)}&artwork=${encodeURIComponent(podcast.artworkUrl600)}`}
+                        href={`/podcast/${podcast.collectionId}?feed=${encodeURIComponent(podcast.feedUrl)}`}
                         className="flex items-center gap-3 px-4 py-3 hover:bg-gray-800 transition-colors"
                         onClick={() => setShowDropdown(false)}
                       >
