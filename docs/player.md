@@ -116,6 +116,14 @@ When `nowPlaying.chapterUrl` is set, a `GET /api/podcasts/chapters` fetch runs o
 
 A dropdown lets users set a sleep timer (5–60 minutes). When the timer fires, `audio.pause()` is called. Implemented with `setTimeout` in a ref — does not use state so it doesn't trigger re-renders.
 
+### Volume control
+
+Volume is controlled via `audio.volume` (0–1). State is held in `Player` as `volume` (default `1`) and synced to the audio element via a `useEffect`. It persists to `localStorage` under the key `playback-volume` and is restored on mount alongside speed.
+
+- **Desktop:** a mute-toggle icon button + range slider (`w-16`, step `0.05`) sit inline with the speed and sleep dropdowns.
+- **Mobile:** a "Volume" row in the `···` menu opens a submenu with the same mute button + slider.
+- Clicking the icon toggles between `0` (mute) and `1` (full). The icon cycles through `VolumeX` → `Volume1` → `Volume2` (Lucide) based on the current level.
+
 ### Freemium: playback speed
 
 `Player` receives `isFreeTier: boolean` as a prop (read from the user's profile in the layout server component).
@@ -132,8 +140,9 @@ On narrow viewports (below the `md` breakpoint):
 - The right-side panel (speed selector + sleep timer) is hidden (`hidden md:flex`).
 - The left artwork panel drops its fixed width and shrinks to fit.
 - A `···` button appears to the right of the transport controls, opening a two-level menu:
-  - **Main level:** lists available actions (currently: Playback Speed, showing the active speed inline).
+  - **Main level:** lists available actions (Playback Speed + Volume, each showing the current value inline).
   - **Speed submenu:** back button + the available speed options for the user's tier.
+  - **Volume submenu:** back button + mute-toggle icon + range slider.
 - Selecting a speed closes the menu and calls `handleSetSpeed()`, which also persists to `localStorage` for paid users.
 
 To add future mobile-only options, add another row to the `mobileMenu === 'main'` block in `Player.tsx`.

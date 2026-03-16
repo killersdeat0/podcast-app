@@ -8,6 +8,7 @@ import type { PodcastFeed, Episode } from '@/lib/rss/parser'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { Play, Plus, Check } from 'lucide-react'
 import { computeNewEpisodes } from '@/lib/subscriptions/computeNewEpisodes'
 import { mergeEpisodeSources } from '@/lib/episodes/mergeEpisodeSources'
 import AuthPromptModal from '@/components/ui/AuthPromptModal'
@@ -561,9 +562,7 @@ export default function PodcastPage() {
           title="Play"
           className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all text-transparent bg-transparent group-hover:bg-violet-600 group-hover:text-white"
         >
-          <svg className="w-3.5 h-3.5 ml-0.5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M5 3l14 9-14 9V3z" />
-          </svg>
+          <Play className="w-3.5 h-3.5 ml-0.5" fill="currentColor" />
         </button>
 
         {/* Title + metadata */}
@@ -595,15 +594,7 @@ export default function PodcastPage() {
               : 'text-gray-600 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100'
           }`}
         >
-          {inQueue ? (
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
-          ) : (
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          )}
+          {inQueue ? <Check className="w-3.5 h-3.5" strokeWidth={2.5} /> : <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />}
         </button>
       </div>
     )

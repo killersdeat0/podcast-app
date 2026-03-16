@@ -18,6 +18,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { Search, List, Clock, Zap, User, ChevronLeft, Menu, LogIn, LogOut, GripVertical } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
@@ -34,11 +35,11 @@ interface Subscription {
 }
 
 const navIcons = {
-  discover: <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8"/><path strokeLinecap="round" d="M21 21l-4.35-4.35"/></svg>,
-  queue:    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>,
-  history:  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="9"/><path strokeLinecap="round" d="M12 7v5l3 3"/></svg>,
-  upgrade:  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 3l14 9-14 9V3z"/></svg>,
-  profile:  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  discover: <Search className="w-4 h-4 flex-shrink-0" />,
+  queue:    <List className="w-4 h-4 flex-shrink-0" />,
+  history:  <Clock className="w-4 h-4 flex-shrink-0" />,
+  upgrade:  <Zap className="w-4 h-4 flex-shrink-0" />,
+  profile:  <User className="w-4 h-4 flex-shrink-0" />,
 }
 
 function SortableSub({ sub, active }: { sub: Subscription; active: boolean }) {
@@ -61,7 +62,7 @@ function SortableSub({ sub, active }: { sub: Subscription; active: boolean }) {
         {...listeners}
         className="p-1 text-gray-700 hover:text-gray-500 cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
       >
-        ⠿
+        <GripVertical className="w-3 h-3" />
       </div>
       <Link
         href={href}
@@ -190,25 +191,50 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className={`${open ? 'w-56' : 'w-10'} flex-shrink-0 bg-gray-900 flex flex-col border-r border-gray-800 transition-[width] duration-200`}>
-      <div className="px-3 py-5 border-b border-gray-800 flex items-center justify-between min-w-0">
+    <aside className={`${open ? 'w-56' : 'w-14'} flex-shrink-0 bg-gray-900 flex flex-col border-r border-gray-800 transition-[width] duration-200`}>
+      <div className={`py-5 border-b border-gray-800 flex items-center min-w-0 ${open ? 'px-3 justify-between' : 'justify-center'}`}>
         {open && <span className="text-xl font-bold text-violet-400 truncate mr-2">PodSync</span>}
         <button
           onClick={toggleSidebar}
           className="text-gray-400 hover:text-white flex-shrink-0 p-1 rounded hover:bg-gray-800 transition-colors"
           aria-label={open ? 'Collapse sidebar' : 'Expand sidebar'}
         >
-          {open ? (
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          )}
+          {open ? <ChevronLeft className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
         </button>
       </div>
+
+      {!open && (
+        <nav className="flex-1 flex flex-col items-center py-4 gap-1">
+          {navItems.filter(({ href }) => !(href === '/upgrade' && tier === 'paid')).map(({ href, label, icon, guestModal }) => {
+            const isActive = pathname.startsWith(href)
+            const cls = `flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
+              isActive ? 'bg-violet-600 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+            }`
+            if (isGuest && guestModal) {
+              return (
+                <button key={href} onClick={() => openAuthPrompt(href, guestModal.title)} className={cls} title={label}>
+                  {icon}
+                </button>
+              )
+            }
+            return (
+              <Link key={href} href={href} className={cls} title={label}>
+                {icon}
+              </Link>
+            )
+          })}
+          <div className="flex-1" />
+          {isGuest ? (
+            <Link href="/login" className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors" title={strings.guest.toast_signin}>
+              <LogIn className="w-4 h-4" />
+            </Link>
+          ) : (
+            <button onClick={handleSignOut} className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors" title={strings.nav.sign_out}>
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
+        </nav>
+      )}
 
       {open && (
         <>
@@ -270,7 +296,7 @@ export default function Sidebar() {
                 href="/login"
                 className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+                <LogIn className="w-4 h-4 flex-shrink-0" />
                 {strings.guest.toast_signin}
               </Link>
             ) : (
@@ -278,7 +304,7 @@ export default function Sidebar() {
                 onClick={handleSignOut}
                 className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1"/></svg>
+                <LogOut className="w-4 h-4 flex-shrink-0" />
                 {strings.nav.sign_out}
               </button>
             )}

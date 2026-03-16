@@ -83,6 +83,7 @@ const es = {
     sleep_30: '30 min',
     sleep_45: '45 min',
     sleep_60: '60 min',
+    volume: 'Volumen',
   },
   welcome_toast: "¡Bienvenido de vuelta! 🎧 Nos alegra verte — tus podcasts te echaban de menos.",
   welcome_toast_new_user: "¡Bienvenido! 🎉 Empieza buscando un podcast que te guste.",

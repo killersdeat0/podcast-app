@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { Volume1, Volume2, VolumeX, SkipForward } from 'lucide-react'
 import { usePlayer } from './PlayerContext'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
@@ -40,8 +41,9 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [sleepMinutes, setSleepMinutes] = useState(0)
+  const [volume, setVolume] = useState(1)
   const [artworkError, setArtworkError] = useState(false)
-  const [mobileMenu, setMobileMenu] = useState<null | 'main' | 'speed'>(null)
+  const [mobileMenu, setMobileMenu] = useState<null | 'main' | 'speed' | 'volume'>(null)
   const [chapters, setChapters] = useState<Chapter[]>([])
   const [dbQueue, setDbQueue] = useState<Array<{ episode_guid: string; feed_url: string; episode: { title: string; audio_url: string; duration: number | null; artwork_url: string | null; podcast_title: string | null } | null }>>([])
 
@@ -72,12 +74,23 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
       const stored = localStorage.getItem('playback-speed')
       if (stored) setSpeed(Number(stored))
     }
+    const storedVolume = localStorage.getItem('playback-volume')
+    if (storedVolume) setVolume(Number(storedVolume))
   }, [isFreeTier]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = volume
+  }, [volume, audioRef])
 
 
   function handleSetSpeed(s: number) {
     setSpeed(s)
     if (!isFreeTier) localStorage.setItem('playback-speed', String(s))
+  }
+
+  function handleSetVolume(v: number) {
+    setVolume(v)
+    localStorage.setItem('playback-volume', String(v))
   }
   const lastSavedAt = useRef(0)
   const nowPlayingRef = useRef(nowPlaying)
@@ -355,9 +368,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
                 title="Next episode"
                 className="text-gray-400 hover:text-white transition-colors"
               >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
-                </svg>
+                <SkipForward className="w-4 h-4" />
               </button>
             )}
           </div>
@@ -417,6 +428,40 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
                       <span>{strings.player.playback_speed}</span>
                       <span className="text-gray-500 ml-4">{speed}x ›</span>
                     </button>
+                    <button
+                      onClick={() => setMobileMenu('volume')}
+                      className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700"
+                    >
+                      <span>{strings.player.volume}</span>
+                      <span className="text-gray-500 ml-4">{Math.round(volume * 100)}% ›</span>
+                    </button>
+                  </>
+                )}
+                {mobileMenu === 'volume' && (
+                  <>
+                    <button
+                      onClick={() => setMobileMenu('main')}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-400 hover:bg-gray-700 border-b border-gray-700"
+                    >
+                      <span>‹</span> {strings.player.volume}
+                    </button>
+                    <div className="px-4 py-3 flex items-center gap-3">
+                      <button
+                        onClick={() => handleSetVolume(volume === 0 ? 1 : 0)}
+                        className="text-gray-400 hover:text-white flex-shrink-0"
+                      >
+                        {volume === 0 ? <VolumeX className="w-4 h-4" /> : volume < 0.5 ? <Volume1 className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                      </button>
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        value={volume}
+                        onChange={(e) => handleSetVolume(Number(e.target.value))}
+                        className="flex-1 accent-violet-500"
+                      />
+                    </div>
                   </>
                 )}
                 {mobileMenu === 'speed' && (
@@ -443,9 +488,9 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
           )}
         </div>
 
-        {/* Speed + Sleep timer */}
-        <div className="hidden md:flex flex-col items-start gap-0.5 w-48 justify-end flex-shrink-0">
-          <div className="flex items-center gap-3">
+        {/* Speed + Sleep timer + Volume */}
+        <div className="hidden md:flex flex-col items-start gap-0.5 w-56 justify-end flex-shrink-0">
+          <div className="flex items-center gap-2">
             <select
               value={availableSpeeds.includes(speed) ? speed : availableSpeeds[availableSpeeds.length - 1]}
               onChange={(e) => handleSetSpeed(Number(e.target.value))}
@@ -468,6 +513,23 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
               <option value={45}>{strings.player.sleep_45}</option>
               <option value={60}>{strings.player.sleep_60}</option>
             </select>
+            <button
+              onClick={() => handleSetVolume(volume === 0 ? 1 : 0)}
+              className="text-gray-400 hover:text-white flex-shrink-0"
+              aria-label={strings.player.volume}
+            >
+              {volume === 0 ? <VolumeX className="w-3.5 h-3.5" /> : volume < 0.5 ? <Volume1 className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={volume}
+              onChange={(e) => handleSetVolume(Number(e.target.value))}
+              className="w-16 accent-violet-500"
+              aria-label={strings.player.volume}
+            />
           </div>
           {isFreeTier && (
             <a href="/upgrade" className="text-[10px] text-violet-400 hover:text-violet-300 leading-none whitespace-nowrap">

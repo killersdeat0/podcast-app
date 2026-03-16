@@ -71,7 +71,7 @@ Read any relevant docs before making changes
 
 ## Architecture
 
-**Stack:** Next.js 16 App Router · TypeScript · Tailwind CSS v4 · Supabase (auth + database) · Supabase Edge Functions (RSS + search) · `@dnd-kit` for drag-and-drop
+**Stack:** Next.js 16 App Router · TypeScript · Tailwind CSS v4 · Supabase (auth + database) · Supabase Edge Functions (RSS + search) · `@dnd-kit` for drag-and-drop · `lucide-react` for icons
 
 ### Monorepo structure
 
