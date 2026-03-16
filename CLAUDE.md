@@ -128,7 +128,7 @@ The Sidebar fetches subscriptions on mount and re-fetches on the custom `subscri
 
 ### Documentation
 
-When asked to commit or making a plan, first check if it significantly altering a function or API route (changing behavior, parameters, return shape, or side effects). ALWAYS tell me: update `CLAUDE.md` , and create or update a focused doc file in `docs/` covering the changed area (e.g. `docs/api.md`, `docs/player.md`). Phase plan files in `docs/plans/` should also be updated if a planned item is completed or changed in scope.
+When asked to commit or making a plan, first check if the change introduces a new pattern, alters existing behavior, or changes an API route (parameters, return shape, or side effects). ALWAYS tell me: update `CLAUDE.md`, and create or update a focused doc file in `docs/` covering the changed area (e.g. `docs/api.md`, `docs/player.md`). Phase plan files in `docs/plans/` should also be updated if a planned item is completed or changed in scope.
 
 ### ESLint intentional suppressions
 
