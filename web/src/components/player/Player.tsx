@@ -45,13 +45,24 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
   const [chapters, setChapters] = useState<Chapter[]>([])
   const [dbQueue, setDbQueue] = useState<Array<{ episode_guid: string; feed_url: string; episode: { title: string; audio_url: string; duration: number | null; artwork_url: string | null; podcast_title: string | null } | null }>>([])
 
-  useEffect(() => {
-    if (isGuest || !nowPlaying) return
+  const refreshDbQueue = useCallback(() => {
+    if (isGuest) return
     fetch('/api/queue')
       .then((r) => r.json())
       .then((items) => { if (Array.isArray(items)) setDbQueue(items) })
       .catch(() => {})
-  }, [nowPlaying, isGuest])
+  }, [isGuest])
+
+  useEffect(() => {
+    if (!nowPlaying) return
+    refreshDbQueue()
+  }, [nowPlaying, refreshDbQueue])
+
+  useEffect(() => {
+    if (isGuest) return
+    window.addEventListener('queue-changed', refreshDbQueue)
+    return () => window.removeEventListener('queue-changed', refreshDbQueue)
+  }, [isGuest, refreshDbQueue])
   const sleepTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEscapeKey(() => setMobileMenu(null), !!mobileMenu)

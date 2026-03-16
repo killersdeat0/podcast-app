@@ -1,6 +1,11 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET } from './route'
+
+beforeAll(() => {
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
+})
 
 afterEach(() => vi.unstubAllGlobals())
 

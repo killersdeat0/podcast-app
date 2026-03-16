@@ -150,7 +150,9 @@ export default function QueuePage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderedGuids: reordered.map((i) => i.episode_guid) }),
-      }).catch(() => {})
+      })
+        .then(() => window.dispatchEvent(new Event('queue-changed')))
+        .catch(() => {})
       return reordered
     })
   }
@@ -162,6 +164,7 @@ export default function QueuePage() {
       body: JSON.stringify({ guid }),
     })
     setItems((prev) => prev.filter((i) => i.episode_guid !== guid))
+    window.dispatchEvent(new Event('queue-changed'))
   }
 
   function playItem(item: QueueItem) {

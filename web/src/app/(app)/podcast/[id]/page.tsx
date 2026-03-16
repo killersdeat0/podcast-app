@@ -394,6 +394,7 @@ export default function PodcastPage() {
         unqueuedNewEpisodes.forEach((ep) => next.add(ep.guid))
         return next
       })
+      window.dispatchEvent(new Event('queue-changed'))
     } finally {
       setQueuingAll(false)
     }
@@ -470,6 +471,7 @@ export default function PodcastPage() {
         s.delete(episode.guid)
         return s
       })
+      window.dispatchEvent(new Event('queue-changed'))
     } else {
       const res = await fetch('/api/queue', {
         method: 'POST',
@@ -491,6 +493,7 @@ export default function PodcastPage() {
         return
       }
       setQueuedGuids((prev) => new Set([...prev, episode.guid]))
+      window.dispatchEvent(new Event('queue-changed'))
     }
   }
 

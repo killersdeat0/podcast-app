@@ -1,23 +1,11 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET } from './route'
 
-const VALID_RSS = `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:podcast="https://podcastindex.org/namespace/1.0">
-  <channel>
-    <title>Test Podcast</title>
-    <description>A test feed</description>
-    <itunes:image href="https://cdn.example.com/art.jpg"/>
-    <item>
-      <guid>ep-1</guid>
-      <title>Episode 1</title>
-      <enclosure url="https://cdn.example.com/ep1.mp3" type="audio/mpeg" length="1234"/>
-      <pubDate>Mon, 01 Jan 2024 00:00:00 GMT</pubDate>
-      <description>First episode</description>
-      <itunes:duration>30:00</itunes:duration>
-    </item>
-  </channel>
-</rss>`
+beforeAll(() => {
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
+})
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -30,7 +18,7 @@ describe('GET /api/podcasts/feed', () => {
   })
 
   it('returns 502 when the RSS feed fails to fetch', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, text: () => Promise.resolve('') }))
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
     const req = new NextRequest('http://localhost/api/podcasts/feed?url=https://example.com/feed.xml')
     const res = await GET(req)
     expect(res.status).toBe(502)
@@ -38,7 +26,12 @@ describe('GET /api/podcasts/feed', () => {
   })
 
   it('returns parsed feed data when url is valid', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, text: () => Promise.resolve(VALID_RSS) }))
+    const mockFeed = {
+      title: 'Test Podcast',
+      artworkUrl: 'https://cdn.example.com/art.jpg',
+      episodes: [{ guid: 'ep-1', title: 'Episode 1', duration: 1800 }],
+    }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(mockFeed) }))
     const req = new NextRequest('http://localhost/api/podcasts/feed?url=https://example.com/feed.xml')
     const res = await GET(req)
     expect(res.status).toBe(200)
