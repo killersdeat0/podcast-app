@@ -278,7 +278,7 @@ export default function PodcastPage() {
             audioUrl: ep.audioUrl,
             pubDate: ep.pubDate,
             duration: ep.duration,
-            artworkUrl: feed.artworkUrl ?? '',
+            artworkUrl: feed?.artworkUrl ?? '',
             podcastTitle: title,
           })),
         }),
