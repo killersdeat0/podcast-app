@@ -6,6 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 cd web && npm run dev       # start dev server (Next.js 16 + Turbopack)
+stripe listen --forward-to localhost:3000/api/stripe/webhook  # required for Stripe webhooks locally
 cd web && npm run build     # production build
 cd web && npm run lint      # ESLint
 supabase db push            # apply pending migrations to remote DB

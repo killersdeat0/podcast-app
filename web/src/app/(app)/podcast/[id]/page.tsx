@@ -576,7 +576,7 @@ export default function PodcastPage() {
         {/* Queue button — hidden until hover, stays visible when queued */}
         <button
           onClick={() => toggleQueue(ep)}
-          title={inQueue ? 'Remove from queue' : 'Add to queue'}
+          title={inQueue ? s.podcast_page.remove_from_queue : s.podcast_page.add_to_queue}
           className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all ${
             inQueue
               ? 'text-violet-400 hover:text-red-400 bg-violet-500/10'
@@ -632,7 +632,7 @@ export default function PodcastPage() {
                     : 'bg-violet-600 hover:bg-violet-500 text-white'
                 }`}
               >
-                {subscribing ? '...' : subscribed ? 'Subscribed ✓' : 'Subscribe'}
+                {subscribing ? '...' : subscribed ? s.podcast_page.subscribed : s.podcast_page.subscribe}
               </button>
               {process.env.NODE_ENV === 'development' && subscribed && (
                 <button onClick={devResetLastVisited} className="text-xs text-red-400 underline">
@@ -701,7 +701,7 @@ export default function PodcastPage() {
             {subscribed && contextTier === 'paid' && (
               <div className="mb-4">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-gray-600">Notifications</span>
+                  <span className="text-xs text-gray-600">{s.podcast_page.notifications_label}</span>
                   <button
                     onClick={async () => {
                       if (subscription?.episode_filter === '') return
@@ -719,11 +719,11 @@ export default function PodcastPage() {
                     disabled={savingFilter}
                     className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors disabled:opacity-50 ${
                       subscription?.episode_filter === ''
-                        ? 'bg-gray-700 text-white'
+                        ? 'bg-violet-600 text-white'
                         : 'bg-gray-800 text-gray-400 hover:text-white'
                     }`}
                   >
-                    🔕 Off
+                    {s.podcast_page.filter_off}
                   </button>
                   <button
                     onClick={async () => {
@@ -757,19 +757,19 @@ export default function PodcastPage() {
                   >
                     {subscription?.episode_filter && subscription.episode_filter !== '*'
                       ? `🎯 "${subscription.episode_filter}"`
-                      : '🎯 Custom'}
+                      : s.podcast_page.filter_custom}
                   </button>
                   <button
                     onClick={() => setHelpOpen((v) => !v)}
                     className="text-gray-700 hover:text-gray-400 transition-colors text-sm leading-none"
-                    title="What is this?"
+                    title={s.podcast_page.filter_help_button}
                   >
                     ⓘ
                   </button>
                 </div>
                 {helpOpen && (
                   <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-                    Control which new episodes appear in your New section. <strong className="text-gray-400">All</strong> notifies you about everything. <strong className="text-gray-400">Custom</strong> narrows it to a keyword — great for podcasts that mix topics. 🔕 turns off notifications entirely.
+                    {s.podcast_page.filter_help_text}
                   </p>
                 )}
               </div>
@@ -778,7 +778,7 @@ export default function PodcastPage() {
             {/* Episode filter — free: compact pill row */}
             {subscribed && contextTier === 'free' && (
               <div className="flex items-center gap-2 flex-wrap mb-4">
-                <span className="text-xs text-gray-600">Notifications</span>
+                <span className="text-xs text-gray-600">{s.podcast_page.notifications_label}</span>
                 <button
                   onClick={async () => {
                     const next = subscription?.episode_filter === '*' ? '' : '*'
@@ -821,7 +821,7 @@ export default function PodcastPage() {
                       : 'bg-gray-800 text-gray-400 hover:text-white'
                   }`}
                 >
-                  🔕 Off
+                  {s.podcast_page.filter_off}
                 </button>
                 <a href="/upgrade" className="text-xs text-gray-600 hover:text-violet-400 transition-colors ml-1">
                   Pro: custom filters →
@@ -833,9 +833,9 @@ export default function PodcastPage() {
             {filterModalOpen && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                 <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm shadow-xl">
-                  <h3 className="text-base font-semibold text-white mb-1">🎯 Custom episode filter</h3>
+                  <h3 className="text-base font-semibold text-white mb-1">{s.podcast_page.filter_modal_title}</h3>
                   <p className="text-xs text-gray-400 mb-4">
-                    Only episodes whose title contains this keyword will appear in your ✨ New Episodes section. Leave blank to see all.
+                    {s.podcast_page.filter_modal_description}
                   </p>
                   <input
                     type="text"
@@ -860,7 +860,7 @@ export default function PodcastPage() {
                       disabled={savingFilter}
                       className="flex-1 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 transition-colors"
                     >
-                      {savingFilter ? '...' : 'Save 🎯'}
+                      {savingFilter ? '...' : s.podcast_page.filter_save}
                     </button>
                   </div>
                 </div>
@@ -917,11 +917,11 @@ export default function PodcastPage() {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xs font-semibold uppercase tracking-wider text-gray-600">
-                    Search Results{!itunesLoading && searchResults.length > 0 ? ` (${searchResults.length})` : ''}
+                    {s.podcast_page.search_results}{!itunesLoading && searchResults.length > 0 ? ` (${searchResults.length})` : ''}
                   </span>
                   <div className="flex-1 h-px bg-gray-800/60" />
                   {itunesLoading && collectionId && (
-                    <span className="text-xs text-gray-600 animate-pulse">Loading more…</span>
+                    <span className="text-xs text-gray-600 animate-pulse">{s.podcast_page.loading_more}</span>
                   )}
                   {searchTotalPages > 1 && (
                     <span className="text-xs text-gray-700">{searchPage + 1} / {searchTotalPages}</span>

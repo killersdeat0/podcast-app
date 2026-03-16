@@ -2,9 +2,11 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { useStrings } from '@/lib/i18n/LocaleContext'
 
 export default function AdBanner() {
   const [dismissed, setDismissed] = useState(false)
+  const s = useStrings()
   if (dismissed) return null
 
   return (
@@ -12,11 +14,11 @@ export default function AdBanner() {
       <div className="flex items-center gap-3">
         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Ad</span>
         <span className="text-gray-300">
-          Enjoying PodSync?{' '}
+          {s.ad_banner.message}{' '}
           <Link href="/upgrade" className="text-violet-400 hover:text-violet-300 underline">
-            Upgrade to Pro
+            {s.ad_banner.upgrade_link}
           </Link>{' '}
-          for an ad-free experience.
+          {s.ad_banner.suffix}
         </span>
       </div>
       <button

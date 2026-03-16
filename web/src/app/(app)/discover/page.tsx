@@ -109,7 +109,7 @@ export default function DiscoverPage() {
       const data = await res.json()
       setResults(data.results ?? [])
     } catch {
-      setError('Something went wrong. Please try again.')
+      setError(strings.discover.search_error)
       setResults([])
     } finally {
       setLoading(false)
