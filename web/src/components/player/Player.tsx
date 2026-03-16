@@ -253,7 +253,9 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
             artworkUrl: np.artworkUrl,
             podcastTitle: np.podcastTitle,
           }),
-        }).catch(() => {})
+        })
+          .then(() => window.dispatchEvent(new Event('history-changed')))
+          .catch(() => {})
       }
     }
 
