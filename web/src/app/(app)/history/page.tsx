@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { usePlayer } from '@/components/player/PlayerContext'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useStrings } from '@/lib/i18n/LocaleContext'
@@ -47,17 +47,32 @@ export default function HistoryPage() {
   const { play } = usePlayer()
   const strings = useStrings()
 
+  const fetchHistory = useCallback(() => {
+    fetch('/api/history')
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setItems(data) })
+      .catch(() => {})
+  }, [])
+
   useEffect(() => {
     fetch('/api/history')
       .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) setItems(data)
-      })
+      .then((data) => { if (Array.isArray(data)) setItems(data) })
       .finally(() => setLoading(false))
   }, [])
 
+  useEffect(() => {
+    window.addEventListener('history-changed', fetchHistory)
+    return () => window.removeEventListener('history-changed', fetchHistory)
+  }, [fetchHistory])
+
   function playItem(item: HistoryItem) {
     if (!item.episode) return
+    // Optimistically move to top of list
+    setItems((prev) => [
+      { ...item, updated_at: new Date().toISOString() },
+      ...prev.filter((i) => i.episode_guid !== item.episode_guid),
+    ])
     play({
       guid: item.episode_guid,
       feedUrl: item.feed_url,

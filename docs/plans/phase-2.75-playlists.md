@@ -39,7 +39,7 @@ Let users create named, reusable playlists separate from the ephemeral queue. Pl
 
 ### Pages
 - [ ] `/playlists` — index: playlist cards (name, description, episode count, public/private badge), create modal, over-limit warning for free users
-- [ ] `/playlist/[id]` — detail: owner gets inline edit (name, description, public toggle), drag-to-reorder (@dnd-kit), remove buttons; everyone gets "Play Playlist" + per-episode "Add to Queue"; over-limit banner for downgraded users; "Copy link" for public playlists
+- [ ] `/playlist/[id]` — detail: owner gets inline edit (name, description, public toggle), drag-to-reorder (@dnd-kit), remove buttons; everyone gets "Play Playlist" + per-episode "Add to Queue"; over-limit banner for downgraded users; "Copy link" for public playlists. Listen for `history-changed` to refresh per-episode progress indicators, and `queue-changed` to refresh in-queue state.
 
 ### Sidebar
 - [ ] Add "Playlists" nav item (between Queue and History)

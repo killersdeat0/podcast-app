@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useState, useMemo, useRef } from 'react'
 import { useSearchParams, useParams, useRouter } from 'next/navigation'
 import { usePlayer } from '@/components/player/PlayerContext'
 import { SkeletonEpisodeRow } from '@/components/ui/Skeleton'
@@ -190,7 +190,7 @@ export default function PodcastPage() {
   }, [feedUrl, oldLastVisitedAt, subscribed])
 
   // Fetch episode progress for this feed to show played/partial indicators
-  useEffect(() => {
+  const refreshEpisodeProgress = useCallback(() => {
     if (!feedUrl || isGuest) return
     fetch(`/api/progress/completed?feedUrl=${encodeURIComponent(feedUrl)}`)
       .then((r) => r.json())
@@ -199,6 +199,15 @@ export default function PodcastPage() {
       })
       .catch(() => {})
   }, [feedUrl, isGuest])
+
+  useEffect(() => {
+    refreshEpisodeProgress()
+  }, [refreshEpisodeProgress])
+
+  useEffect(() => {
+    window.addEventListener('history-changed', refreshEpisodeProgress)
+    return () => window.removeEventListener('history-changed', refreshEpisodeProgress)
+  }, [refreshEpisodeProgress])
 
   // Fetch iTunes episodes lazily when user starts searching
   useEffect(() => {
