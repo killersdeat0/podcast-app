@@ -1,0 +1,20 @@
+import { NextRequest, NextResponse } from 'next/server'
+
+export async function GET(req: NextRequest) {
+  const feedUrl = req.nextUrl.searchParams.get('url')
+  if (!feedUrl) return NextResponse.json({ error: 'Missing url' }, { status: 400 })
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!supabaseUrl || !supabaseKey) {
+    return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 })
+  }
+
+  const res = await fetch(
+    `${supabaseUrl}/functions/v1/podcasts-feed?url=${encodeURIComponent(feedUrl)}`,
+    { headers: { Authorization: `Bearer ${supabaseKey}` } }
+  )
+  if (!res.ok) return NextResponse.json({ error: 'Failed to parse feed' }, { status: 502 })
+  const feed = await res.json()
+  return NextResponse.json(feed)
+}
