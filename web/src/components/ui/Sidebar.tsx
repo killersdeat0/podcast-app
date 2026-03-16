@@ -89,11 +89,11 @@ function SortableSub({ sub, active }: { sub: Subscription; active: boolean }) {
   )
 }
 
-export default function Sidebar() {
+export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean }) {
   const pathname = usePathname()
   const router = useRouter()
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(defaultOpen)
   const [authPromptOpen, setAuthPromptOpen] = useState(false)
   const [authPromptTitle, setAuthPromptTitle] = useState<string | undefined>()
   const [authReturnTo, setAuthReturnTo] = useState<string | undefined>()
@@ -116,20 +116,11 @@ export default function Sidebar() {
     { href: '/profile',  label: strings.nav.profile,  icon: navIcons.profile,  guestModal: { title: strings.guest.auth_prompt_profile_title } },
   ]
 
-  useEffect(() => {
-    const stored = localStorage.getItem('sidebar-open')
-    if (stored !== null) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setOpen(stored === 'true')
-    } else {
-      setOpen(window.innerWidth >= 768)
-    }
-  }, [])
-
   function toggleSidebar() {
     const next = !open
     setOpen(next)
     localStorage.setItem('sidebar-open', String(next))
+    document.cookie = `sidebar-open=${next};path=/;max-age=31536000`
   }
 
   useEffect(() => {

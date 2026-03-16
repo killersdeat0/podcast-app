@@ -6,8 +6,13 @@ import { LocaleProvider } from '@/lib/i18n/LocaleContext'
 import { UserProvider } from '@/lib/auth/UserContext'
 import WelcomeToast from '@/components/ui/WelcomeToast'
 import GuestToast from '@/components/ui/GuestToast'
+import { cookies } from 'next/headers'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = await cookies()
+  const sidebarCookie = cookieStore.get('sidebar-open')?.value
+  const sidebarOpen = sidebarCookie === undefined ? true : sidebarCookie === 'true'
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -25,7 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <UserProvider isGuest={!user} tier={isFreeTier ? 'free' : 'paid'}>
       <LocaleProvider>
         <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
-          <Sidebar />
+          <Sidebar defaultOpen={sidebarOpen} />
           <div className="flex-1 flex flex-col overflow-hidden">
             {isFreeTier && <AdBanner />}
             <main className="flex-1 overflow-y-auto">{children}</main>
