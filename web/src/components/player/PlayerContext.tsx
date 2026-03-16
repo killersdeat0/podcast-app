@@ -65,6 +65,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setNowPlaying(episode)
     setPlaying(true)
     localStorage.setItem('nowPlaying', JSON.stringify(episode))
+    window.dispatchEvent(new CustomEvent('history-changed', { detail: { guid: episode.guid } }))
   }, [])
 
   const togglePlay = useCallback(() => {

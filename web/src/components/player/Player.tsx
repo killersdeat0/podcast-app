@@ -112,6 +112,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
     audio.playbackRate = speed
     setCurrentTime(0)
     hasCompletedRef.current = false
+    lastSavedAt.current = 0
 
     if (isGuest) {
       if (playingRef.current) audio.play().catch(() => {})
@@ -254,7 +255,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
             podcastTitle: np.podcastTitle,
           }),
         })
-          .then(() => window.dispatchEvent(new Event('history-changed')))
+          .then(() => window.dispatchEvent(new Event('progress-saved')))
           .catch(() => {})
       }
     }

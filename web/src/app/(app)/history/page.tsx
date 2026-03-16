@@ -54,6 +54,20 @@ export default function HistoryPage() {
       .catch(() => {})
   }, [])
 
+  // Optimistically reorder when a new episode starts playing (history-changed from play())
+  const handleHistoryChanged = useCallback((e: Event) => {
+    const guid = (e as CustomEvent<{ guid: string }>).detail?.guid
+    if (!guid) return
+    setItems((prev) => {
+      const existing = prev.find((i) => i.episode_guid === guid)
+      if (!existing) return prev // not in history yet — progress-saved re-fetch will handle it
+      return [
+        { ...existing, updated_at: new Date().toISOString() },
+        ...prev.filter((i) => i.episode_guid !== guid),
+      ]
+    })
+  }, [])
+
   useEffect(() => {
     fetch('/api/history')
       .then((r) => r.json())
@@ -62,13 +76,16 @@ export default function HistoryPage() {
   }, [])
 
   useEffect(() => {
-    window.addEventListener('history-changed', fetchHistory)
-    return () => window.removeEventListener('history-changed', fetchHistory)
-  }, [fetchHistory])
+    window.addEventListener('history-changed', handleHistoryChanged)
+    window.addEventListener('progress-saved', fetchHistory)
+    return () => {
+      window.removeEventListener('history-changed', handleHistoryChanged)
+      window.removeEventListener('progress-saved', fetchHistory)
+    }
+  }, [handleHistoryChanged, fetchHistory])
 
   function playItem(item: HistoryItem) {
     if (!item.episode) return
-    // Optimistically move to top of list
     setItems((prev) => [
       { ...item, updated_at: new Date().toISOString() },
       ...prev.filter((i) => i.episode_guid !== item.episode_guid),
