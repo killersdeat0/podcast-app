@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -127,6 +127,13 @@ export default function QueuePage() {
 
   const sensors = useSensors(useSensor(PointerSensor))
 
+  const fetchQueue = useCallback(() => {
+    fetch('/api/queue')
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setItems(data) })
+      .catch(() => {})
+  }, [])
+
   useEffect(() => {
     if (isGuest) {
       setLoading(false)
@@ -137,6 +144,12 @@ export default function QueuePage() {
       .then((data) => { if (Array.isArray(data)) setItems(data) })
       .finally(() => setLoading(false))
   }, [isGuest])
+
+  useEffect(() => {
+    if (isGuest) return
+    window.addEventListener('queue-changed', fetchQueue)
+    return () => window.removeEventListener('queue-changed', fetchQueue)
+  }, [isGuest, fetchQueue])
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event

@@ -155,7 +155,9 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ guid: np.guid }),
-        }).catch(() => {})
+        })
+          .then(() => window.dispatchEvent(new Event('queue-changed')))
+          .catch(() => {})
         const next = items[idx + 1]
         if (next?.episode) {
           play({
@@ -201,7 +203,9 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ guid: np.guid }),
-        }).catch(() => {})
+        })
+          .then(() => window.dispatchEvent(new Event('queue-changed')))
+          .catch(() => {})
         const next = items[idx + 1]
         if (next?.episode) {
           play({
