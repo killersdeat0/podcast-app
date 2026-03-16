@@ -12,7 +12,7 @@ interface Options {
 
 /**
  * Computes the list of "new" episodes for a podcast page visit.
- * Returns [] for guests (no subscription state to compare against).
+ * Returns [] for guests or when last_visited_at is null (first visit — no baseline yet).
  * Respects the episode_filter setting for both free and paid users.
  */
 export function computeNewEpisodes({
@@ -25,11 +25,10 @@ export function computeNewEpisodes({
 }: Options): Episode[] {
   if (isGuest) return []
   if (episodes.length === 0) return []
+  if (!oldLastVisitedAt) return []  // No baseline yet — first visit establishes it
 
   const filter = subscription?.episode_filter
-  const rssBaseEps = oldLastVisitedAt
-    ? episodes.filter((ep) => new Date(ep.pubDate) > new Date(oldLastVisitedAt))
-    : episodes
+  const rssBaseEps = episodes.filter((ep) => new Date(ep.pubDate) > new Date(oldLastVisitedAt))
   const baseEps = mergeNewEpisodes(rssBaseEps, storedNewEpisodes)
 
   if (tier !== 'paid') {

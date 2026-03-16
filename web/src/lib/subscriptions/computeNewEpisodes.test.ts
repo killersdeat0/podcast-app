@@ -50,7 +50,7 @@ describe('computeNewEpisodes — free user', () => {
     expect(result.map((e) => e.guid)).toEqual(['new'])
   })
 
-  it('returns all episodes when lastVisitedAt is null (first visit)', () => {
+  it('returns [] when lastVisitedAt is null (first visit — no baseline yet)', () => {
     const result = computeNewEpisodes({
       episodes: allEpisodes,
       storedNewEpisodes: [],
@@ -59,8 +59,7 @@ describe('computeNewEpisodes — free user', () => {
       tier: 'free',
       isGuest: false,
     })
-    expect(result.map((e) => e.guid)).toContain('new')
-    expect(result.map((e) => e.guid)).toContain('old')
+    expect(result).toEqual([])
   })
 
   it('returns [] when episode_filter is empty string (opted out)', () => {
@@ -123,7 +122,7 @@ describe('computeNewEpisodes — paid user', () => {
     const result = computeNewEpisodes({
       episodes,
       storedNewEpisodes: [],
-      oldLastVisitedAt: null,
+      oldLastVisitedAt: lastVisited,
       subscription: { episode_filter: 'interview' },
       tier: 'paid',
       isGuest: false,
@@ -136,7 +135,7 @@ describe('computeNewEpisodes — paid user', () => {
     const result = computeNewEpisodes({
       episodes,
       storedNewEpisodes: [],
-      oldLastVisitedAt: null,
+      oldLastVisitedAt: lastVisited,
       subscription: { episode_filter: 'interview' },
       tier: 'paid',
       isGuest: false,
