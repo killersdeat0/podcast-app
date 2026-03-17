@@ -6,22 +6,32 @@
 App-wide settings and account management, reachable from the Profile screen.
 
 ## Contents
-- Notification Settings → (navigates to Notification Settings screen)
-- Playback defaults (default speed, skip interval)
-- OPML import / export (paid only)
-- Manage Subscription (opens platform billing — App Store / Play Store)
-- Sign Out
+
+**Back arrow + "Settings" title**
+
+**PREFERENCES section**
+- Notification Settings row (bell icon, chevron →)
+- Playback Defaults row (sliders icon, chevron →)
+
+**DATA & ACCOUNT section**
+- OPML Import/Export row (file icon, lock icon to indicate paid-only, chevron →)
+- Manage Subscription row (card icon, chevron →)
+- Sign Out row (arrow icon, destructive red label)
+
+**App version footer:** "Podcast App v1.0.0 (Build 42)"
 
 ## Navigation
-- **Arrives from:** Profile
-- **Goes to:** Notification Settings · Upgrade Sheet (free: OPML)
+- **Arrives from:** Profile (gear icon)
+- **Goes to:** Notification Settings · Playback Defaults · Upgrade Sheet (free: OPML tap) · platform billing (Manage Subscription) · Login screen (after Sign Out)
 
 ## Feature Gates
 | Element | Free | Paid |
 |---------|------|------|
-| Playback defaults | ✓ | ✓ |
-| OPML import / export | — | ✓ |
+| Notification Settings | ✓ | ✓ |
+| Playback Defaults | ✓ | ✓ |
+| OPML Import/Export | Lock icon shown; Upgrade Sheet on tap | ✓ |
 | Manage Subscription | ✓ | ✓ |
+| Sign Out | ✓ | ✓ |
 
 ## Implementation
 

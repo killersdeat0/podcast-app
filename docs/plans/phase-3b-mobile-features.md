@@ -27,18 +27,18 @@ and `<Feature>ViewModel.kt` (androidMain).
 
 | Screen | Contents |
 |--------|----------|
-| **Discover** | Search bar; Trending section; Genre filter tabs; Podcast result grid |
-| **Library** | Subscribed podcasts list (drag-to-reorder); Downloads section (downloaded episodes with offline badge) |
-| **Queue** | Reorderable episode rows; free: capped at 10 / paid: unlimited; play, remove, reorder |
-| **Profile** | Account info + tier badge; subscriptions list; listening stats (paid); upgrade CTA (free); Settings link; Sign out |
+| **Discover** | "Discover" title; search bar ("Search podcasts, episodes..."); genre filter chips (horizontally scrollable); Trending section (large 2-col artwork cards); podcast result grid (when searching); mini player bar |
+| **Library** | "Library" title; "Subscriptions" section heading (drag-to-reorder with handle on right); "Downloads" section heading (paid: "Unlimited" purple pill); downloaded episode rows with play overlay, "Downloaded ✓" badge + MB + duration, three-dot menu; guest empty state (cloud-off icon, "Sign in to save podcasts", Sign In button); mini player bar |
+| **Queue** | Screen title "Up Next" (tab label stays "Queue"); free-tier "X / 10 Free" pill badge; paid "Unlimited" purple pill (replaces free badge); episode rows with drag handle (left), artwork, title/podcast/time, trash + three-dot (right); inline upgrade card shown proactively near cap: heading "Queue Limit Reached Soon", body about 10-episode limit, "View Plans" full-width button; mini player bar |
+| **Profile** | "Profile" title + gear icon (→ Settings); guest state: avatar placeholder + "Sign In / Sign Up" button + Premium card; logged-in state: avatar, name, email, tier badge ("FREE PLAN"/"PRO"), subscriptions horizontal scroll + "View All", Upgrade card (free only), Listening Stats section |
 
 #### Shared / Deep-Navigated Screens
 
 | Screen | Contents |
 |--------|----------|
-| **Podcast Detail** | Blurred artwork hero; Subscribe / Unsubscribe button; new-episode dot badge; episode filter pill (paid); per-podcast notification toggle; episode rows (play, queue, download, progress bar) |
+| **Podcast Detail** | Clear artwork hero; podcast title with bell icon beside it; genre/tag chips; expandable description ("Read more"); "▶ Play Latest" (filled purple) + "+ Follow / Unfollow" (outline) side-by-side buttons; three-dot overflow menu (top-right); "Episodes" heading + Sort button; episode filter pill near Sort (paid); episode rows (title, description snippet, date·duration, share/download/play icons, progress bar on in-progress) |
 | **Full Player** | Artwork, title, podcast name; scrubber + chapter markers; play/pause/skip ±15s; speed selector (1x/2x free — 0.5x–3x paid); silence skip toggle (paid only); sleep timer; queue-ahead preview |
-| **Settings** | Notification Settings →; Playback defaults; OPML import/export (paid); Manage Subscription; Sign Out |
+| **Settings** | Back + "Settings" title; PREFERENCES group (Notification Settings, Playback Defaults); DATA & ACCOUNT group (OPML Import/Export with lock icon — paid, Manage Subscription, Sign Out — destructive red); app version footer |
 | **Notification Settings** | Master on/off toggle; per-podcast toggle list (mirrors per-podcast toggle on Podcast Detail); episode filter patterns (paid) |
 | **Stats** | Total listening time; episodes per week chart; listening streak (paid only — accessible from Profile) |
 
@@ -94,9 +94,10 @@ flowchart TD
     PODCAST_DETAIL -->|tap episode play| PLAYER
     QUEUE -->|tap episode| PLAYER
 
-    PROFILE --> SETTINGS[Settings Screen]
+    PROFILE -->|gear icon| SETTINGS[Settings Screen]
     PROFILE -->|paid only| STATS[Stats Screen]
     SETTINGS --> NOTIF_SETTINGS[Notification Settings Screen]
+    SETTINGS -->|Sign Out| LOGIN
     PODCAST_DETAIL -->|notification toggle| NOTIF_SETTINGS
 
     UPGRADE_SHEET([Upgrade Sheet])
@@ -111,7 +112,7 @@ flowchart TD
 
     PODCAST_DETAIL -->|"guest: subscribe"| LOGIN_SHEET
     QUEUE -->|"guest: save changes"| LOGIN_SHEET
-    TAB_P -->|"guest"| LOGIN_SHEET
+    PROFILE -->|"guest: Sign In / Sign Up"| LOGIN
 
     LOGIN_SHEET -->|sign in| LOGIN
     LOGIN_SHEET -->|sign up| SIGNUP
@@ -132,10 +133,11 @@ flowchart TD
 | Listening stats | — | ✓ |
 | OPML import / export | — | ✓ |
 | Banner ads in player | ✓ | — |
-| Guest browsing (Discover, Queue, Podcast Detail) | ✓ | ✓ |
+| Guest browsing (Discover, Library, Queue, Podcast Detail) | ✓ | ✓ |
+| Queue cap indicator | "X / 10 Free" pill + inline upgrade card | "Unlimited" purple pill |
 
 Subscription pricing matches web: **$4.99/month or $50/year** via in-app purchase (Apple / Google Play billing).
-All free-tier gates show an **inline bottom sheet** (Upgrade Sheet) with the feature unlock list and a Subscribe CTA — no full-screen navigation required.
+Free-tier gates generally show an **Upgrade Sheet** (bottom sheet). Exception: the Queue screen shows an **inline upgrade card** within the list itself (heading "Queue Limit Reached Soon", body about the 10-episode limit and silence skipping, "View Plans" full-width button) rather than interrupting flow with a sheet. The card appears proactively before the cap is reached.
 
 ---
 

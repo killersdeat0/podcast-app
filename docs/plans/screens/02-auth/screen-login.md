@@ -6,17 +6,22 @@
 Email + password sign-in form with OAuth alternatives and a forgot-password escape hatch.
 
 ## Contents
-- Email text field
-- Password text field (masked)
-- "Sign In" submit button
-- Google OAuth button
-- Apple Sign-In button (iOS only)
-- "Forgot password?" link
+- Back arrow (top-left)
+- "Welcome back" heading
+- Subtitle: "Sign in to sync your podcasts, history, and queue across devices."
+- Email address field (envelope icon prefix)
+- Password field (lock icon prefix, masked)
+- "Forgot password?" link (right-aligned, below password)
+- "Sign In" primary button (full-width, white)
+- "OR CONTINUE WITH" divider
+- Google button (full-width, dark surface)
+- Apple button (full-width, dark surface)
+- "Don't have an account? **Sign up**" footer link
 - Inline error message on failure
 
 ## Navigation
-- **Arrives from:** Login Prompt Sheet
-- **Goes to:** App Shell / Discover (on success)
+- **Arrives from:** Login Prompt Sheet · "Don't have an account?" link on Sign Up screen · back from any auth screen
+- **Goes to:** App Shell / Discover (on success) · Sign Up ("Sign up" footer link)
 
 ## Feature Gates
 None.

@@ -3,27 +3,38 @@
 > Source: [`docs/plans/phase-3b-mobile-features.md`](../../phase-3b-mobile-features.md)
 
 ## Description
-Full podcast page with artwork hero, subscribe toggle, and scrollable episode list.
+Full podcast page with artwork hero, follow toggle, and scrollable episode list.
 
 ## Contents
-- Blurred artwork hero image
-- Podcast title and author
-- Subscribe / Unsubscribe button
+- **Clear (non-blurred) artwork photo** displayed prominently at the top
+- Three-dot overflow menu (top-right) for additional actions (share, etc.)
+- Podcast title with **notification bell icon beside it** (not a separate toggle row)
+- Author name
+- Horizontal row of **genre/tag chips** below the author name (e.g., "Design", "Arts", "Interviews")
+- Multi-line podcast **description text block** with a **"Read more"** expand link
+- Two side-by-side action buttons:
+  - **"▶ Play Latest"** — primary filled button (purple); plays the most recent episode immediately
+  - **"+ Follow" / "Unfollow"** — outline button for subscribe/unsubscribe (label is "Follow", not "Subscribe")
 - New-episode dot badge (unplayed count)
-- Per-podcast notification toggle → Notification Settings
-- Episode filter pill (paid — filter by title pattern)
-- Episode rows: artwork thumbnail, title, duration, progress bar
-  - Per-row actions: Play, Add to Queue, Download
+- **"Episodes"** section heading with a **"Sort"** button (top-right of section)
+- Episode filter pill (paid — appears near the Sort control)
+- Episode rows:
+  - Episode title (bold)
+  - Description snippet (2 lines)
+  - Date · Duration (small, muted)
+  - Right-side action icons: **share icon**, **download icon** (shows checkmark when downloaded), **play button** (circle)
+  - Progress bar below the row (shown on in-progress episodes)
 
 ## Navigation
 - **Arrives from:** Discover (search result) · Library (subscription list)
-- **Goes to:** Full Player (tap episode play) · Notification Settings (tap notification toggle) · Upgrade Sheet (free: episode filter) · Login Prompt Sheet (guest: subscribe)
+- **Goes to:** Full Player (tap episode play button) · Notification Settings (tap bell icon) · Upgrade Sheet (free: episode filter) · Login Prompt Sheet (guest: follow)
 
 ## Feature Gates
 | Element | Free | Paid | Guest |
 |---------|------|------|-------|
 | Browse episodes | ✓ | ✓ | ✓ |
-| Subscribe | ✓ | ✓ | Login Prompt Sheet |
+| Follow / Unfollow | ✓ | ✓ | Login Prompt Sheet |
+| Play Latest | ✓ | ✓ | ✓ |
 | Episode filter | — | ✓ | — |
 | Download | 3/day | Unlimited | — |
 
@@ -35,4 +46,4 @@ Full podcast page with artwork hero, subscribe toggle, and scrollable episode li
 | `podcastdetail/PodcastDetailScreen.kt` | `commonMain` |
 | `podcastdetail/PodcastDetailViewModel.kt` | `androidMain` |
 
-**Key logic:** Episode list fetched via `/functions/v1/podcasts-feed`. Subscribe upserts into `subscriptions` table. Artwork uses iTunes CDN URL from `subscriptions.artwork_url` in preference to RSS feed artwork to avoid hotlink blocks.
+**Key logic:** Episode list fetched via `/functions/v1/podcasts-feed`. Follow upserts into `subscriptions` table. Artwork uses iTunes CDN URL from `subscriptions.artwork_url` in preference to RSS feed artwork to avoid hotlink blocks.
