@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ListPlus } from 'lucide-react'
+import { ListPlus, Check } from 'lucide-react'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 
@@ -20,6 +20,7 @@ export default function AddToPlaylistPopover({
   className?: string
 }) {
   const [open, setOpen] = useState(false)
+  const [added, setAdded] = useState(false)
   const strings = useStrings()
   useEscapeKey(() => setOpen(false), open)
 
@@ -28,11 +29,15 @@ export default function AddToPlaylistPopover({
   return (
     <div className={`relative flex-shrink-0 ${className}`}>
       <button
-        onClick={(e) => { e.stopPropagation(); setOpen(true) }}
+        onClick={(e) => { e.stopPropagation(); if (!added) setOpen(true) }}
         title={strings.playlists.add_to_playlist}
-        className="w-8 h-8 flex items-center justify-center rounded-full text-gray-600 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all"
+        className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${
+          added
+            ? 'text-green-400 bg-green-500/10'
+            : 'text-gray-600 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100'
+        }`}
       >
-        <ListPlus className="w-3.5 h-3.5" />
+        {added ? <Check className="w-3.5 h-3.5" strokeWidth={2.5} /> : <ListPlus className="w-3.5 h-3.5" />}
       </button>
       {open && (
         <>
@@ -44,7 +49,7 @@ export default function AddToPlaylistPopover({
             {playlists.map((pl) => (
               <button
                 key={pl.id}
-                onClick={(e) => { e.stopPropagation(); onSelect(pl.id); setOpen(false) }}
+                onClick={(e) => { e.stopPropagation(); onSelect(pl.id); setOpen(false); setAdded(true); setTimeout(() => setAdded(false), 1500) }}
                 className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
               >
                 {pl.name}

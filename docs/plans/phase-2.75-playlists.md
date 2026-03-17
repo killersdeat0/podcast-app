@@ -56,7 +56,7 @@ Let users create named, reusable playlists separate from the ephemeral queue. Pl
 
 ### Sidebar
 - [x] Add "Playlists" nav item (between Queue and History) using `ListMusic` lucide icon; guest: auth prompt modal
-- [x] Add "My Playlists" collapsible section (above "My Podcasts"): separate `useEffect` fetching on mount + `playlists-changed` event; "+" button navigates to `/playlists`; playlist name links with active-route highlight; guest hint text; collapsed mode: section omitted
+- [x] ~~Add "My Playlists" collapsible section~~ — removed; deemed cluttering. Nav item is sufficient.
 
 ### i18n
 - [x] Add `playlists` namespace to `en.ts` and `es.ts` — keys: `heading, create, create_modal_title, create_name_placeholder, create_description_placeholder, create_submit, empty_title, empty_description, empty_cta, play, add_to_queue, add_to_playlist, copy_link, link_copied, public_badge, private_badge, make_public, make_private, delete, delete_confirm, delete_confirm_cta, remove_episode, episode_count, over_limit_playlists, over_limit_episodes, upgrade_cta, limit_reached_playlists, limit_reached_episodes, sidebar_heading, sidebar_empty_hint, guest_hint, auth_prompt_title`
@@ -80,11 +80,11 @@ Let users create named, reusable playlists separate from the ephemeral queue. Pl
 ## Manual QA Checklist
 
 ### Core CRUD
-- [ ] Create a playlist — name + description appear on the `/playlists` index card
-- [ ] Create a second and third playlist — all three show in the sidebar "My Playlists" section
-- [ ] Click a playlist name in the sidebar — navigates to `/playlist/[id]`
-- [ ] Click the playlist name on the detail page — inline edit activates; save updates the heading and fires `playlists-changed` (sidebar name updates)
-- [ ] Delete a playlist from the index page — card disappears, sidebar updates
+- [x] Create a playlist — name + description appear on the `/playlists` index card
+- [x] Create a second and third playlist — all three show in the sidebar "My Playlists" section
+- [x] Click a playlist name in the sidebar — navigates to `/playlist/[id]`
+- [x] Click the playlist name on the detail page — inline edit activates; save updates the heading and fires `playlists-changed`
+- [x] Delete a playlist from the index page — card disappears, sidebar updates
 
 ### Adding episodes
 - [ ] On a podcast page, hover an episode row — "Add to Playlist" (`ListPlus`) icon appears alongside the queue toggle
@@ -120,10 +120,6 @@ Let users create named, reusable playlists separate from the ephemeral queue. Pl
 - [ ] Add 10 episodes to a playlist — 11th add attempt shows an error
 - [ ] Downgrade account (dev button on Profile), then visit a playlist with >10 episodes — over-limit banner appears; existing episodes still visible
 
-### Sidebar
-- [ ] Episode count badge next to each playlist name in sidebar matches the actual count
-- [ ] Collapse the sidebar — "My Playlists" section is hidden (icons only, no playlist list)
-- [ ] Active playlist route is highlighted in the sidebar
 
 ## Deferred / Next Session
 

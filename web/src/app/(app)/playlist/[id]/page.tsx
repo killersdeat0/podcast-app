@@ -62,12 +62,14 @@ function formatDuration(s: number | null) {
 function SortableEpisodeRow({
   item,
   isOwner,
+  inQueue,
   onPlay,
   onRemove,
   onAddToQueue,
 }: {
   item: PlaylistEpisode
   isOwner: boolean
+  inQueue: boolean
   onPlay: (item: PlaylistEpisode) => void
   onRemove: (guid: string) => void
   onAddToQueue: (item: PlaylistEpisode) => void
@@ -121,9 +123,9 @@ function SortableEpisodeRow({
         onClick={() => onAddToQueue(item)}
         disabled={!item.episode}
         title={strings.playlists.add_to_queue}
-        className="p-2 text-gray-500 hover:text-violet-400 transition-colors disabled:opacity-30"
+        className={`p-2 transition-colors disabled:opacity-30 ${inQueue ? 'text-violet-400 hover:text-red-400' : 'text-gray-500 hover:text-violet-400'}`}
       >
-        <List className="w-4 h-4" />
+        {inQueue ? <Check className="w-4 h-4" /> : <List className="w-4 h-4" />}
       </button>
       {isOwner && (
         <button
@@ -151,6 +153,7 @@ export default function PlaylistDetailPage() {
   const [isOwner, setIsOwner] = useState(false)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [queuedGuids, setQueuedGuids] = useState<Set<string>>(new Set())
 
   // Editing state
   const [editName, setEditName] = useState('')
@@ -184,6 +187,21 @@ export default function PlaylistDetailPage() {
     window.addEventListener('history-changed', fetchPlaylist)
     return () => window.removeEventListener('history-changed', fetchPlaylist)
   }, [fetchPlaylist])
+
+  useEffect(() => {
+    if (isGuest) return
+    function fetchQueuedGuids() {
+      fetch('/api/queue')
+        .then((r) => r.json())
+        .then((data) => {
+          if (Array.isArray(data)) setQueuedGuids(new Set(data.map((i: { episode_guid: string }) => i.episode_guid)))
+        })
+        .catch(() => {})
+    }
+    fetchQueuedGuids()
+    window.addEventListener('queue-changed', fetchQueuedGuids)
+    return () => window.removeEventListener('queue-changed', fetchQueuedGuids)
+  }, [isGuest])
 
   function handlePlayAll() {
     if (episodes.length === 0) return
@@ -220,21 +238,32 @@ export default function PlaylistDetailPage() {
 
   async function handleAddToQueue(item: PlaylistEpisode) {
     if (!item.episode) return
-    await fetch('/api/queue', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        guid: item.episode_guid,
-        feedUrl: item.feed_url,
-        title: item.episode.title,
-        audioUrl: item.episode.audio_url,
-        artworkUrl: item.episode.artwork_url ?? '',
-        podcastTitle: item.episode.podcast_title ?? '',
-        duration: item.episode.duration,
-        pubDate: item.episode.pub_date,
-        description: item.episode.description,
-      }),
-    })
+    const inQueue = queuedGuids.has(item.episode_guid)
+    if (inQueue) {
+      setQueuedGuids((prev) => { const s = new Set(prev); s.delete(item.episode_guid); return s })
+      await fetch('/api/queue', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guid: item.episode_guid }),
+      })
+    } else {
+      setQueuedGuids((prev) => new Set([...prev, item.episode_guid]))
+      await fetch('/api/queue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          guid: item.episode_guid,
+          feedUrl: item.feed_url,
+          title: item.episode.title,
+          audioUrl: item.episode.audio_url,
+          artworkUrl: item.episode.artwork_url ?? '',
+          podcastTitle: item.episode.podcast_title ?? '',
+          duration: item.episode.duration,
+          pubDate: item.episode.pub_date,
+          description: item.episode.description,
+        }),
+      })
+    }
     window.dispatchEvent(new Event('queue-changed'))
   }
 
@@ -477,6 +506,7 @@ export default function PlaylistDetailPage() {
                   key={ep.episode_guid}
                   item={ep}
                   isOwner={isOwner}
+                  inQueue={queuedGuids.has(ep.episode_guid)}
                   onPlay={handlePlayEpisode}
                   onRemove={handleRemoveEpisode}
                   onAddToQueue={handleAddToQueue}

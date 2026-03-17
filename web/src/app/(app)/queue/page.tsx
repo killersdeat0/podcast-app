@@ -21,6 +21,8 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
 import AddToPlaylistPopover from '@/components/ui/AddToPlaylistPopover'
+import { useUserPlaylists } from '@/hooks/useUserPlaylists'
+import { addEpisodeToPlaylist } from '@/lib/playlists/addEpisodeToPlaylist'
 
 interface QueueItem {
   episode_guid: string
@@ -132,9 +134,9 @@ function SortableQueueItem({
 export default function QueuePage() {
   const [items, setItems] = useState<QueueItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [userPlaylists, setUserPlaylists] = useState<Array<{ id: string; name: string }>>([])
   const { play, clientQueue, dequeueClient } = usePlayer()
   const { isGuest } = useUser()
+  const userPlaylists = useUserPlaylists(isGuest)
   const strings = useStrings()
 
   const sensors = useSensors(useSensor(PointerSensor))
@@ -162,19 +164,6 @@ export default function QueuePage() {
     window.addEventListener('queue-changed', fetchQueue)
     return () => window.removeEventListener('queue-changed', fetchQueue)
   }, [isGuest, fetchQueue])
-
-  useEffect(() => {
-    if (isGuest) return
-    function fetchPlaylists() {
-      fetch('/api/playlists')
-        .then((r) => r.json())
-        .then((data) => { if (Array.isArray(data)) setUserPlaylists(data) })
-        .catch(() => {})
-    }
-    fetchPlaylists()
-    window.addEventListener('playlists-changed', fetchPlaylists)
-    return () => window.removeEventListener('playlists-changed', fetchPlaylists)
-  }, [isGuest])
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
@@ -205,21 +194,17 @@ export default function QueuePage() {
     window.dispatchEvent(new Event('queue-changed'))
   }
 
-  async function addItemToPlaylist(playlistId: string, item: QueueItem) {
+  function addItemToPlaylist(playlistId: string, item: QueueItem) {
     if (!item.episode) return
-    await fetch(`/api/playlists/${playlistId}/episodes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        guid: item.episode_guid,
-        feedUrl: item.feed_url,
-        title: item.episode.title,
-        audioUrl: item.episode.audio_url,
-        artworkUrl: item.episode.artwork_url ?? '',
-        podcastTitle: item.episode.podcast_title ?? '',
-        duration: item.episode.duration,
-      }),
-    }).catch(() => {})
+    return addEpisodeToPlaylist(playlistId, {
+      guid: item.episode_guid,
+      feedUrl: item.feed_url,
+      title: item.episode.title,
+      audioUrl: item.episode.audio_url,
+      artworkUrl: item.episode.artwork_url ?? '',
+      podcastTitle: item.episode.podcast_title ?? '',
+      duration: item.episode.duration ?? undefined,
+    })
   }
 
   function playItem(item: QueueItem) {

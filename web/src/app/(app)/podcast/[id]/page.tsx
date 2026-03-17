@@ -8,6 +8,8 @@ import type { PodcastFeed, Episode } from '@/lib/rss/parser'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { useUserPlaylists } from '@/hooks/useUserPlaylists'
+import { addEpisodeToPlaylist } from '@/lib/playlists/addEpisodeToPlaylist'
 import { Play, Plus, Check } from 'lucide-react'
 import { computeNewEpisodes } from '@/lib/subscriptions/computeNewEpisodes'
 import { mergeEpisodeSources } from '@/lib/episodes/mergeEpisodeSources'
@@ -81,7 +83,7 @@ export default function PodcastPage() {
   const [subscribed, setSubscribed] = useState(false)
   const [subscribing, setSubscribing] = useState(false)
   const [queuedGuids, setQueuedGuids] = useState<Set<string>>(new Set())
-  const [userPlaylists, setUserPlaylists] = useState<Array<{ id: string; name: string }>>([])
+  const userPlaylists = useUserPlaylists(isGuest)
   const [subscription, setSubscription] = useState<SubscriptionRow | null>(null)
   const [oldLastVisitedAt, setOldLastVisitedAt] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -211,19 +213,6 @@ export default function PodcastPage() {
     window.addEventListener('history-changed', refreshEpisodeProgress)
     return () => window.removeEventListener('history-changed', refreshEpisodeProgress)
   }, [refreshEpisodeProgress])
-
-  useEffect(() => {
-    if (isGuest) return
-    function fetchPlaylists() {
-      fetch('/api/playlists')
-        .then((r) => r.json())
-        .then((data) => { if (Array.isArray(data)) setUserPlaylists(data) })
-        .catch(() => {})
-    }
-    fetchPlaylists()
-    window.addEventListener('playlists-changed', fetchPlaylists)
-    return () => window.removeEventListener('playlists-changed', fetchPlaylists)
-  }, [isGuest])
 
   // Fetch iTunes episodes lazily when user starts searching
   useEffect(() => {
@@ -522,22 +511,18 @@ export default function PodcastPage() {
     }
   }
 
-  async function addToPlaylist(playlistId: string, ep: Episode) {
-    await fetch(`/api/playlists/${playlistId}/episodes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        guid: ep.guid,
-        feedUrl: feedUrl,
-        title: ep.title,
-        audioUrl: ep.audioUrl,
-        artworkUrl: artwork || null,
-        podcastTitle: title,
-        duration: ep.duration,
-        pubDate: ep.pubDate,
-        description: ep.description,
-      }),
-    }).catch(() => {})
+  function addToPlaylist(playlistId: string, ep: Episode) {
+    return addEpisodeToPlaylist(playlistId, {
+      guid: ep.guid,
+      feedUrl: feedUrl,
+      title: ep.title,
+      audioUrl: ep.audioUrl,
+      artworkUrl: artwork || null,
+      podcastTitle: title,
+      duration: ep.duration,
+      pubDate: ep.pubDate,
+      description: ep.description,
+    })
   }
 
   function playEpisode(episode: Episode) {

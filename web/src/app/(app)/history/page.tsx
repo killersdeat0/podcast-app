@@ -7,6 +7,8 @@ import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
 import { COMPLETION_THRESHOLD_PCT } from '@/lib/player/constants'
 import AddToPlaylistPopover from '@/components/ui/AddToPlaylistPopover'
+import { useUserPlaylists } from '@/hooks/useUserPlaylists'
+import { addEpisodeToPlaylist } from '@/lib/playlists/addEpisodeToPlaylist'
 
 interface HistoryItem {
   episode_guid: string
@@ -46,9 +48,9 @@ function progressPct(positionSeconds: number, duration: number | null, completed
 export default function HistoryPage() {
   const [items, setItems] = useState<HistoryItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [userPlaylists, setUserPlaylists] = useState<Array<{ id: string; name: string }>>([])
   const { play } = usePlayer()
   const { isGuest } = useUser()
+  const userPlaylists = useUserPlaylists(isGuest)
   const strings = useStrings()
 
   const fetchHistory = useCallback(() => {
@@ -88,19 +90,6 @@ export default function HistoryPage() {
     }
   }, [handleHistoryChanged, fetchHistory])
 
-  useEffect(() => {
-    if (isGuest) return
-    function fetchPlaylists() {
-      fetch('/api/playlists')
-        .then((r) => r.json())
-        .then((data) => { if (Array.isArray(data)) setUserPlaylists(data) })
-        .catch(() => {})
-    }
-    fetchPlaylists()
-    window.addEventListener('playlists-changed', fetchPlaylists)
-    return () => window.removeEventListener('playlists-changed', fetchPlaylists)
-  }, [isGuest])
-
   function playItem(item: HistoryItem) {
     if (!item.episode) return
     setItems((prev) => [
@@ -118,21 +107,17 @@ export default function HistoryPage() {
     })
   }
 
-  async function addToPlaylist(playlistId: string, item: HistoryItem) {
+  function addToPlaylist(playlistId: string, item: HistoryItem) {
     if (!item.episode) return
-    await fetch(`/api/playlists/${playlistId}/episodes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        guid: item.episode_guid,
-        feedUrl: item.feed_url,
-        title: item.episode.title,
-        audioUrl: item.episode.audio_url,
-        artworkUrl: item.episode.artwork_url ?? '',
-        podcastTitle: item.episode.podcast_title ?? '',
-        duration: item.episode.duration,
-      }),
-    }).catch(() => {})
+    return addEpisodeToPlaylist(playlistId, {
+      guid: item.episode_guid,
+      feedUrl: item.feed_url,
+      title: item.episode.title,
+      audioUrl: item.episode.audio_url,
+      artworkUrl: item.episode.artwork_url ?? '',
+      podcastTitle: item.episode.podcast_title ?? '',
+      duration: item.episode.duration ?? undefined,
+    })
   }
 
   return (
