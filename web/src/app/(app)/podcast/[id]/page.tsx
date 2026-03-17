@@ -13,6 +13,7 @@ import { computeNewEpisodes } from '@/lib/subscriptions/computeNewEpisodes'
 import { mergeEpisodeSources } from '@/lib/episodes/mergeEpisodeSources'
 import AuthPromptModal from '@/components/ui/AuthPromptModal'
 import UpgradeModal from '@/components/ui/UpgradeModal'
+import AddToPlaylistPopover from '@/components/ui/AddToPlaylistPopover'
 
 interface SubscriptionRow {
   feed_url: string
@@ -80,6 +81,7 @@ export default function PodcastPage() {
   const [subscribed, setSubscribed] = useState(false)
   const [subscribing, setSubscribing] = useState(false)
   const [queuedGuids, setQueuedGuids] = useState<Set<string>>(new Set())
+  const [userPlaylists, setUserPlaylists] = useState<Array<{ id: string; name: string }>>([])
   const [subscription, setSubscription] = useState<SubscriptionRow | null>(null)
   const [oldLastVisitedAt, setOldLastVisitedAt] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -209,6 +211,19 @@ export default function PodcastPage() {
     window.addEventListener('history-changed', refreshEpisodeProgress)
     return () => window.removeEventListener('history-changed', refreshEpisodeProgress)
   }, [refreshEpisodeProgress])
+
+  useEffect(() => {
+    if (isGuest) return
+    function fetchPlaylists() {
+      fetch('/api/playlists')
+        .then((r) => r.json())
+        .then((data) => { if (Array.isArray(data)) setUserPlaylists(data) })
+        .catch(() => {})
+    }
+    fetchPlaylists()
+    window.addEventListener('playlists-changed', fetchPlaylists)
+    return () => window.removeEventListener('playlists-changed', fetchPlaylists)
+  }, [isGuest])
 
   // Fetch iTunes episodes lazily when user starts searching
   useEffect(() => {
@@ -507,6 +522,24 @@ export default function PodcastPage() {
     }
   }
 
+  async function addToPlaylist(playlistId: string, ep: Episode) {
+    await fetch(`/api/playlists/${playlistId}/episodes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        guid: ep.guid,
+        feedUrl: feedUrl,
+        title: ep.title,
+        audioUrl: ep.audioUrl,
+        artworkUrl: artwork || null,
+        podcastTitle: title,
+        duration: ep.duration,
+        pubDate: ep.pubDate,
+        description: ep.description,
+      }),
+    }).catch(() => {})
+  }
+
   function playEpisode(episode: Episode) {
     play({
       guid: episode.guid,
@@ -596,6 +629,12 @@ export default function PodcastPage() {
         >
           {inQueue ? <Check className="w-3.5 h-3.5" strokeWidth={2.5} /> : <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />}
         </button>
+        {!isGuest && userPlaylists.length > 0 && (
+          <AddToPlaylistPopover
+            playlists={userPlaylists}
+            onSelect={(playlistId) => addToPlaylist(playlistId, ep)}
+          />
+        )}
       </div>
     )
   }

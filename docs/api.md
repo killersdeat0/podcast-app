@@ -243,6 +243,117 @@ Fetches each RSS feed in parallel to resolve the canonical title and artwork URL
 
 ---
 
+## Playlists
+
+### `GET /api/playlists`
+Returns the authenticated user's playlists ordered by `position`.
+
+**Auth:** Required
+
+**Response:** `Array<{ id, user_id, name, description, is_public, position, created_at, updated_at, episode_count: number }>`
+
+---
+
+### `POST /api/playlists`
+Creates a new playlist.
+
+**Auth:** Required
+
+**Body:** `{ name: string, description?: string }`
+
+**Freemium gate:** Free users limited to 3 playlists. Returns `403` with `{ error: 'Playlist limit reached...' }`.
+
+**Response:** `{ ok: true, playlist: PlaylistRow }`
+
+---
+
+### `PATCH /api/playlists`
+Reorders playlists.
+
+**Auth:** Required
+
+**Body:** `{ orderedIds: string[] }`
+
+**Response:** `{ ok: true }`
+
+---
+
+### `GET /api/playlists/[id]`
+Returns a playlist with its episodes and playback progress.
+
+**Auth:** Optional. Unauthenticated callers can access public playlists (`is_public = true`). Uses `createAdminClient()` for unauthenticated reads; returns `404` for private playlists.
+
+**Response:**
+```json
+{
+  "playlist": { "id", "name", "description", "is_public", "user_id", "..." },
+  "episodes": [{
+    "id", "episode_guid", "feed_url", "position", "added_at",
+    "episode": { "title", "audio_url", "duration", "artwork_url", "podcast_title", "pub_date", "description" },
+    "position_seconds": 0,
+    "completed": false
+  }],
+  "isOwner": boolean
+}
+```
+
+---
+
+### `PATCH /api/playlists/[id]`
+Updates a playlist's name, description, or public status.
+
+**Auth:** Required. Owner only (403 otherwise).
+
+**Body:** `{ name?: string, description?: string, isPublic?: boolean }`
+
+**Response:** `{ ok: true, playlist: PlaylistRow }`
+
+---
+
+### `DELETE /api/playlists/[id]`
+Deletes a playlist and all its episodes (cascade).
+
+**Auth:** Required. Owner only.
+
+**Response:** `{ ok: true }`
+
+---
+
+### `POST /api/playlists/[id]/episodes`
+Adds an episode to a playlist. Upserts episode metadata (subscription artwork priority).
+
+**Auth:** Required. Owner only.
+
+**Body:** `{ guid, feedUrl, title, audioUrl, artworkUrl, podcastTitle, duration?, pubDate?, description? }`
+
+**Freemium gate:** Free users limited to 10 episodes per playlist. Returns `403` with `{ error: 'Episode limit reached...' }`.
+
+**Response:** `{ ok: true }`
+
+---
+
+### `DELETE /api/playlists/[id]/episodes`
+Removes an episode from a playlist.
+
+**Auth:** Required. Owner only.
+
+**Body:** `{ guid: string }`
+
+**Response:** `{ ok: true }`
+
+---
+
+### `PATCH /api/playlists/[id]/episodes`
+Reorders episodes within a playlist.
+
+**Auth:** Required. Owner only.
+
+**Body:** `{ orderedGuids: string[] }`
+
+**Response:** `{ ok: true }`
+
+---
+
 ## Dev (development only)
 
 Routes that return `404` in production.

@@ -20,6 +20,7 @@ import { usePlayer } from '@/components/player/PlayerContext'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
+import AddToPlaylistPopover from '@/components/ui/AddToPlaylistPopover'
 
 interface QueueItem {
   episode_guid: string
@@ -47,10 +48,14 @@ function SortableQueueItem({
   item,
   onPlay,
   onRemove,
+  playlists,
+  onAddToPlaylist,
 }: {
   item: QueueItem
   onPlay: (item: QueueItem) => void
   onRemove: (guid: string) => void
+  playlists: Array<{ id: string; name: string }>
+  onAddToPlaylist: (playlistId: string, item: QueueItem) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.episode_guid,
@@ -64,7 +69,7 @@ function SortableQueueItem({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex items-center gap-2 ${isDragging ? 'opacity-50' : ''}`}
+      className={`group flex items-center gap-2 ${isDragging ? 'opacity-50' : ''}`}
     >
       <div
         {...attributes}
@@ -114,6 +119,12 @@ function SortableQueueItem({
       >
         ✕
       </button>
+      {playlists.length > 0 && (
+        <AddToPlaylistPopover
+          playlists={playlists}
+          onSelect={(playlistId) => onAddToPlaylist(playlistId, item)}
+        />
+      )}
     </div>
   )
 }
@@ -121,6 +132,7 @@ function SortableQueueItem({
 export default function QueuePage() {
   const [items, setItems] = useState<QueueItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [userPlaylists, setUserPlaylists] = useState<Array<{ id: string; name: string }>>([])
   const { play, clientQueue, dequeueClient } = usePlayer()
   const { isGuest } = useUser()
   const strings = useStrings()
@@ -151,6 +163,19 @@ export default function QueuePage() {
     return () => window.removeEventListener('queue-changed', fetchQueue)
   }, [isGuest, fetchQueue])
 
+  useEffect(() => {
+    if (isGuest) return
+    function fetchPlaylists() {
+      fetch('/api/playlists')
+        .then((r) => r.json())
+        .then((data) => { if (Array.isArray(data)) setUserPlaylists(data) })
+        .catch(() => {})
+    }
+    fetchPlaylists()
+    window.addEventListener('playlists-changed', fetchPlaylists)
+    return () => window.removeEventListener('playlists-changed', fetchPlaylists)
+  }, [isGuest])
+
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     if (!over || active.id === over.id) return
@@ -178,6 +203,23 @@ export default function QueuePage() {
     })
     setItems((prev) => prev.filter((i) => i.episode_guid !== guid))
     window.dispatchEvent(new Event('queue-changed'))
+  }
+
+  async function addItemToPlaylist(playlistId: string, item: QueueItem) {
+    if (!item.episode) return
+    await fetch(`/api/playlists/${playlistId}/episodes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        guid: item.episode_guid,
+        feedUrl: item.feed_url,
+        title: item.episode.title,
+        audioUrl: item.episode.audio_url,
+        artworkUrl: item.episode.artwork_url ?? '',
+        podcastTitle: item.episode.podcast_title ?? '',
+        duration: item.episode.duration,
+      }),
+    }).catch(() => {})
   }
 
   function playItem(item: QueueItem) {
@@ -269,6 +311,8 @@ export default function QueuePage() {
                   item={item}
                   onPlay={playItem}
                   onRemove={removeFromQueue}
+                  playlists={userPlaylists}
+                  onAddToPlaylist={addItemToPlaylist}
                 />
               ))}
             </div>

@@ -68,6 +68,7 @@ Read any relevant docs before making changes
 - `docs/player.md` — player state machine, progress saving, queue auto-advance, chapters. Read before touching player/queue logic.
 - `docs/i18n.md` — i18n system: adding languages, string namespaces, EmptyState component, tone guidelines. Read before adding any user-visible text.
 - `docs/deployment.md` — Vercel setup, root directory config, preview deployments. Read before touching deployment config.
+- `docs/playlists.md` — playlist data model, freemium limits, RLS, player integration, public sharing. Read before touching playlist routes or components.
 
 ## Architecture
 
@@ -90,6 +91,9 @@ Read any relevant docs before making changes
 ### Auth guard
 
 `web/src/proxy.ts` is the Next.js 16 equivalent of `middleware.ts`. It redirects unauthenticated users to `/login` for protected routes. Public routes (defined in `PUBLIC_PATHS`) are accessible without login: `/discover`, `/podcast`, `/queue`, `/login`, `/signup`, `/auth/callback`, and read-only podcast API routes (`/api/podcasts/*`). Guests who reach public `(app)` routes get the full shell (sidebar, player) with guest-mode UI via `UserContext` — see `web/src/lib/auth/UserContext.tsx`.
+
+- `/playlist` is in `PUBLIC_PATHS` — playlist detail page is publicly accessible (for shared public playlists).
+- `/api/playlists/` (trailing slash) is in `PUBLIC_PATHS` — allows unauthenticated reads of `/api/playlists/[id]`; the trailing slash ensures `/api/playlists` (list) remains auth-protected.
 
 ### Data flow
 
@@ -125,6 +129,24 @@ Schema lives in `supabase/migrations/`. Key tables: `subscriptions`, `episodes` 
 ### Sidebar subscription sync
 
 The Sidebar fetches subscriptions on mount and re-fetches on the custom `subscriptions-changed` window event. Fire `window.dispatchEvent(new Event('subscriptions-changed'))` after any subscribe/unsubscribe to update the sidebar instantly without a page reload.
+
+### Playlist sync
+
+The Sidebar fetches playlists on mount and re-fetches on the custom `playlists-changed` window event. Fire `window.dispatchEvent(new Event('playlists-changed'))` after any playlist create, delete, or rename.
+
+### Admin client
+
+`web/src/lib/supabase/admin.ts` exports `createAdminClient()` using `SUPABASE_SERVICE_ROLE_KEY` (server-only — never `NEXT_PUBLIC_*`). Used **only** for serving public playlist reads to unauthenticated users in `GET /api/playlists/[id]`. For all other API routes use `createClient()` from `@/lib/supabase/server`.
+
+### Playlist player integration
+
+`NowPlaying` (in `PlayerContext.tsx`) has an optional `playlistContext?: { playlistId: string; episodes: PlaylistEpisodeRef[] } | null`. When set, `Player.tsx` advances through playlist episodes non-destructively — does not touch the queue. The context is persisted automatically via the existing `play()` localStorage write.
+
+Use `playPlaylist(playlistId, episodes, startIndex?)` from `usePlayer()` to start playlist playback. It wraps `play()` with the correct `playlistContext`.
+
+### Ownership verification
+
+`web/src/lib/playlists/verifyOwnership.ts` exports `verifyPlaylistOwnership(playlistId, userId): Promise<boolean>`. All mutating playlist API routes call this before proceeding.
 
 ### Documentation
 

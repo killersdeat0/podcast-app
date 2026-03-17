@@ -2,6 +2,16 @@
 
 import { createContext, useContext, useRef, useState, useCallback, useEffect } from 'react'
 
+export interface PlaylistEpisodeRef {
+  guid: string
+  feedUrl: string
+  title: string
+  podcastTitle: string
+  artworkUrl: string
+  audioUrl: string
+  duration: number
+}
+
 export interface NowPlaying {
   guid: string
   feedUrl: string
@@ -11,6 +21,7 @@ export interface NowPlaying {
   audioUrl: string
   duration: number
   chapterUrl?: string | null
+  playlistContext?: { playlistId: string; episodes: PlaylistEpisodeRef[] } | null
 }
 
 interface PlayerState {
@@ -30,6 +41,7 @@ interface PlayerControls {
   dequeueClient: (guid: string) => void
   clearClientQueue: () => void
   clearNowPlaying: () => void
+  playPlaylist: (playlistId: string, episodes: PlaylistEpisodeRef[], startIndex?: number) => void
 }
 
 const PlayerContext = createContext<(PlayerState & PlayerControls) | null>(null)
@@ -119,9 +131,18 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('nowPlaying')
   }, [])
 
+  const playPlaylist = useCallback((playlistId: string, episodes: PlaylistEpisodeRef[], startIndex = 0) => {
+    const ep = episodes[startIndex]
+    if (!ep) return
+    play({
+      ...ep,
+      playlistContext: { playlistId, episodes },
+    })
+  }, [play])
+
   return (
     <PlayerContext.Provider
-      value={{ nowPlaying, playing, speed, play, togglePlay, seek, setSpeed, audioRef, clientQueue, enqueueClient, dequeueClient, clearClientQueue, clearNowPlaying }}
+      value={{ nowPlaying, playing, speed, play, togglePlay, seek, setSpeed, audioRef, clientQueue, enqueueClient, dequeueClient, clearClientQueue, clearNowPlaying, playPlaylist }}
     >
       {children}
     </PlayerContext.Provider>

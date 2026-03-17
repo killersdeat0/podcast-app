@@ -108,6 +108,42 @@ Ordered list of episodes the user wants to listen to next.
 
 ---
 
+### `playlists`
+Named, reusable episode lists (see `docs/playlists.md`).
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | uuid | PK |
+| `user_id` | uuid | FK → auth.users (cascade delete) |
+| `name` | text | required |
+| `description` | text | optional |
+| `is_public` | boolean | default false |
+| `position` | integer | drag-drop order |
+| `created_at` | timestamptz | |
+| `updated_at` | timestamptz | auto-updated via trigger (`set_updated_at`) |
+
+**RLS:** Owner full access. Authenticated users can SELECT `is_public = true` rows. No anonymous policy — public reads use `createAdminClient()`.
+
+---
+
+### `playlist_episodes`
+Episodes within a playlist.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | uuid | PK |
+| `playlist_id` | uuid | FK → playlists (cascade delete) |
+| `episode_guid` | text | |
+| `feed_url` | text | |
+| `position` | integer | sort order |
+| `added_at` | timestamptz | |
+
+Unique: `(playlist_id, episode_guid)`.
+
+**RLS:** Owner can manage via parent playlist ownership. Authenticated users can read episodes of public playlists. No anonymous policy.
+
+---
+
 ### `favorites`
 Reserved for future use.
 

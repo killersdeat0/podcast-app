@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Volume1, Volume2, VolumeX, SkipForward } from 'lucide-react'
-import { usePlayer } from './PlayerContext'
+import { usePlayer, NowPlaying } from './PlayerContext'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useStrings } from '@/lib/i18n/LocaleContext'
@@ -140,7 +140,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
     }
   }, [nowPlaying]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const skipToNext = useCallback((np: { guid: string; feedUrl: string; title: string; audioUrl: string; duration: number; artworkUrl: string; podcastTitle: string }) => {
+  const skipToNext = useCallback((np: NowPlaying) => {
     const audio = audioRef.current
     // Save current position without marking complete so the user can resume
     if (audio && audio.currentTime > 5) {
@@ -160,6 +160,19 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
         }),
       }).catch(() => {})
     }
+
+    // Playlist context: advance non-destructively (don't touch queue)
+    if (np.playlistContext) {
+      const { playlistId, episodes } = np.playlistContext
+      const idx = episodes.findIndex((e) => e.guid === np.guid)
+      const next = episodes[idx + 1]
+      if (next) {
+        play({ ...next, playlistContext: { playlistId, episodes } })
+      }
+      return
+    }
+
+    // Queue logic (existing)
     fetch('/api/queue')
       .then((r) => r.json())
       .then((items: Array<{ episode_guid: string; feed_url: string; episode: { title: string; audio_url: string; duration: number | null; artwork_url: string | null; podcast_title: string | null } | null }>) => {
@@ -188,7 +201,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
       .catch(() => {})
   }, [audioRef, play])
 
-  const completeAndAdvance = useCallback((np: { guid: string; feedUrl: string; title: string; audioUrl: string; duration: number; artworkUrl: string; podcastTitle: string }) => {
+  const completeAndAdvance = useCallback((np: NowPlaying) => {
     const audio = audioRef.current
     fetch('/api/progress', {
       method: 'POST',
@@ -208,6 +221,18 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
 
     // TODO: play audio ad clip here for free tier before advancing
 
+    // Playlist context: advance non-destructively (don't touch queue)
+    if (np.playlistContext) {
+      const { playlistId, episodes } = np.playlistContext
+      const idx = episodes.findIndex((e) => e.guid === np.guid)
+      const next = episodes[idx + 1]
+      if (next) {
+        play({ ...next, playlistContext: { playlistId, episodes } })
+      }
+      return
+    }
+
+    // Queue logic (existing)
     fetch('/api/queue')
       .then((r) => r.json())
       .then((items: Array<{ episode_guid: string; feed_url: string; episode: { title: string; audio_url: string; duration: number | null; artwork_url: string | null; podcast_title: string | null } | null }>) => {
@@ -319,6 +344,12 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
     if (isGuest) {
       const idx = clientQueue.findIndex((e) => e.guid === nowPlaying?.guid)
       return idx !== -1 && idx < clientQueue.length - 1
+    }
+    // Check playlist context first
+    if (nowPlaying?.playlistContext) {
+      const { episodes } = nowPlaying.playlistContext
+      const idx = episodes.findIndex((e) => e.guid === nowPlaying.guid)
+      return idx !== -1 && idx < episodes.length - 1
     }
     const idx = dbQueue.findIndex((e) => e.episode_guid === nowPlaying?.guid)
     return idx !== -1 && idx < dbQueue.length - 1

@@ -4,7 +4,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { usePlayer } from '@/components/player/PlayerContext'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useStrings } from '@/lib/i18n/LocaleContext'
+import { useUser } from '@/lib/auth/UserContext'
 import { COMPLETION_THRESHOLD_PCT } from '@/lib/player/constants'
+import AddToPlaylistPopover from '@/components/ui/AddToPlaylistPopover'
 
 interface HistoryItem {
   episode_guid: string
@@ -44,7 +46,9 @@ function progressPct(positionSeconds: number, duration: number | null, completed
 export default function HistoryPage() {
   const [items, setItems] = useState<HistoryItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [userPlaylists, setUserPlaylists] = useState<Array<{ id: string; name: string }>>([])
   const { play } = usePlayer()
+  const { isGuest } = useUser()
   const strings = useStrings()
 
   const fetchHistory = useCallback(() => {
@@ -84,6 +88,19 @@ export default function HistoryPage() {
     }
   }, [handleHistoryChanged, fetchHistory])
 
+  useEffect(() => {
+    if (isGuest) return
+    function fetchPlaylists() {
+      fetch('/api/playlists')
+        .then((r) => r.json())
+        .then((data) => { if (Array.isArray(data)) setUserPlaylists(data) })
+        .catch(() => {})
+    }
+    fetchPlaylists()
+    window.addEventListener('playlists-changed', fetchPlaylists)
+    return () => window.removeEventListener('playlists-changed', fetchPlaylists)
+  }, [isGuest])
+
   function playItem(item: HistoryItem) {
     if (!item.episode) return
     setItems((prev) => [
@@ -99,6 +116,23 @@ export default function HistoryPage() {
       audioUrl: item.episode.audio_url,
       duration: item.episode.duration ?? 0,
     })
+  }
+
+  async function addToPlaylist(playlistId: string, item: HistoryItem) {
+    if (!item.episode) return
+    await fetch(`/api/playlists/${playlistId}/episodes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        guid: item.episode_guid,
+        feedUrl: item.feed_url,
+        title: item.episode.title,
+        audioUrl: item.episode.audio_url,
+        artworkUrl: item.episode.artwork_url ?? '',
+        podcastTitle: item.episode.podcast_title ?? '',
+        duration: item.episode.duration,
+      }),
+    }).catch(() => {})
   }
 
   return (
@@ -122,58 +156,65 @@ export default function HistoryPage() {
           {items.map((item) => {
             const pct = progressPct(item.position_seconds, item.episode?.duration ?? null, item.completed)
             return (
-            <button
-              key={item.episode_guid}
-              onClick={() => playItem(item)}
-              disabled={!item.episode}
-              className="relative w-full flex items-center gap-3 text-left bg-gray-900 hover:bg-gray-800 rounded-xl px-4 py-3 transition-colors disabled:opacity-50 overflow-hidden"
-            >
-              {pct !== null && (
-                <div
-                  className="absolute inset-0 rounded-xl pointer-events-none"
-                  style={{
-                    background: pct >= 100
-                      ? 'rgba(34,197,94,0.12)'
-                      : `linear-gradient(to right, rgba(34,197,94,0.12) ${pct}%, rgba(139,92,246,0.10) ${pct}%)`,
-                  }}
-                />
-              )}
-              {item.episode?.artwork_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={item.episode.artwork_url}
-                  alt=""
-                  className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-lg bg-gray-700 flex-shrink-0" />
-              )}
-              <div className="flex-1 overflow-hidden">
-                <p className="text-sm font-medium text-white truncate">
-                  {item.episode?.title ?? item.episode_guid}
-                </p>
-                <div className="flex gap-2 mt-0.5">
-                  {item.episode?.podcast_title && (
-                    <span className="text-xs text-gray-400 truncate">{item.episode.podcast_title}</span>
-                  )}
-                  {item.episode?.duration && (
-                    <span className="text-xs text-gray-500">{formatDuration(item.episode.duration)}</span>
-                  )}
-                </div>
-              </div>
-              <div className="flex-shrink-0 text-right">
-                {(item.completed || (pct !== null && pct >= COMPLETION_THRESHOLD_PCT)) ? (
-                  <span className="text-xs text-green-400">Done</span>
-                ) : (
-                  <span className="text-xs text-gray-500">
-                    {formatProgress(item.position_seconds, item.episode?.duration ?? null)}
-                  </span>
+            <div key={item.episode_guid} className="group relative flex items-center gap-1">
+              <button
+                onClick={() => playItem(item)}
+                disabled={!item.episode}
+                className="relative flex-1 flex items-center gap-3 text-left bg-gray-900 hover:bg-gray-800 rounded-xl px-4 py-3 transition-colors disabled:opacity-50 overflow-hidden"
+              >
+                {pct !== null && (
+                  <div
+                    className="absolute inset-0 rounded-xl pointer-events-none"
+                    style={{
+                      background: pct >= 100
+                        ? 'rgba(34,197,94,0.12)'
+                        : `linear-gradient(to right, rgba(34,197,94,0.12) ${pct}%, rgba(139,92,246,0.10) ${pct}%)`,
+                    }}
+                  />
                 )}
-                <p className="text-xs text-gray-600 mt-0.5">
-                  {new Date(item.updated_at).toLocaleDateString()}
-                </p>
-              </div>
-            </button>
+                {item.episode?.artwork_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.episode.artwork_url}
+                    alt=""
+                    className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-gray-700 flex-shrink-0" />
+                )}
+                <div className="flex-1 overflow-hidden">
+                  <p className="text-sm font-medium text-white truncate">
+                    {item.episode?.title ?? item.episode_guid}
+                  </p>
+                  <div className="flex gap-2 mt-0.5">
+                    {item.episode?.podcast_title && (
+                      <span className="text-xs text-gray-400 truncate">{item.episode.podcast_title}</span>
+                    )}
+                    {item.episode?.duration && (
+                      <span className="text-xs text-gray-500">{formatDuration(item.episode.duration)}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex-shrink-0 text-right">
+                  {(item.completed || (pct !== null && pct >= COMPLETION_THRESHOLD_PCT)) ? (
+                    <span className="text-xs text-green-400">Done</span>
+                  ) : (
+                    <span className="text-xs text-gray-500">
+                      {formatProgress(item.position_seconds, item.episode?.duration ?? null)}
+                    </span>
+                  )}
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    {new Date(item.updated_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </button>
+              {!isGuest && userPlaylists.length > 0 && item.episode && (
+                <AddToPlaylistPopover
+                  playlists={userPlaylists}
+                  onSelect={(playlistId) => addToPlaylist(playlistId, item)}
+                />
+              )}
+            </div>
             )
           })}
         </div>

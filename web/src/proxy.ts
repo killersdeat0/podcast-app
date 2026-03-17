@@ -2,19 +2,20 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 const PUBLIC_PATHS = [
-  '/login',
-  '/signup',
-  '/auth/callback',
-  '/api/stripe/webhook',
-  '/discover',
-  '/podcast',
-  '/queue',
-  '/api/podcasts/search',
-  '/api/podcasts/feed',
-  '/api/podcasts/trending',
-  '/api/podcasts/episodes',
-  '/api/podcasts/chapters',
-  '/api/podcasts/top',
+    '/login',
+    '/signup',
+    '/auth/callback',
+    '/api/stripe/webhook',
+    '/discover',
+    '/podcast',
+    '/queue',
+    '/api/podcasts/search',
+    '/api/podcasts/feed',
+    '/api/podcasts/trending',
+    '/api/podcasts/episodes',
+    '/api/podcasts/chapters',
+    '/api/podcasts/top',
+    '/playlist',
 ]
 
 export async function proxy(request: NextRequest) {
