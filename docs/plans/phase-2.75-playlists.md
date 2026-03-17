@@ -40,6 +40,9 @@ Let users create named, reusable playlists separate from the ephemeral queue. Pl
 - [x] `completeAndAdvance` + `skipToNext` in `Player.tsx` branch on `playlistContext`: if present, advance through `playlistContext.episodes` (non-destructive — does NOT touch queue); otherwise existing queue logic unchanged
 - [x] `hasNextInQueue` checks `playlistContext?.episodes` first, then falls back to `dbQueue`
 - [x] Add `playPlaylist(playlistId, episodes, startIndex?)` helper in `PlayerContext.tsx`
+- [x] On each advance (`skipToNext` / `completeAndAdvance`), fetch fresh order from `GET /api/playlists/[id]` instead of using the stale snapshot — reordering mid-playback takes effect immediately
+- [x] Add `updatePlaylistEpisodes(episodes)` to `PlayerContext` — patches `playlistContext.episodes` in `nowPlaying` (+ localStorage) without interrupting playback
+- [x] Dispatch `playlist-episodes-changed` (CustomEvent `{ playlistId }`) from `addEpisodeToPlaylist()`, `handleRemoveEpisode`, and `handleDragEnd`; Player listens and calls `updatePlaylistEpisodes` so the skip button appears/disappears live when episodes are added, removed, or reordered while playing
 
 ### Proxy
 - [x] Add `/playlist` to `PUBLIC_PATHS` (playlist detail page — guests can view public)
@@ -56,7 +59,7 @@ Let users create named, reusable playlists separate from the ephemeral queue. Pl
 
 ### Sidebar
 - [x] Add "Playlists" nav item (between Queue and History) using `ListMusic` lucide icon; guest: auth prompt modal
-- [x] ~~Add "My Playlists" collapsible section~~ — removed; deemed cluttering. Nav item is sufficient.
+- [x] Add "My Playlists" collapsible section (above "My Podcasts"): separate `useEffect` fetching on mount + `playlists-changed` event; "+" button navigates to `/playlists`; playlist name links with active-route highlight; guest hint text; collapsed mode: section omitted
 
 ### i18n
 - [x] Add `playlists` namespace to `en.ts` and `es.ts` — keys: `heading, create, create_modal_title, create_name_placeholder, create_description_placeholder, create_submit, empty_title, empty_description, empty_cta, play, add_to_queue, add_to_playlist, copy_link, link_copied, public_badge, private_badge, make_public, make_private, delete, delete_confirm, delete_confirm_cta, remove_episode, episode_count, over_limit_playlists, over_limit_episodes, upgrade_cta, limit_reached_playlists, limit_reached_episodes, sidebar_heading, sidebar_empty_hint, guest_hint, auth_prompt_title`
@@ -84,24 +87,25 @@ Let users create named, reusable playlists separate from the ephemeral queue. Pl
 - [x] Create a second and third playlist — all three show in the sidebar "My Playlists" section
 - [x] Click a playlist name in the sidebar — navigates to `/playlist/[id]`
 - [x] Click the playlist name on the detail page — inline edit activates; save updates the heading and fires `playlists-changed`
-- [x] Delete a playlist from the index page — card disappears, sidebar updates
+- [x] Delete a playlist from the index page — card disappears
 
 ### Adding episodes
-- [ ] On a podcast page, hover an episode row — "Add to Playlist" (`ListPlus`) icon appears alongside the queue toggle
-- [ ] Click it — popover lists your playlists; select one — episode appears in `/playlist/[id]`
-- [ ] Same flow from the Queue page and History page
-- [ ] Add the same episode twice to the same playlist — only one copy appears (upsert)
+- [x] On a podcast page, hover an episode row — "Add to Playlist" (`ListPlus`) icon appears alongside the queue toggle
+- [x] Click it — popover lists your playlists; select one — episode appears in `/playlist/[id]`
+- [x] Same flow from the Queue page and History page
+- [x] Add the same episode twice to the same playlist — only one copy appears (upsert)
 
 ### Playback
-- [ ] On `/playlist/[id]`, click "Play Playlist" — first episode starts in the player
-- [ ] Let it finish (or scrub to end) — advances to the second episode automatically; queue is untouched
-- [ ] Click an episode row directly — playback starts from that episode, continues through the rest of the playlist
-- [ ] Skip forward button in the player — jumps to next episode within the playlist (not queue)
-- [ ] While playing a playlist, check the queue page — queue is unchanged
+- [x] On `/playlist/[id]`, click "Play Playlist" — first episode starts in the player
+- [x] Let it finish (or scrub to end) — advances to the second episode automatically; queue is untouched
+- [x] Click an episode row directly — playback starts from that episode, continues through the rest of the playlist
+- [x] Skip forward button in the player — jumps to next episode within the playlist (not queue)
+- [x] While playing a playlist, check the queue page — queue is unchanged
 
 ### Reorder & remove (owner)
-- [ ] Drag episodes to reorder on `/playlist/[id]` — order persists after page refresh
-- [ ] Click the remove button on an episode — it disappears immediately
+- [x] Drag episodes to reorder on `/playlist/[id]` — order persists after page refresh
+- [x] Reorder episodes while a playlist is playing — subsequent advance (skip or auto-complete) respects the new order; skip button appears immediately if the current episode is no longer last
+- [x] Click the remove button on an episode — it disappears immediately
 
 ### Public sharing
 - [ ] On `/playlist/[id]`, click "Make public" — badge changes to Public; "Copy link" button appears
@@ -120,6 +124,10 @@ Let users create named, reusable playlists separate from the ephemeral queue. Pl
 - [ ] Add 10 episodes to a playlist — 11th add attempt shows an error
 - [ ] Downgrade account (dev button on Profile), then visit a playlist with >10 episodes — over-limit banner appears; existing episodes still visible
 
+### Sidebar
+- [ ] Episode count badge next to each playlist name in sidebar matches the actual count
+- [ ] Collapse the sidebar — "My Playlists" section is hidden (icons only, no playlist list)
+- [ ] Active playlist route is highlighted in the sidebar
 
 ## Deferred / Next Session
 

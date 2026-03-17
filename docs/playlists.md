@@ -84,7 +84,7 @@ interface PlaylistEpisodeRef {
 playlistContext?: { playlistId: string; episodes: PlaylistEpisodeRef[] } | null
 ```
 
-When `playlistContext` is set, `Player.tsx` advances through `episodes` non-destructively — it does **not** touch the queue. The context is persisted in `localStorage` via the existing `play()` call.
+When `playlistContext` is set, `Player.tsx` advances through the playlist non-destructively — it does **not** touch the queue. On each advance (skip or auto-complete), the Player fetches fresh order from `GET /api/playlists/[id]` so reordering mid-playback takes effect immediately. The context is persisted in `localStorage` via the existing `play()` call.
 
 ### `playPlaylist(playlistId, episodes, startIndex?)`
 
@@ -96,6 +96,10 @@ playPlaylist(playlistId, episodeRefs, 0) // start from first episode
 playPlaylist(playlistId, episodeRefs, 3) // start from 4th episode
 ```
 
+### `updatePlaylistEpisodes(episodes)`
+
+Patches `nowPlaying.playlistContext.episodes` in place (and in `localStorage`) without interrupting the current episode. Used by the Player's `playlist-episodes-changed` listener to keep the skip button accurate when episodes are added, removed, or reordered while playback is active.
+
 ## Public Sharing
 
 Public playlists are viewable at `/playlist/[id]` by anyone including unauthenticated users. The proxy (`web/src/proxy.ts`) includes `/playlist` in `PUBLIC_PATHS`.
@@ -105,6 +109,7 @@ The "Copy link" button copies `window.location.origin + /playlist/${id}`.
 ## Events
 
 - `playlists-changed` — dispatched after create, delete, or rename. Sidebar and any page with a playlist list listens for this.
+- `playlist-episodes-changed` (CustomEvent `{ detail: { playlistId } }`) — dispatched after any episode add, remove, or reorder within a playlist. The Player listens and refreshes `playlistContext.episodes` so the skip button and advance order stay current. `addEpisodeToPlaylist()` dispatches this automatically; fire it manually from any other mutation site.
 - `queue-changed` — dispatched after "Add to Queue" from a playlist page.
 
 ## Ownership Verification

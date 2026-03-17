@@ -16,4 +16,5 @@ export async function addEpisodeToPlaylist(playlistId: string, episode: Playlist
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(episode),
   }).catch(() => {})
+  window.dispatchEvent(new CustomEvent('playlist-episodes-changed', { detail: { playlistId } }))
 }

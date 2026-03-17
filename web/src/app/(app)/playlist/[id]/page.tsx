@@ -274,6 +274,7 @@ export default function PlaylistDetailPage() {
       body: JSON.stringify({ guid }),
     })
     setEpisodes((prev) => prev.filter((e) => e.episode_guid !== guid))
+    window.dispatchEvent(new CustomEvent('playlist-episodes-changed', { detail: { playlistId: id } }))
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -288,6 +289,7 @@ export default function PlaylistDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderedGuids: reordered.map((e) => e.episode_guid) }),
       }).catch(() => {})
+      window.dispatchEvent(new CustomEvent('playlist-episodes-changed', { detail: { playlistId: id } }))
       return reordered
     })
   }

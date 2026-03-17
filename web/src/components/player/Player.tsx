@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Volume1, Volume2, VolumeX, SkipForward } from 'lucide-react'
-import { usePlayer, NowPlaying } from './PlayerContext'
+import { usePlayer, NowPlaying, PlaylistEpisodeRef } from './PlayerContext'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useStrings } from '@/lib/i18n/LocaleContext'
@@ -26,7 +26,7 @@ function formatTime(s: number) {
 }
 
 export default function Player({ isFreeTier = false }: { isFreeTier?: boolean }) {
-  const { nowPlaying, playing, speed, play, togglePlay, seek, setSpeed, audioRef, clientQueue, dequeueClient } = usePlayer()
+  const { nowPlaying, playing, speed, play, togglePlay, seek, setSpeed, audioRef, clientQueue, dequeueClient, updatePlaylistEpisodes } = usePlayer()
   const { isGuest } = useUser()
   const availableSpeeds = isFreeTier ? FREE_SPEEDS : ALL_SPEEDS
   const strings = useStrings()
@@ -65,6 +65,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
     window.addEventListener('queue-changed', refreshDbQueue)
     return () => window.removeEventListener('queue-changed', refreshDbQueue)
   }, [isGuest, refreshDbQueue])
+
   const sleepTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEscapeKey(() => setMobileMenu(null), !!mobileMenu)
@@ -107,6 +108,34 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
   })
 
   useEffect(() => {
+    const handler = (e: Event) => {
+      const { playlistId } = (e as CustomEvent<{ playlistId: string }>).detail
+      const current = nowPlayingRef.current
+      if (!current?.playlistContext || current.playlistContext.playlistId !== playlistId) return
+      fetch(`/api/playlists/${playlistId}`)
+        .then((r) => r.json())
+        .then(({ episodes: rawEps }: { episodes: Array<{ episode_guid: string; feed_url: string; episode: { title: string; audio_url: string; duration: number | null; artwork_url: string | null; podcast_title: string | null } | null }> }) => {
+          if (!Array.isArray(rawEps)) return
+          const freshEpisodes: PlaylistEpisodeRef[] = rawEps
+            .filter((pe) => pe.episode)
+            .map((pe) => ({
+              guid: pe.episode_guid,
+              feedUrl: pe.feed_url,
+              title: pe.episode!.title,
+              podcastTitle: pe.episode!.podcast_title ?? '',
+              artworkUrl: pe.episode!.artwork_url ?? '',
+              audioUrl: pe.episode!.audio_url,
+              duration: pe.episode!.duration ?? 0,
+            }))
+          updatePlaylistEpisodes(freshEpisodes)
+        })
+        .catch(() => {})
+    }
+    window.addEventListener('playlist-episodes-changed', handler)
+    return () => window.removeEventListener('playlist-episodes-changed', handler)
+  }, [updatePlaylistEpisodes])
+
+  useEffect(() => {
     setArtworkError(false)
     setChapters([])
     if (nowPlaying?.chapterUrl) {
@@ -140,6 +169,32 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
     }
   }, [nowPlaying]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Fetch fresh playlist order and advance to the episode after np.guid
+  const advancePlaylist = useCallback((playlistId: string, currentGuid: string) => {
+    fetch(`/api/playlists/${playlistId}`)
+      .then((r) => r.json())
+      .then(({ episodes: rawEps }: { episodes: Array<{ episode_guid: string; feed_url: string; episode: { title: string; audio_url: string; duration: number | null; artwork_url: string | null; podcast_title: string | null } | null }> }) => {
+        if (!Array.isArray(rawEps)) return
+        const freshEpisodes: PlaylistEpisodeRef[] = rawEps
+          .filter((pe) => pe.episode)
+          .map((pe) => ({
+            guid: pe.episode_guid,
+            feedUrl: pe.feed_url,
+            title: pe.episode!.title,
+            podcastTitle: pe.episode!.podcast_title ?? '',
+            artworkUrl: pe.episode!.artwork_url ?? '',
+            audioUrl: pe.episode!.audio_url,
+            duration: pe.episode!.duration ?? 0,
+          }))
+        const idx = freshEpisodes.findIndex((e) => e.guid === currentGuid)
+        const next = freshEpisodes[idx + 1]
+        if (next) {
+          play({ ...next, playlistContext: { playlistId, episodes: freshEpisodes } })
+        }
+      })
+      .catch(() => {})
+  }, [play])
+
   const skipToNext = useCallback((np: NowPlaying) => {
     const audio = audioRef.current
     // Save current position without marking complete so the user can resume
@@ -161,14 +216,9 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
       }).catch(() => {})
     }
 
-    // Playlist context: advance non-destructively (don't touch queue)
+    // Playlist context: fetch fresh order, advance non-destructively (don't touch queue)
     if (np.playlistContext) {
-      const { playlistId, episodes } = np.playlistContext
-      const idx = episodes.findIndex((e) => e.guid === np.guid)
-      const next = episodes[idx + 1]
-      if (next) {
-        play({ ...next, playlistContext: { playlistId, episodes } })
-      }
+      advancePlaylist(np.playlistContext.playlistId, np.guid)
       return
     }
 
@@ -199,7 +249,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
         }
       })
       .catch(() => {})
-  }, [audioRef, play])
+  }, [audioRef, play, advancePlaylist])
 
   const completeAndAdvance = useCallback((np: NowPlaying) => {
     const audio = audioRef.current
@@ -221,14 +271,9 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
 
     // TODO: play audio ad clip here for free tier before advancing
 
-    // Playlist context: advance non-destructively (don't touch queue)
+    // Playlist context: fetch fresh order, advance non-destructively (don't touch queue)
     if (np.playlistContext) {
-      const { playlistId, episodes } = np.playlistContext
-      const idx = episodes.findIndex((e) => e.guid === np.guid)
-      const next = episodes[idx + 1]
-      if (next) {
-        play({ ...next, playlistContext: { playlistId, episodes } })
-      }
+      advancePlaylist(np.playlistContext.playlistId, np.guid)
       return
     }
 
@@ -259,7 +304,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
         }
       })
       .catch(() => {})
-  }, [audioRef, play])
+  }, [audioRef, play, advancePlaylist])
 
   useEffect(() => {
     const audio = audioRef.current

@@ -42,6 +42,7 @@ interface PlayerControls {
   clearClientQueue: () => void
   clearNowPlaying: () => void
   playPlaylist: (playlistId: string, episodes: PlaylistEpisodeRef[], startIndex?: number) => void
+  updatePlaylistEpisodes: (episodes: PlaylistEpisodeRef[]) => void
 }
 
 const PlayerContext = createContext<(PlayerState & PlayerControls) | null>(null)
@@ -140,9 +141,18 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     })
   }, [play])
 
+  const updatePlaylistEpisodes = useCallback((episodes: PlaylistEpisodeRef[]) => {
+    setNowPlaying((prev) => {
+      if (!prev?.playlistContext) return prev
+      const updated = { ...prev, playlistContext: { ...prev.playlistContext, episodes } }
+      localStorage.setItem('nowPlaying', JSON.stringify(updated))
+      return updated
+    })
+  }, [])
+
   return (
     <PlayerContext.Provider
-      value={{ nowPlaying, playing, speed, play, togglePlay, seek, setSpeed, audioRef, clientQueue, enqueueClient, dequeueClient, clearClientQueue, clearNowPlaying, playPlaylist }}
+      value={{ nowPlaying, playing, speed, play, togglePlay, seek, setSpeed, audioRef, clientQueue, enqueueClient, dequeueClient, clearClientQueue, clearNowPlaying, playPlaylist, updatePlaylistEpisodes }}
     >
       {children}
     </PlayerContext.Provider>

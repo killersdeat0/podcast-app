@@ -134,6 +134,8 @@ The Sidebar fetches subscriptions on mount and re-fetches on the custom `subscri
 
 The Sidebar fetches playlists on mount and re-fetches on the custom `playlists-changed` window event. Fire `window.dispatchEvent(new Event('playlists-changed'))` after any playlist create, delete, or rename.
 
+Fire `window.dispatchEvent(new CustomEvent('playlist-episodes-changed', { detail: { playlistId } }))` after any episode add, remove, or reorder within a playlist. The Player listens for this event and refreshes `playlistContext.episodes` in `nowPlaying` so the skip button and playback advance order stay current. `addEpisodeToPlaylist()` dispatches this automatically; call it manually from any other mutation site.
+
 ### Freemium limits
 
 All freemium caps live in `web/src/lib/limits.ts` — **never hardcode limit numbers in route files or UI**. Import `LIMITS` from there. Current values:
