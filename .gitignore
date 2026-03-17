@@ -24,6 +24,13 @@ node_modules
 .DS_Store
 *.pem
 
+# local AI agent configs
+.agents/
+
+# Playwright test artifacts
+web/playwright-report/
+web/test-results/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
