@@ -134,6 +134,17 @@ The Sidebar fetches subscriptions on mount and re-fetches on the custom `subscri
 
 The Sidebar fetches playlists on mount and re-fetches on the custom `playlists-changed` window event. Fire `window.dispatchEvent(new Event('playlists-changed'))` after any playlist create, delete, or rename.
 
+### Freemium limits
+
+All freemium caps live in `web/src/lib/limits.ts` — **never hardcode limit numbers in route files or UI**. Import `LIMITS` from there. Current values:
+
+| | Free | Paid |
+|---|---|---|
+| Queue items | 10 | 500 |
+| Playlists | 3 | 1,000 |
+| Episodes per playlist | 10 | 500 |
+| Subscriptions | 500 | 500 |
+
 ### Admin client
 
 `web/src/lib/supabase/admin.ts` exports `createAdminClient()` using `SUPABASE_SERVICE_ROLE_KEY` (server-only — never `NEXT_PUBLIC_*`). Used **only** for serving public playlist reads to unauthenticated users in `GET /api/playlists/[id]`. For all other API routes use `createClient()` from `@/lib/supabase/server`.

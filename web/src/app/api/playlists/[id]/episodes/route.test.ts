@@ -115,10 +115,25 @@ describe('POST /api/playlists/[id]/episodes', () => {
     expect(await res.json()).toEqual({ ok: true })
   })
 
-  it('adds episode for paid tier without limit check', async () => {
+  it('returns 403 when paid tier has >= 500 episodes', async () => {
     mockGetUser.mockResolvedValue(AUTH)
     mockFrom
-      .mockImplementationOnce(() => makeChain({ data: { tier: 'paid' }, error: null })) // user_profiles (no count check)
+      .mockImplementationOnce(() => makeChain({ data: { tier: 'paid' }, error: null })) // user_profiles
+      .mockImplementationOnce(() => makeChain({ count: 500, data: null, error: null })) // playlist_episodes count
+    const req = new NextRequest('http://localhost/api/playlists/pl-1/episodes', {
+      method: 'POST',
+      body: JSON.stringify(episodeBody),
+    })
+    const res = await POST(req, { params })
+    expect(res.status).toBe(403)
+    expect((await res.json()).error).toMatch(/Episode limit reached/)
+  })
+
+  it('adds episode for paid tier user under the 500-episode cap', async () => {
+    mockGetUser.mockResolvedValue(AUTH)
+    mockFrom
+      .mockImplementationOnce(() => makeChain({ data: { tier: 'paid' }, error: null })) // user_profiles
+      .mockImplementationOnce(() => makeChain({ count: 100, data: null, error: null })) // playlist_episodes count
       .mockImplementationOnce(() => makeChain({ data: null, error: null }))              // subscriptions maybeSingle
       .mockImplementationOnce(() => makeChain({ data: null, error: null }))              // episodes upsert
       .mockImplementationOnce(() => makeChain({ data: null, error: null }))              // playlist_episodes max position
@@ -129,7 +144,7 @@ describe('POST /api/playlists/[id]/episodes', () => {
     })
     const res = await POST(req, { params })
     expect(res.status).toBe(200)
-    expect(mockFrom).toHaveBeenCalledTimes(5) // no count query
+    expect(await res.json()).toEqual({ ok: true })
   })
 })
 

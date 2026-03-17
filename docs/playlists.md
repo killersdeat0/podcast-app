@@ -35,7 +35,9 @@ Unique constraint: `(playlist_id, episode_guid)`.
 | Tier | Playlists | Episodes per playlist |
 |------|-----------|----------------------|
 | Free | 3 | 10 |
-| Paid | Unlimited | Unlimited |
+| Paid | 1,000 | 500 |
+
+All limits are defined in `web/src/lib/limits.ts` — the single source of truth for all freemium caps.
 
 On downgrade: existing data is preserved. Users cannot play from or add to over-limit playlists until they delete down to within limits. Warning banners are shown on `/playlists` and `/playlist/[id]`.
 

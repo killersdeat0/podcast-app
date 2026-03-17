@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { LIMITS } from '@/lib/limits'
 
 export async function PATCH(request: NextRequest) {
   const supabase = await createClient()
@@ -97,6 +98,25 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { feedUrl, title, artworkUrl, collectionId } = await request.json()
+
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('tier')
+    .eq('user_id', user.id)
+    .single()
+
+  const subLimit = (!profile || profile.tier === 'free') ? LIMITS.free.subscriptions : LIMITS.paid.subscriptions
+  const { count } = await supabase
+    .from('subscriptions')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+
+  if ((count ?? 0) >= subLimit) {
+    return NextResponse.json(
+      { error: 'Subscription limit reached. You can follow up to 500 podcasts.' },
+      { status: 403 }
+    )
+  }
 
   const { error } = await supabase
     .from('subscriptions')

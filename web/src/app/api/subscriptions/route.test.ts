@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
-type QueryResult = { data?: unknown; error?: unknown }
+type QueryResult = { data?: unknown; error?: unknown; count?: number | null }
 
 function makeChain(result: QueryResult = { data: null, error: null }) {
   const resolved = Promise.resolve(result)
@@ -30,7 +30,7 @@ vi.mock('@/lib/supabase/server', () => ({
   }),
 }))
 
-import { PATCH } from './route'
+import { PATCH, POST } from './route'
 
 const ANON = { data: { user: null } }
 const AUTH = { data: { user: { id: 'user-123' } } }
@@ -38,6 +38,62 @@ const AUTH = { data: { user: { id: 'user-123' } } }
 beforeEach(() => {
   vi.clearAllMocks()
   mockFrom.mockReturnValue(makeChain())
+})
+
+const subBody = { feedUrl: 'https://f.com/feed', title: 'My Podcast', artworkUrl: 'https://art.jpg' }
+
+describe('POST /api/subscriptions', () => {
+  it('returns 401 when unauthenticated', async () => {
+    mockGetUser.mockResolvedValue(ANON)
+    const req = new NextRequest('http://localhost/api/subscriptions', {
+      method: 'POST',
+      body: JSON.stringify(subBody),
+    })
+    const res = await POST(req)
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 403 when at the 500-subscription cap', async () => {
+    mockGetUser.mockResolvedValue(AUTH)
+    mockFrom
+      .mockImplementationOnce(() => makeChain({ data: { tier: 'free' }, error: null })) // user_profiles
+      .mockImplementationOnce(() => makeChain({ count: 500, data: null, error: null })) // subscriptions count
+    const req = new NextRequest('http://localhost/api/subscriptions', {
+      method: 'POST',
+      body: JSON.stringify(subBody),
+    })
+    const res = await POST(req)
+    expect(res.status).toBe(403)
+    expect((await res.json()).error).toMatch(/Subscription limit reached/)
+  })
+
+  it('subscribes when under the cap', async () => {
+    mockGetUser.mockResolvedValue(AUTH)
+    mockFrom
+      .mockImplementationOnce(() => makeChain({ data: { tier: 'free' }, error: null })) // user_profiles
+      .mockImplementationOnce(() => makeChain({ count: 10, data: null, error: null }))  // subscriptions count
+      .mockImplementationOnce(() => makeChain({ data: null, error: null }))              // upsert
+    const req = new NextRequest('http://localhost/api/subscriptions', {
+      method: 'POST',
+      body: JSON.stringify(subBody),
+    })
+    const res = await POST(req)
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ ok: true })
+  })
+
+  it('same 500-cap applies for paid tier', async () => {
+    mockGetUser.mockResolvedValue(AUTH)
+    mockFrom
+      .mockImplementationOnce(() => makeChain({ data: { tier: 'paid' }, error: null })) // user_profiles
+      .mockImplementationOnce(() => makeChain({ count: 500, data: null, error: null })) // subscriptions count
+    const req = new NextRequest('http://localhost/api/subscriptions', {
+      method: 'POST',
+      body: JSON.stringify(subBody),
+    })
+    const res = await POST(req)
+    expect(res.status).toBe(403)
+  })
 })
 
 describe('PATCH /api/subscriptions', () => {

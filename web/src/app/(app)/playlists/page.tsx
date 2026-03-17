@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { ListMusic, Lock, Globe, Plus, Trash2 } from 'lucide-react'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
-import { EmptyState } from '@/components/ui/EmptyState'
+import { LIMITS } from '@/lib/limits'
 
 interface Playlist {
   id: string
@@ -70,16 +70,18 @@ export default function PlaylistsPage() {
     return (
       <div className="p-4 md:p-8">
         <h1 className="text-2xl font-bold mb-6">{strings.playlists.heading}</h1>
-        <EmptyState
-          title={strings.playlists.auth_prompt_title}
-          description={strings.playlists.guest_hint}
-          cta={{ label: strings.auth.login_button, href: '/login' }}
-        />
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <p className="text-lg font-semibold text-white mb-2">{strings.playlists.auth_prompt_title}</p>
+          <p className="text-sm text-gray-400 mb-6">{strings.playlists.guest_hint}</p>
+          <Link href="/login" className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm font-medium transition-colors">
+            {strings.auth.login_button}
+          </Link>
+        </div>
       </div>
     )
   }
 
-  const atLimit = tier === 'free' && playlists.length >= 3
+  const atLimit = tier === 'free' && playlists.length >= LIMITS.free.playlistCount
 
   return (
     <div className="p-4 md:p-8">
@@ -109,11 +111,10 @@ export default function PlaylistsPage() {
           ))}
         </div>
       ) : playlists.length === 0 ? (
-        <EmptyState
-          title={strings.playlists.empty_title}
-          description={strings.playlists.empty_description}
-          cta={{ label: strings.playlists.empty_cta, href: '/playlists' }}
-        />
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <p className="text-lg font-semibold text-white mb-2">{strings.playlists.empty_title}</p>
+          <p className="text-sm text-gray-400">{strings.playlists.empty_description}</p>
+        </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {playlists.map((pl) => (

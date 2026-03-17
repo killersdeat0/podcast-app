@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   DndContext,
@@ -18,7 +18,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Play, List, Globe, Lock, Link as LinkIcon, GripVertical, Trash2, Check } from 'lucide-react'
+import { Play, List, Globe, Lock, Link as LinkIcon, GripVertical, Trash2, Check, Pencil } from 'lucide-react'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
 import { usePlayer } from '@/components/player/PlayerContext'
@@ -140,6 +140,7 @@ function SortableEpisodeRow({
 
 export default function PlaylistDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const router = useRouter()
   const strings = useStrings()
   const { isGuest, tier } = useUser()
   const { play, playPlaylist } = usePlayer()
@@ -291,6 +292,13 @@ export default function PlaylistDetailPage() {
     setEditingName(false)
   }
 
+  async function handleDelete() {
+    if (!confirm(strings.playlists.delete_confirm)) return
+    await fetch(`/api/playlists/${id}`, { method: 'DELETE' })
+    window.dispatchEvent(new Event('playlists-changed'))
+    router.push('/playlists')
+  }
+
   function handleCopyLink() {
     const url = `${window.location.origin}/playlist/${id}`
     navigator.clipboard.writeText(url).then(() => {
@@ -370,13 +378,18 @@ export default function PlaylistDetailPage() {
           </div>
         ) : (
           <div>
-            <h1
-              className={`text-2xl font-bold mb-1 ${isOwner ? 'cursor-pointer hover:text-violet-300 transition-colors' : ''}`}
-              onClick={() => { if (isOwner) setEditingName(true) }}
-              title={isOwner ? 'Click to edit' : undefined}
-            >
-              {playlist.name}
-            </h1>
+            <div className="flex items-center gap-2 mb-1">
+              <h1 className="text-2xl font-bold">{playlist.name}</h1>
+              {isOwner && (
+                <button
+                  onClick={() => setEditingName(true)}
+                  className="p-1 text-gray-600 hover:text-violet-400 transition-colors"
+                  title="Edit"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+              )}
+            </div>
             {playlist.description && (
               <p className="text-gray-400 text-sm mb-2">{playlist.description}</p>
             )}
@@ -416,6 +429,18 @@ export default function PlaylistDetailPage() {
             >
               <LinkIcon className="w-4 h-4" />
               {copied ? strings.playlists.link_copied : strings.playlists.copy_link}
+            </button>
+          )}
+
+          {/* Delete (owner only) */}
+          {isOwner && (
+            <button
+              onClick={handleDelete}
+              className="flex items-center gap-2 px-3 py-2 bg-gray-800 hover:bg-red-900/50 text-gray-400 hover:text-red-400 rounded-lg text-sm transition-colors"
+              title={strings.playlists.delete}
+            >
+              <Trash2 className="w-4 h-4" />
+              {strings.playlists.delete}
             </button>
           )}
 

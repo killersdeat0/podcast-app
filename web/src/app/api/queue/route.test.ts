@@ -129,10 +129,25 @@ describe('POST /api/queue', () => {
     expect(await res.json()).toEqual({ ok: true })
   })
 
-  it('adds episode to queue for paid tier user without checking the cap', async () => {
+  it('returns 403 when paid tier queue is at the 500-episode cap', async () => {
     mockGetUser.mockResolvedValue(AUTH)
     mockFrom
-      .mockImplementationOnce(() => makeChain({ data: { tier: 'paid' }, error: null })) // user_profiles (no cap check)
+      .mockImplementationOnce(() => makeChain({ data: { tier: 'paid' }, error: null })) // user_profiles
+      .mockImplementationOnce(() => makeChain({ count: 500, data: null, error: null })) // queue count
+    const req = new NextRequest('http://localhost/api/queue', {
+      method: 'POST',
+      body: JSON.stringify(episodeBody),
+    })
+    const res = await POST(req)
+    expect(res.status).toBe(403)
+    expect((await res.json()).error).toMatch(/Queue limit reached/)
+  })
+
+  it('adds episode to queue for paid tier user under the 500-episode cap', async () => {
+    mockGetUser.mockResolvedValue(AUTH)
+    mockFrom
+      .mockImplementationOnce(() => makeChain({ data: { tier: 'paid' }, error: null })) // user_profiles
+      .mockImplementationOnce(() => makeChain({ count: 100, data: null, error: null })) // queue count
       .mockImplementationOnce(() => makeChain({ data: null, error: null }))              // subscriptions
       .mockImplementationOnce(() => makeChain({ data: null, error: null }))              // episodes upsert
       .mockImplementationOnce(() => makeChain({ data: null, error: null }))              // queue max position
@@ -144,8 +159,6 @@ describe('POST /api/queue', () => {
     const res = await POST(req)
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ ok: true })
-    // Verify the count query was NOT called (only 5 from() calls, not 6)
-    expect(mockFrom).toHaveBeenCalledTimes(5)
   })
 })
 

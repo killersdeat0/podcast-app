@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { LIMITS } from '@/lib/limits'
 
 export async function PATCH(request: NextRequest) {
   const supabase = await createClient()
@@ -88,18 +89,17 @@ export async function POST(request: NextRequest) {
     .eq('user_id', user.id)
     .single()
 
-  if (!profile || profile.tier === 'free') {
-    const { count } = await supabase
-      .from('queue')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
+  const queueLimit = (!profile || profile.tier === 'free') ? LIMITS.free.queue : LIMITS.paid.queue
+  const { count } = await supabase
+    .from('queue')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
 
-    if ((count ?? 0) >= 10) {
-      return NextResponse.json(
-        { error: 'Queue limit reached. Upgrade to add more episodes.' },
-        { status: 403 }
-      )
-    }
+  if ((count ?? 0) >= queueLimit) {
+    return NextResponse.json(
+      { error: 'Queue limit reached. Upgrade to add more episodes.' },
+      { status: 403 }
+    )
   }
 
   // Upsert episode metadata

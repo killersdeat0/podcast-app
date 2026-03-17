@@ -87,6 +87,8 @@ Subscribe to a podcast.
 
 **Body:** `{ feedUrl, title, artworkUrl, collectionId? }`
 
+**Freemium gate:** Both free and paid users are capped at 500 subscriptions. Returns `403` with `{ error: 'Subscription limit reached...' }`. Limit defined in `web/src/lib/limits.ts`.
+
 **Response:** `{ ok: true }`
 
 ---
@@ -146,7 +148,7 @@ Returns the user's queue ordered by `position`, with episode metadata joined fro
 ### `POST /api/queue`
 Add an episode to the queue. Upserts episode metadata into `episodes` first.
 
-**Freemium gate:** Free tier is capped at 10 queue items. Returns `403` with `"Queue limit reached. Upgrade to add more episodes."` if at cap.
+**Freemium gate:** Free tier capped at 10 items; paid tier capped at 500. Returns `403` with `"Queue limit reached. Upgrade to add more episodes."` if at cap. Limits defined in `web/src/lib/limits.ts`.
 
 **Body:** `{ guid, feedUrl, title, audioUrl, artworkUrl, podcastTitle, duration?, pubDate?, description? }`
 
@@ -261,7 +263,7 @@ Creates a new playlist.
 
 **Body:** `{ name: string, description?: string }`
 
-**Freemium gate:** Free users limited to 3 playlists. Returns `403` with `{ error: 'Playlist limit reached...' }`.
+**Freemium gate:** Free users limited to 3 playlists; paid users limited to 1,000. Returns `403` with `{ error: 'Playlist limit reached...' }`. Limits defined in `web/src/lib/limits.ts`.
 
 **Response:** `{ ok: true, playlist: PlaylistRow }`
 
@@ -326,7 +328,7 @@ Adds an episode to a playlist. Upserts episode metadata (subscription artwork pr
 
 **Body:** `{ guid, feedUrl, title, audioUrl, artworkUrl, podcastTitle, duration?, pubDate?, description? }`
 
-**Freemium gate:** Free users limited to 10 episodes per playlist. Returns `403` with `{ error: 'Episode limit reached...' }`.
+**Freemium gate:** Free users limited to 10 episodes per playlist; paid users limited to 500. Returns `403` with `{ error: 'Episode limit reached...' }`. Limits defined in `web/src/lib/limits.ts`.
 
 **Response:** `{ ok: true }`
 

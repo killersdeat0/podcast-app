@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { verifyPlaylistOwnership } from '@/lib/playlists/verifyOwnership'
 import { NextRequest, NextResponse } from 'next/server'
+import { LIMITS } from '@/lib/limits'
 
 export async function POST(
   request: NextRequest,
@@ -23,18 +24,17 @@ export async function POST(
     .eq('user_id', user.id)
     .single()
 
-  if (!profile || profile.tier === 'free') {
-    const { count } = await supabase
-      .from('playlist_episodes')
-      .select('*', { count: 'exact', head: true })
-      .eq('playlist_id', id)
+  const episodeLimit = (!profile || profile.tier === 'free') ? LIMITS.free.playlistEpisodes : LIMITS.paid.playlistEpisodes
+  const { count } = await supabase
+    .from('playlist_episodes')
+    .select('*', { count: 'exact', head: true })
+    .eq('playlist_id', id)
 
-    if ((count ?? 0) >= 10) {
-      return NextResponse.json(
-        { error: 'Episode limit reached. Upgrade for unlimited episodes per playlist.' },
-        { status: 403 }
-      )
-    }
+  if ((count ?? 0) >= episodeLimit) {
+    return NextResponse.json(
+      { error: 'Episode limit reached. Upgrade for unlimited episodes per playlist.' },
+      { status: 403 }
+    )
   }
 
   // Subscription artwork priority

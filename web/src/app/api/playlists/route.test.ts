@@ -122,12 +122,13 @@ describe('POST /api/playlists', () => {
     expect(json.playlist).toMatchObject({ name: 'My Playlist' })
   })
 
-  it('creates playlist for paid tier user without checking limit', async () => {
+  it('creates playlist for paid tier user under the 500-playlist cap', async () => {
     mockGetUser.mockResolvedValue(AUTH)
     const newPlaylist = { id: 'pl-new', name: 'My Playlist', user_id: 'user-123' }
     const insertChain = makeChain({ data: newPlaylist, error: null })
     mockFrom
-      .mockImplementationOnce(() => makeChain({ data: { tier: 'paid' }, error: null })) // user_profiles (no count check)
+      .mockImplementationOnce(() => makeChain({ data: { tier: 'paid' }, error: null })) // user_profiles
+      .mockImplementationOnce(() => makeChain({ count: 10, data: null, error: null }))  // playlist count
       .mockImplementationOnce(() => makeChain({ data: null, error: null }))              // max position
       .mockImplementationOnce(() => insertChain)                                         // insert
     const req = new NextRequest('http://localhost/api/playlists', {
@@ -136,8 +137,8 @@ describe('POST /api/playlists', () => {
     })
     const res = await POST(req)
     expect(res.status).toBe(200)
-    expect(mockFrom).toHaveBeenCalledTimes(3)
   })
+
 })
 
 describe('PATCH /api/playlists', () => {

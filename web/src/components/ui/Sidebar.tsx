@@ -34,13 +34,6 @@ interface Subscription {
   new_episode_count: number
 }
 
-interface Playlist {
-  id: string
-  name: string
-  is_public: boolean
-  episode_count: number
-}
-
 const navIcons = {
   discover: <Search className="w-4 h-4 flex-shrink-0" />,
   queue:    <List className="w-4 h-4 flex-shrink-0" />,
@@ -101,7 +94,6 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
   const pathname = usePathname()
   const router = useRouter()
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
-  const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [open, setOpen] = useState(defaultOpen)
   const [authPromptOpen, setAuthPromptOpen] = useState(false)
   const [authPromptTitle, setAuthPromptTitle] = useState<string | undefined>()
@@ -161,21 +153,6 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
       clearInterval(interval)
       window.removeEventListener('subscriptions-changed', fetchSubs)
     }
-  }, [isGuest])
-
-  useEffect(() => {
-    if (isGuest) return
-
-    function fetchPlaylists() {
-      fetch('/api/playlists')
-        .then((r) => r.json())
-        .then((data) => { if (Array.isArray(data)) setPlaylists(data) })
-        .catch(() => {})
-    }
-
-    fetchPlaylists()
-    window.addEventListener('playlists-changed', fetchPlaylists)
-    return () => window.removeEventListener('playlists-changed', fetchPlaylists)
   }, [isGuest])
 
   function handleDragEnd(event: DragEndEvent) {
@@ -274,51 +251,7 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
               )
             })}
 
-            <>
-              <div className="flex items-center justify-between px-3 pt-4 pb-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  {strings.playlists.sidebar_heading}
-                </p>
-                {!isGuest && (
-                  <Link
-                    href="/playlists"
-                    className="text-gray-500 hover:text-violet-400 transition-colors text-xs leading-none"
-                    title="Manage playlists"
-                  >
-                    +
-                  </Link>
-                )}
-              </div>
-              {isGuest ? (
-                <div className="px-3 py-1">
-                  <p className="text-xs text-gray-600">{strings.playlists.guest_hint}</p>
-                </div>
-              ) : playlists.length === 0 ? (
-                <div className="px-3 py-1">
-                  <p className="text-xs text-gray-600">{strings.playlists.sidebar_empty_hint}</p>
-                </div>
-              ) : (
-                <div className="space-y-0.5">
-                  {playlists.map((pl) => (
-                    <Link
-                      key={pl.id}
-                      href={`/playlist/${pl.id}`}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                        pathname.startsWith(`/playlist/${pl.id}`)
-                          ? 'bg-violet-600 text-white'
-                          : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                      }`}
-                    >
-                      <ListMusic className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span className="truncate">{pl.name}</span>
-                      <span className="ml-auto text-xs text-gray-500 flex-shrink-0">{pl.episode_count}</span>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </>
-
-            <>
+<>
               <p className="px-3 pt-4 pb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 {strings.sidebar.my_podcasts}
               </p>

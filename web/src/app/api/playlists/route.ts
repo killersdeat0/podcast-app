@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { LIMITS } from '@/lib/limits'
 
 export async function GET() {
   const supabase = await createClient()
@@ -36,18 +37,17 @@ export async function POST(request: NextRequest) {
     .eq('user_id', user.id)
     .single()
 
-  if (!profile || profile.tier === 'free') {
-    const { count } = await supabase
-      .from('playlists')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
+  const playlistLimit = (!profile || profile.tier === 'free') ? LIMITS.free.playlistCount : LIMITS.paid.playlistCount
+  const { count: playlistCount } = await supabase
+    .from('playlists')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
 
-    if ((count ?? 0) >= 3) {
-      return NextResponse.json(
-        { error: 'Playlist limit reached. Upgrade to create more playlists.' },
-        { status: 403 }
-      )
-    }
+  if ((playlistCount ?? 0) >= playlistLimit) {
+    return NextResponse.json(
+      { error: 'Playlist limit reached. Upgrade to create more playlists.' },
+      { status: 403 }
+    )
   }
 
   const { data: maxRow } = await supabase
