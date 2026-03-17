@@ -1,6 +1,6 @@
 # Screen: Onboarding — Notification Permission
 
-> Source: [`docs/plans/phase-3b-mobile-features.md`](../phase-3b-mobile-features.md)
+> Source: [`docs/plans/phase-3b-mobile-features.md`](../../phase-3b-mobile-features.md)
 
 ## Description
 Final onboarding step; explains why notifications are useful and triggers the OS permission prompt.

@@ -1,6 +1,6 @@
 # Screen: Splash
 
-> Source: [`docs/plans/phase-3b-mobile-features.md`](../phase-3b-mobile-features.md)
+> Source: [`docs/plans/phase-3b-mobile-features.md`](../../phase-3b-mobile-features.md)
 
 ## Description
 First screen shown on launch; displays the app logo and auto-redirects based on auth state.

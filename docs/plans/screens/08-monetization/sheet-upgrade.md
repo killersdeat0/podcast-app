@@ -1,6 +1,6 @@
 # Sheet: Upgrade
 
-> Source: [`docs/plans/phase-3b-mobile-features.md`](../phase-3b-mobile-features.md)
+> Source: [`docs/plans/phase-3b-mobile-features.md`](../../phase-3b-mobile-features.md)
 
 ## Description
 Inline bottom sheet shown whenever a free-tier user hits a paid feature gate; presents the feature benefit list and a Subscribe CTA without requiring full-screen navigation.

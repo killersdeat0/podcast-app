@@ -1,6 +1,6 @@
 # Screen: Queue
 
-> Source: [`docs/plans/phase-3b-mobile-features.md`](../phase-3b-mobile-features.md)
+> Source: [`docs/plans/phase-3b-mobile-features.md`](../../phase-3b-mobile-features.md)
 
 ## Description
 Reorderable list of episodes queued for playback; free tier capped at 10 items.

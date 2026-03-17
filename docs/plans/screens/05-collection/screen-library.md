@@ -1,6 +1,6 @@
 # Screen: Library
 
-> Source: [`docs/plans/phase-3b-mobile-features.md`](../phase-3b-mobile-features.md)
+> Source: [`docs/plans/phase-3b-mobile-features.md`](../../phase-3b-mobile-features.md)
 
 ## Description
 User's personal podcast collection and downloaded episodes, with drag-to-reorder support.

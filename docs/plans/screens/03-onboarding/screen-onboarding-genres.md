@@ -1,6 +1,6 @@
 # Screen: Onboarding — Genre Selection
 
-> Source: [`docs/plans/phase-3b-mobile-features.md`](../phase-3b-mobile-features.md)
+> Source: [`docs/plans/phase-3b-mobile-features.md`](../../phase-3b-mobile-features.md)
 
 ## Description
 Second onboarding step; user picks podcast genre interests to personalise suggested podcasts.

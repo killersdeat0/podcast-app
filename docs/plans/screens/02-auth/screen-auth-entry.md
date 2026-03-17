@@ -1,6 +1,6 @@
 # Screen: Auth Entry
 
-> Source: [`docs/plans/phase-3b-mobile-features.md`](../phase-3b-mobile-features.md)
+> Source: [`docs/plans/phase-3b-mobile-features.md`](../../phase-3b-mobile-features.md)
 
 ## Description
 Landing screen for unauthenticated users; presents sign-in, sign-up, and guest options.

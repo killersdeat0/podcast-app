@@ -1,6 +1,6 @@
 # Screen: Notification Settings
 
-> Source: [`docs/plans/phase-3b-mobile-features.md`](../phase-3b-mobile-features.md)
+> Source: [`docs/plans/phase-3b-mobile-features.md`](../../phase-3b-mobile-features.md)
 
 ## Description
 Fine-grained control over episode notifications, both globally and per podcast.

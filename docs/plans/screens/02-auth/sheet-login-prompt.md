@@ -1,6 +1,6 @@
 # Sheet: Login Prompt
 
-> Source: [`docs/plans/phase-3b-mobile-features.md`](../phase-3b-mobile-features.md)
+> Source: [`docs/plans/phase-3b-mobile-features.md`](../../phase-3b-mobile-features.md)
 
 ## Description
 Inline bottom sheet shown to guest users when they attempt an action that requires an account; encourages sign-up without a hard redirect.

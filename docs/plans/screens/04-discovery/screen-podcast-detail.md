@@ -1,6 +1,6 @@
 # Screen: Podcast Detail
 
-> Source: [`docs/plans/phase-3b-mobile-features.md`](../phase-3b-mobile-features.md)
+> Source: [`docs/plans/phase-3b-mobile-features.md`](../../phase-3b-mobile-features.md)
 
 ## Description
 Full podcast page with artwork hero, subscribe toggle, and scrollable episode list.

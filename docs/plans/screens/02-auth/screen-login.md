@@ -1,6 +1,6 @@
 # Screen: Login
 
-> Source: [`docs/plans/phase-3b-mobile-features.md`](../phase-3b-mobile-features.md)
+> Source: [`docs/plans/phase-3b-mobile-features.md`](../../phase-3b-mobile-features.md)
 
 ## Description
 Email + password sign-in form with OAuth alternatives and a forgot-password escape hatch.

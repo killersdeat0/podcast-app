@@ -1,6 +1,6 @@
 # Screen: Profile
 
-> Source: [`docs/plans/phase-3b-mobile-features.md`](../phase-3b-mobile-features.md)
+> Source: [`docs/plans/phase-3b-mobile-features.md`](../../phase-3b-mobile-features.md)
 
 ## Description
 User account hub showing tier info, subscriptions, listening stats, and account actions.

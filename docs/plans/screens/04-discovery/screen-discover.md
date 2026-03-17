@@ -1,6 +1,6 @@
 # Screen: Discover
 
-> Source: [`docs/plans/phase-3b-mobile-features.md`](../phase-3b-mobile-features.md)
+> Source: [`docs/plans/phase-3b-mobile-features.md`](../../phase-3b-mobile-features.md)
 
 ## Description
 Primary search and discovery surface; accessible to all users including guests.

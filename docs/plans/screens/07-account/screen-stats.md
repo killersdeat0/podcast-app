@@ -1,6 +1,6 @@
 # Screen: Stats
 
-> Source: [`docs/plans/phase-3b-mobile-features.md`](../phase-3b-mobile-features.md)
+> Source: [`docs/plans/phase-3b-mobile-features.md`](../../phase-3b-mobile-features.md)
 
 ## Description
 Listening analytics for paid subscribers; accessible from the Profile screen.

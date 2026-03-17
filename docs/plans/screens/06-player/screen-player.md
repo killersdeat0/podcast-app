@@ -1,6 +1,6 @@
 # Screen: Full Player + Mini Player
 
-> Source: [`docs/plans/phase-3b-mobile-features.md`](../phase-3b-mobile-features.md)
+> Source: [`docs/plans/phase-3b-mobile-features.md`](../../phase-3b-mobile-features.md)
 
 ## Description
 Audio playback UI in two modes: a persistent mini player bar docked at the bottom of the app shell, and a full-screen player expanded by tapping the mini player.

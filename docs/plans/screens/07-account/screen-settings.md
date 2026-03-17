@@ -1,6 +1,6 @@
 # Screen: Settings
 
-> Source: [`docs/plans/phase-3b-mobile-features.md`](../phase-3b-mobile-features.md)
+> Source: [`docs/plans/phase-3b-mobile-features.md`](../../phase-3b-mobile-features.md)
 
 ## Description
 App-wide settings and account management, reachable from the Profile screen.

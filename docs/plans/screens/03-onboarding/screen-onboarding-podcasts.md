@@ -1,6 +1,6 @@
 # Screen: Onboarding — Suggested Podcasts
 
-> Source: [`docs/plans/phase-3b-mobile-features.md`](../phase-3b-mobile-features.md)
+> Source: [`docs/plans/phase-3b-mobile-features.md`](../../phase-3b-mobile-features.md)
 
 ## Description
 Third onboarding step; shows a curated podcast list seeded by the user's chosen genres so they can subscribe before entering the app.

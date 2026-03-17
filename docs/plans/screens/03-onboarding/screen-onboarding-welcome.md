@@ -1,6 +1,6 @@
 # Screen: Onboarding — Welcome
 
-> Source: [`docs/plans/phase-3b-mobile-features.md`](../phase-3b-mobile-features.md)
+> Source: [`docs/plans/phase-3b-mobile-features.md`](../../phase-3b-mobile-features.md)
 
 ## Description
 First step of the post-signup onboarding flow; short app intro with a "Get started" CTA.
