@@ -15,7 +15,7 @@ Email + password sign-in form with OAuth alternatives and a forgot-password esca
 - Inline error message on failure
 
 ## Navigation
-- **Arrives from:** Auth Entry
+- **Arrives from:** Login Prompt Sheet
 - **Goes to:** App Shell / Discover (on success)
 
 ## Feature Gates

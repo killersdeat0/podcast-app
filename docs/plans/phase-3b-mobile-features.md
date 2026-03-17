@@ -16,8 +16,6 @@ and `<Feature>ViewModel.kt` (androidMain).
 
 | Screen | Contents |
 |--------|----------|
-| **Splash** | App logo; auto-redirects based on auth state |
-| **Auth Entry** | Sign in / Sign up / Continue as Guest choices; Google OAuth; Apple Sign-In (iOS) |
 | **Login** | Email + password; OAuth buttons; Forgot password link |
 | **Sign Up** | Email + password; OAuth buttons |
 | **Onboarding — Welcome** | Short app intro; "Get started" CTA |
@@ -57,13 +55,9 @@ and `<Feature>ViewModel.kt` (androidMain).
 
 ```mermaid
 flowchart TD
-    SPLASH([Splash])
-
-    SPLASH -->|authenticated| SHELL
-    SPLASH -->|unauthenticated| AUTH_ENTRY
+    APP_START([App Start]) --> SHELL
 
     subgraph AUTH [Auth]
-        AUTH_ENTRY[Auth Entry]
         LOGIN[Login]
         SIGNUP[Sign Up]
         OB_WELCOME[Onboarding — Welcome]
@@ -72,9 +66,6 @@ flowchart TD
         OB_NOTIFS[Onboarding — Notifications]
     end
 
-    AUTH_ENTRY -->|sign in| LOGIN
-    AUTH_ENTRY -->|sign up| SIGNUP
-    AUTH_ENTRY -->|guest| SHELL
     LOGIN -->|success| SHELL
     SIGNUP -->|success| OB_WELCOME
     OB_WELCOME --> OB_GENRES
@@ -121,6 +112,9 @@ flowchart TD
     PODCAST_DETAIL -->|"guest: subscribe"| LOGIN_SHEET
     QUEUE -->|"guest: save changes"| LOGIN_SHEET
     TAB_P -->|"guest"| LOGIN_SHEET
+
+    LOGIN_SHEET -->|sign in| LOGIN
+    LOGIN_SHEET -->|sign up| SIGNUP
 ```
 
 ---

@@ -14,7 +14,7 @@ New account creation via email + password or OAuth.
 - Inline error message on failure
 
 ## Navigation
-- **Arrives from:** Auth Entry
+- **Arrives from:** Login Prompt Sheet
 - **Goes to:** Onboarding — Welcome (on success)
 
 ## Feature Gates

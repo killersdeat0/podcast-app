@@ -7,7 +7,7 @@ Inline bottom sheet shown to guest users when they attempt an action that requir
 
 ## Contents
 - Brief message explaining why an account is needed (contextual — e.g. "Sign in to subscribe")
-- "Sign In" button → navigates to Auth Entry
+- "Sign In" button → navigates to Login
 - "Create Account" button → navigates to Sign Up
 - "Not now" dismiss link
 
@@ -20,8 +20,8 @@ Inline bottom sheet shown to guest users when they attempt an action that requir
 
 ## Navigation
 - **Triggered from:** Any screen listed above (sheet overlays current screen)
-- **"Sign In":** Navigates to Auth Entry / Login
-- **"Create Account":** Navigates to Auth Entry / Sign Up
+- **"Sign In":** Navigates to Login
+- **"Create Account":** Navigates to Sign Up
 - **Dismisses to:** Same screen (guest stays in guest mode)
 
 ## Feature Gates
