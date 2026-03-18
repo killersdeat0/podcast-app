@@ -171,7 +171,7 @@ Toast notifications use **sonner** via the single `<AppToasts />` component rend
 
 ### Ownership verification
 
-`web/src/lib/playlists/verifyOwnership.ts` exports `verifyPlaylistOwnership(playlistId, userId): Promise<boolean>`. All mutating playlist API routes call this before proceeding.
+Mutating playlist API routes (`PATCH`/`DELETE` on `/api/playlists/[id]`) fold `.eq('user_id', user.id)` into the Supabase query and return `404` when no rows are matched — this avoids leaking whether a private playlist ID exists. Episode sub-routes (`/api/playlists/[id]/episodes`) do a pre-flight `playlists` query with both `.eq('id', id).eq('user_id', user.id)` and return `404` on no match.
 
 ### Documentation
 

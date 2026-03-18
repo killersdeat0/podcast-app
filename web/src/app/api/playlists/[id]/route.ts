@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { verifyPlaylistOwnership } from '@/lib/playlists/verifyOwnership'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(
@@ -70,9 +69,6 @@ export async function PATCH(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const isOwner = await verifyPlaylistOwnership(id, user.id)
-  if (!isOwner) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-
   const body = await request.json()
   const updates: Record<string, unknown> = {}
   if (body.name !== undefined) updates.name = body.name
@@ -83,10 +79,12 @@ export async function PATCH(
     .from('playlists')
     .update(updates)
     .eq('id', id)
+    .eq('user_id', user.id)
     .select()
-    .single()
+    .maybeSingle()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (!playlist) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json({ ok: true, playlist })
 }
 
@@ -99,10 +97,14 @@ export async function DELETE(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const isOwner = await verifyPlaylistOwnership(id, user.id)
-  if (!isOwner) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const { data: deleted, error } = await supabase
+    .from('playlists')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .select('id')
 
-  const { error } = await supabase.from('playlists').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (!deleted || deleted.length === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json({ ok: true })
 }

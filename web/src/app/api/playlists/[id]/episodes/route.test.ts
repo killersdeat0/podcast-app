@@ -22,10 +22,9 @@ function makeChain(result: QueryResult = { data: null, error: null }) {
   return chain
 }
 
-const { mockGetUser, mockFrom, mockVerifyOwnership } = vi.hoisted(() => ({
+const { mockGetUser, mockFrom } = vi.hoisted(() => ({
   mockGetUser: vi.fn(),
   mockFrom: vi.fn(),
-  mockVerifyOwnership: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -35,15 +34,14 @@ vi.mock('@/lib/supabase/server', () => ({
   }),
 }))
 
-vi.mock('@/lib/playlists/verifyOwnership', () => ({
-  verifyPlaylistOwnership: mockVerifyOwnership,
-}))
-
 import { POST, DELETE, PATCH } from './route'
 
 const ANON = { data: { user: null } }
 const AUTH = { data: { user: { id: 'user-123' } } }
 const params = Promise.resolve({ id: 'pl-1' })
+
+// makeChain with null data → maybeSingle() returns null → ownership check fails → 404
+const OWNED = makeChain({ data: { id: 'pl-1' }, error: null })
 
 const episodeBody = {
   guid: 'ep-1',
@@ -58,7 +56,6 @@ const episodeBody = {
 beforeEach(() => {
   vi.clearAllMocks()
   mockFrom.mockReturnValue(makeChain())
-  mockVerifyOwnership.mockResolvedValue(true)
 })
 
 describe('POST /api/playlists/[id]/episodes', () => {
@@ -72,20 +69,21 @@ describe('POST /api/playlists/[id]/episodes', () => {
     expect(res.status).toBe(401)
   })
 
-  it('returns 403 when not owner', async () => {
+  it('returns 404 when not owner', async () => {
     mockGetUser.mockResolvedValue(AUTH)
-    mockVerifyOwnership.mockResolvedValue(false)
+    // default mockFrom returns null data → ownership check → 404
     const req = new NextRequest('http://localhost/api/playlists/pl-1/episodes', {
       method: 'POST',
       body: JSON.stringify(episodeBody),
     })
     const res = await POST(req, { params })
-    expect(res.status).toBe(403)
+    expect(res.status).toBe(404)
   })
 
   it('returns 403 when free tier has >= 10 episodes', async () => {
     mockGetUser.mockResolvedValue(AUTH)
     mockFrom
+      .mockImplementationOnce(() => OWNED)                                                           // playlists ownership check
       .mockImplementationOnce(() => makeChain({ data: { tier: 'free' }, error: null })) // user_profiles
       .mockImplementationOnce(() => makeChain({ count: 10, data: null, error: null }))  // playlist_episodes count
     const req = new NextRequest('http://localhost/api/playlists/pl-1/episodes', {
@@ -100,6 +98,7 @@ describe('POST /api/playlists/[id]/episodes', () => {
   it('adds episode for free tier user under limit', async () => {
     mockGetUser.mockResolvedValue(AUTH)
     mockFrom
+      .mockImplementationOnce(() => OWNED)                                                           // playlists ownership check
       .mockImplementationOnce(() => makeChain({ data: { tier: 'free' }, error: null })) // user_profiles
       .mockImplementationOnce(() => makeChain({ count: 5, data: null, error: null }))   // playlist_episodes count
       .mockImplementationOnce(() => makeChain({ data: null, error: null }))              // subscriptions maybeSingle
@@ -118,6 +117,7 @@ describe('POST /api/playlists/[id]/episodes', () => {
   it('returns 403 when paid tier has >= 500 episodes', async () => {
     mockGetUser.mockResolvedValue(AUTH)
     mockFrom
+      .mockImplementationOnce(() => OWNED)                                                            // playlists ownership check
       .mockImplementationOnce(() => makeChain({ data: { tier: 'paid' }, error: null })) // user_profiles
       .mockImplementationOnce(() => makeChain({ count: 500, data: null, error: null })) // playlist_episodes count
     const req = new NextRequest('http://localhost/api/playlists/pl-1/episodes', {
@@ -132,6 +132,7 @@ describe('POST /api/playlists/[id]/episodes', () => {
   it('adds episode for paid tier user under the 500-episode cap', async () => {
     mockGetUser.mockResolvedValue(AUTH)
     mockFrom
+      .mockImplementationOnce(() => OWNED)                                                            // playlists ownership check
       .mockImplementationOnce(() => makeChain({ data: { tier: 'paid' }, error: null })) // user_profiles
       .mockImplementationOnce(() => makeChain({ count: 100, data: null, error: null })) // playlist_episodes count
       .mockImplementationOnce(() => makeChain({ data: null, error: null }))              // subscriptions maybeSingle
@@ -159,20 +160,22 @@ describe('DELETE /api/playlists/[id]/episodes', () => {
     expect(res.status).toBe(401)
   })
 
-  it('returns 403 when not owner', async () => {
+  it('returns 404 when not owner', async () => {
     mockGetUser.mockResolvedValue(AUTH)
-    mockVerifyOwnership.mockResolvedValue(false)
+    // default mockFrom returns null data → ownership check → 404
     const req = new NextRequest('http://localhost/api/playlists/pl-1/episodes', {
       method: 'DELETE',
       body: JSON.stringify({ guid: 'ep-1' }),
     })
     const res = await DELETE(req, { params })
-    expect(res.status).toBe(403)
+    expect(res.status).toBe(404)
   })
 
   it('removes episode and returns ok', async () => {
     mockGetUser.mockResolvedValue(AUTH)
-    mockFrom.mockReturnValue(makeChain({ data: null, error: null }))
+    mockFrom
+      .mockImplementationOnce(() => OWNED)                                    // playlists ownership check
+      .mockReturnValue(makeChain({ data: null, error: null }))                // playlist_episodes delete
     const req = new NextRequest('http://localhost/api/playlists/pl-1/episodes', {
       method: 'DELETE',
       body: JSON.stringify({ guid: 'ep-1' }),
@@ -194,20 +197,22 @@ describe('PATCH /api/playlists/[id]/episodes', () => {
     expect(res.status).toBe(401)
   })
 
-  it('returns 403 when not owner', async () => {
+  it('returns 404 when not owner', async () => {
     mockGetUser.mockResolvedValue(AUTH)
-    mockVerifyOwnership.mockResolvedValue(false)
+    // default mockFrom returns null data → ownership check → 404
     const req = new NextRequest('http://localhost/api/playlists/pl-1/episodes', {
       method: 'PATCH',
       body: JSON.stringify({ orderedGuids: ['ep-2', 'ep-1'] }),
     })
     const res = await PATCH(req, { params })
-    expect(res.status).toBe(403)
+    expect(res.status).toBe(404)
   })
 
   it('reorders episodes and returns ok', async () => {
     mockGetUser.mockResolvedValue(AUTH)
-    mockFrom.mockReturnValue(makeChain({ data: null, error: null }))
+    mockFrom
+      .mockImplementationOnce(() => OWNED)                                    // playlists ownership check
+      .mockReturnValue(makeChain({ data: null, error: null }))                // playlist_episodes updates
     const req = new NextRequest('http://localhost/api/playlists/pl-1/episodes', {
       method: 'PATCH',
       body: JSON.stringify({ orderedGuids: ['ep-2', 'ep-1'] }),

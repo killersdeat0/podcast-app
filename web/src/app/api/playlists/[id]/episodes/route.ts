@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { verifyPlaylistOwnership } from '@/lib/playlists/verifyOwnership'
 import { NextRequest, NextResponse } from 'next/server'
 import { LIMITS } from '@/lib/limits'
 
@@ -12,8 +11,8 @@ export async function POST(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const isOwner = await verifyPlaylistOwnership(id, user.id)
-  if (!isOwner) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const { data: playlist } = await supabase.from('playlists').select('id').eq('id', id).eq('user_id', user.id).maybeSingle()
+  if (!playlist) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const { guid, feedUrl, title, audioUrl, artworkUrl, podcastTitle, duration, pubDate, description } =
     await request.json()
@@ -87,8 +86,8 @@ export async function DELETE(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const isOwner = await verifyPlaylistOwnership(id, user.id)
-  if (!isOwner) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const { data: playlist } = await supabase.from('playlists').select('id').eq('id', id).eq('user_id', user.id).maybeSingle()
+  if (!playlist) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const { guid } = await request.json()
 
@@ -111,8 +110,8 @@ export async function PATCH(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const isOwner = await verifyPlaylistOwnership(id, user.id)
-  if (!isOwner) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const { data: playlist } = await supabase.from('playlists').select('id').eq('id', id).eq('user_id', user.id).maybeSingle()
+  if (!playlist) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const { orderedGuids }: { orderedGuids: string[] } = await request.json()
 

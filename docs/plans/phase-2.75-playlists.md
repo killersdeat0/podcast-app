@@ -127,9 +127,9 @@ Let users create named, reusable playlists separate from the ephemeral queue. Pl
 ## Deferred / Next Session
 
 ### Must fix before shipping
-- [ ] **Empty state CTA dead link** — On `/playlists`, the "Create playlist" EmptyState CTA links back to `/playlists` (same page) because `EmptyState` doesn't support `onClick`. Fix: add `onClick` support to `EmptyState`, or skip `EmptyState` here and render an inline button that opens the create modal directly.
+- [x] **Empty state CTA dead link** — Added inline "Create playlist" button to the empty state in `/playlists` that opens the create modal directly.
 
-- [ ] **`verifyOwnership` 403 vs 404 leak** — `verifyPlaylistOwnership` returns `false` for both "playlist doesn't exist" and "playlist exists but you don't own it", so PATCH/DELETE always returns `403`. A non-owner can probe whether a private playlist ID exists. Fix: drop the pre-flight ownership check; instead fold `.eq('user_id', user.id)` into the update/delete query and return `404` when 0 rows are affected.
+- [x] **`verifyOwnership` 403 vs 404 leak** — Removed `verifyPlaylistOwnership` helper. `PATCH`/`DELETE /api/playlists/[id]` now fold `.eq('user_id', user.id)` into the query and return 404 on 0 rows. Episode sub-routes do a pre-flight `playlists` ownership query returning 404. All "not owner" unit tests updated to expect 404.
 
 - [ ] **Deploy migrations** — `supabase db push` needed to apply the 3 new migrations (`20260315000002_playlists.sql`, `20260315000003_playlist_episodes.sql`, `20260316000000_playlists_anon_rls.sql`).
 

@@ -22,11 +22,10 @@ function makeChain(result: QueryResult = { data: null, error: null }) {
   return chain
 }
 
-const { mockGetUser, mockFrom, mockAdminFrom, mockVerifyOwnership } = vi.hoisted(() => ({
+const { mockGetUser, mockFrom, mockAdminFrom } = vi.hoisted(() => ({
   mockGetUser: vi.fn(),
   mockFrom: vi.fn(),
   mockAdminFrom: vi.fn(),
-  mockVerifyOwnership: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -38,10 +37,6 @@ vi.mock('@/lib/supabase/server', () => ({
 
 vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: vi.fn(() => ({ from: mockAdminFrom })),
-}))
-
-vi.mock('@/lib/playlists/verifyOwnership', () => ({
-  verifyPlaylistOwnership: mockVerifyOwnership,
 }))
 
 import { GET, PATCH, DELETE } from './route'
@@ -108,22 +103,22 @@ describe('PATCH /api/playlists/[id]', () => {
     expect(res.status).toBe(401)
   })
 
-  it('returns 403 when not owner', async () => {
+  it('returns 404 when not owner', async () => {
     mockGetUser.mockResolvedValue(AUTH)
-    mockVerifyOwnership.mockResolvedValue(false)
+    // update with user_id filter returns no rows → 404
+    mockFrom.mockReturnValue(makeChain({ data: null, error: null }))
     const req = new NextRequest('http://localhost/api/playlists/pl-1', {
       method: 'PATCH',
       body: JSON.stringify({ name: 'New Name' }),
     })
     const res = await PATCH(req, { params })
-    expect(res.status).toBe(403)
+    expect(res.status).toBe(404)
   })
 
   it('updates playlist and returns ok', async () => {
     mockGetUser.mockResolvedValue(AUTH)
-    mockVerifyOwnership.mockResolvedValue(true)
     const updated = { id: 'pl-1', name: 'New Name', is_public: true }
-    // from('playlists').update(...).eq(...).select().single()
+    // from('playlists').update(...).eq(...).eq(...).select().maybeSingle()
     const updateChain = makeChain({ data: updated, error: null })
     mockFrom.mockReturnValue(updateChain)
     const req = new NextRequest('http://localhost/api/playlists/pl-1', {
@@ -146,18 +141,18 @@ describe('DELETE /api/playlists/[id]', () => {
     expect(res.status).toBe(401)
   })
 
-  it('returns 403 when not owner', async () => {
+  it('returns 404 when not owner', async () => {
     mockGetUser.mockResolvedValue(AUTH)
-    mockVerifyOwnership.mockResolvedValue(false)
+    // delete with user_id filter returns empty array → 404
+    mockFrom.mockReturnValue(makeChain({ data: [], error: null }))
     const req = new NextRequest('http://localhost/api/playlists/pl-1', { method: 'DELETE' })
     const res = await DELETE(req, { params })
-    expect(res.status).toBe(403)
+    expect(res.status).toBe(404)
   })
 
   it('deletes playlist and returns ok', async () => {
     mockGetUser.mockResolvedValue(AUTH)
-    mockVerifyOwnership.mockResolvedValue(true)
-    mockFrom.mockReturnValue(makeChain({ data: null, error: null }))
+    mockFrom.mockReturnValue(makeChain({ data: [{ id: 'pl-1' }], error: null }))
     const req = new NextRequest('http://localhost/api/playlists/pl-1', { method: 'DELETE' })
     const res = await DELETE(req, { params })
     expect(res.status).toBe(200)
