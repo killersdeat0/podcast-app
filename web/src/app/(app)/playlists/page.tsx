@@ -120,15 +120,7 @@ export default function PlaylistsPage() {
       ) : playlists.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <p className="text-lg font-semibold text-white mb-2">{strings.playlists.empty_title}</p>
-          <p className="text-sm text-gray-400 mb-6">{strings.playlists.empty_description}</p>
-          {!atLimit && (
-            <button
-              onClick={() => setCreateOpen(true)}
-              className="px-5 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm font-medium transition-colors"
-            >
-              {strings.playlists.empty_cta}
-            </button>
-          )}
+          <p className="text-sm text-gray-400">{strings.playlists.empty_description}</p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
