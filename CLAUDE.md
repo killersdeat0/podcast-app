@@ -110,9 +110,9 @@ All user-facing strings live in `web/src/lib/i18n/`. The active locale is stored
 
 The `Player` component (`web/src/components/player/Player.tsx`) always renders the `<audio>` element (even when `nowPlaying` is null) so that event listeners attach on mount. The UI is conditionally shown. It restores saved position from `/api/progress` on episode load (only auto-plays if `playing` is true), saves position to `/api/progress` every 10 seconds via throttle, and on `ended` marks the episode complete, removes it from the queue, and auto-plays the next queue item.
 
-### Silence skipping — web blocked, canceled for web, mobile only
+### Silence skipping — canceled for web, mobile only
 
-`useSilenceSkipper` (`web/src/hooks/useSilenceSkipper.ts`) uses the Web Audio API (`createMediaElementSource` + `AnalyserNode`) to detect and skip silent sections. **This does not work on the web** because all podcast audio is cross-origin and the tracking redirect chain (podtrac, vpixl, etc.) doesn't send CORS headers — the browser zeroes out the entire audio graph. A CORS proxy (Cloudflare Worker) would fix it but isn't worth the complexity yet. The feature is canceled for web; will be implemented in Phase 3 (mobile), where native audio APIs have no CORS restriction. Do not re-attempt a browser-only fix without a proxy.
+Do not attempt browser-only silence skipping: podcast audio is cross-origin and CORS headers are absent on tracking redirects (podtrac, vpixl, etc.), so the Web Audio API graph is zeroed out. Implement in mobile Phase 3 only, where native audio APIs have no CORS restriction.
 
 ### Supabase clients
 
@@ -139,14 +139,7 @@ Fire `window.dispatchEvent(new CustomEvent('playlist-episodes-changed', { detail
 
 ### Freemium limits
 
-All freemium caps live in `web/src/lib/limits.ts` — **never hardcode limit numbers in route files or UI**. Import `LIMITS` from there. Current values:
-
-| | Free | Paid |
-|---|---|---|
-| Queue items | 10 | 500 |
-| Playlists | 3 | 1,000 |
-| Episodes per playlist | 10 | 500 |
-| Subscriptions | 500 | 500 |
+All freemium caps live in `web/src/lib/limits.ts` — **never hardcode limit numbers in route files or UI**. Import `LIMITS` from there.
 
 ### Admin client
 
@@ -184,16 +177,3 @@ Toast notifications use **sonner** via the single `<AppToasts />` component rend
 
 When asked to commit or making a plan, first check if the change introduces a new pattern, alters existing behavior, or changes an API route (parameters, return shape, or side effects). ALWAYS tell me: update `CLAUDE.md`, and create or update a focused doc file in `docs/` covering the changed area (e.g. `docs/api.md`, `docs/player.md`). Phase plan files in `docs/plans/` should also be updated if a planned item is completed or changed in scope.
 
-### ESLint intentional suppressions
-
-Several files use `// eslint-disable-next-line` for patterns that are deliberately non-standard:
-
-- `PlayerContext.tsx`, `Sidebar.tsx`, `LocaleContext.tsx` — `react-hooks/set-state-in-effect`: `setState` called directly inside `useEffect` to restore `localStorage` state on mount. This is intentional to avoid SSR hydration mismatches (initial state can't read `localStorage` on the server).
-- `Player.tsx` — `react-hooks/refs`: `isDragging.current` read during render to control the slider value while dragging. Intentional — a state variable would cause unwanted re-renders.
-- `podcast/[id]/page.tsx` — `react-hooks/exhaustive-deps` on the on-mount subscription PATCH effect: intentionally uses `newEpisodes.length` (not the full array or `title`) as the dependency. `title` is a URL param stable for the component lifetime; the array ref changes every render but we only want to re-fire when the count changes.
-
-Do not remove these suppressions or refactor these patterns without understanding the SSR/performance trade-offs.
-
-### RSS parser quirk
-
-The `guid` field in RSS items can be an XML object `{ '#text': '...', '@_isPermaLink': 'false' }` rather than a plain string. The Edge Function (`supabase/functions/podcasts-feed/index.ts`) handles this — do not simplify it back to `String(item['guid'])`.

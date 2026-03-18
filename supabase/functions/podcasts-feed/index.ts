@@ -45,6 +45,7 @@ serve(async (req) => {
       const enclosure = item['enclosure'] as Record<string, string> | undefined
       const chapters = item['podcast:chapters'] as Record<string, string> | undefined
       return {
+        // guid can be an XML object { '#text': '...', '@_isPermaLink': 'false' } — do not simplify to String(item['guid'])
         guid: typeof item['guid'] === 'object'
           ? String((item['guid'] as Record<string, string>)?.['#text'] ?? JSON.stringify(item['guid']))
           : String(item['guid'] ?? ''),

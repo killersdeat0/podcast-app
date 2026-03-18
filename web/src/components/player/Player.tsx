@@ -463,7 +463,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
                 type="range"
                 min={0}
                 max={duration || 0}
-                // eslint-disable-next-line react-hooks/refs
+                // eslint-disable-next-line react-hooks/refs -- ref read during render is intentional: using state would cause unwanted re-renders while dragging
                 value={isDragging.current ? sliderValue : currentTime}
                 onPointerDown={() => { isDragging.current = true; setSliderValue(currentTime) }}
                 onChange={(e) => setSliderValue(Number(e.target.value))}

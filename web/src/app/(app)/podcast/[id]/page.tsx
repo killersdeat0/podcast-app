@@ -299,7 +299,7 @@ export default function PodcastPage() {
       window.dispatchEvent(new Event('subscriptions-changed'))
     }
     update().catch(() => {})
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: newEpisodes.length not full array (array ref changes every render); title is a stable URL param
   }, [feed, feedUrl, subscribed, newEpisodes.length])
 
   // On unmount: update last_visited_at + reset count (skipped if already done in proceedWithNavigation)
