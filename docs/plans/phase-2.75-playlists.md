@@ -127,7 +127,7 @@ Let users create named, reusable playlists separate from the ephemeral queue. Pl
 ## Deferred / Next Session
 
 ### Must fix before shipping
-- [x] **Empty state CTA dead link** — Added inline "Create playlist" button to the empty state in `/playlists` that opens the create modal directly.
+- [x] **Empty state CTA dead link** — Non-issue: empty state had no link at all (just text). Top-right Create button is sufficient; no fix needed.
 
 - [x] **`verifyOwnership` 403 vs 404 leak** — Removed `verifyPlaylistOwnership` helper. `PATCH`/`DELETE /api/playlists/[id]` now fold `.eq('user_id', user.id)` into the query and return 404 on 0 rows. Episode sub-routes do a pre-flight `playlists` ownership query returning 404. All "not owner" unit tests updated to expect 404.
 
@@ -136,7 +136,7 @@ Let users create named, reusable playlists separate from the ephemeral queue. Pl
 ### Nice to have
 - [ ] **localStorage size for large playlists** — `playlistContext` (full episode list) is written to `localStorage` on every `play()` call. Free users are capped at 10 episodes so it's fine. Paid users with very large playlists could eventually hit the ~5MB localStorage ceiling. Consider storing only `{ playlistId, currentIndex }` and re-fetching the episode list on mount instead.
 
-- [ ] **No feedback when "Add to Queue" fails** — `handleAddToQueue` in `/playlist/[id]` silently swallows a `403` when the queue is full. The queue page shows an upgrade modal for this — playlist page should too.
+- [x] **No feedback when "Add to Queue" fails** — `handleAddToQueue` in `/playlist/[id]` now checks for `403`, reverts the optimistic update, and shows a `toast.error` (same pattern as the podcast page).
 
 - [ ] **Re-adding an existing episode to a full free-tier playlist returns 403** — The episode count check fires before the upsert, so trying to re-add an already-present episode hits the limit incorrectly. Fix: check `count` after filtering out the episode being upserted (or just skip the count check if the episode already exists).
 

@@ -19,6 +19,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Play, List, Globe, Lock, Link as LinkIcon, GripVertical, Trash2, Check, Pencil } from 'lucide-react'
+import { toast } from 'sonner'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
 import { usePlayer } from '@/components/player/PlayerContext'
@@ -250,7 +251,7 @@ export default function PlaylistDetailPage() {
       })
     } else {
       setQueuedGuids((prev) => new Set([...prev, item.episode_guid]))
-      await fetch('/api/queue', {
+      const res = await fetch('/api/queue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -265,6 +266,11 @@ export default function PlaylistDetailPage() {
           description: item.episode.description,
         }),
       })
+      if (res.status === 403) {
+        setQueuedGuids((prev) => { const s = new Set(prev); s.delete(item.episode_guid); return s })
+        toast.error(strings.queue.limit_reached_free)
+        return
+      }
     }
     window.dispatchEvent(new Event('queue-changed'))
   }
