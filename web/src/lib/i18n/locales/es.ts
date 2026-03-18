@@ -191,6 +191,8 @@ const es = {
     play: 'Reproducir lista',
     add_to_queue: 'Añadir a la cola',
     add_to_playlist: 'Añadir a lista',
+    search_placeholder: 'Buscar listas…',
+    search_no_results: 'No se encontraron listas',
     copy_link: 'Copiar enlace',
     link_copied: '¡Enlace copiado! ✓',
     public_badge: 'Público',

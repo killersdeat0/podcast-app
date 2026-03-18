@@ -7,12 +7,13 @@ import { SkeletonEpisodeRow } from '@/components/ui/Skeleton'
 import type { PodcastFeed, Episode } from '@/lib/rss/parser'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
-import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { toast } from 'sonner'
 import { useUserPlaylists } from '@/hooks/useUserPlaylists'
 import { addEpisodeToPlaylist } from '@/lib/playlists/addEpisodeToPlaylist'
 import { Play, Plus, Check } from 'lucide-react'
 import { computeNewEpisodes } from '@/lib/subscriptions/computeNewEpisodes'
 import { mergeEpisodeSources } from '@/lib/episodes/mergeEpisodeSources'
+import * as Dialog from '@radix-ui/react-dialog'
 import AuthPromptModal from '@/components/ui/AuthPromptModal'
 import UpgradeModal from '@/components/ui/UpgradeModal'
 import AddToPlaylistPopover from '@/components/ui/AddToPlaylistPopover'
@@ -100,7 +101,6 @@ export default function PodcastPage() {
   // Navigation warning modal state
   const [navWarningOpen, setNavWarningOpen] = useState(false)
   const [queuingAll, setQueuingAll] = useState(false)
-  const [queueLimitMessage, setQueueLimitMessage] = useState<string | null>(null)
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
   const pendingNavRef = useRef<{ href: string } | null>(null)
   const isBeforeUnloadRef = useRef(false)
@@ -110,8 +110,6 @@ export default function PodcastPage() {
   const [itunesEpisodes, setItunesEpisodes] = useState<ItunesEpisode[] | null>(null)
   const [itunesLoading, setItunesLoading] = useState(false)
 
-  useEscapeKey(() => setFilterModalOpen(false), filterModalOpen)
-  useEscapeKey(() => { setNavWarningOpen(false); pendingNavRef.current = null; isBeforeUnloadRef.current = false }, navWarningOpen)
 
   useEffect(() => {
     if (!feedUrl) return
@@ -445,8 +443,7 @@ export default function PodcastPage() {
   }
 
   function showQueueLimit(msg: string) {
-    setQueueLimitMessage(msg)
-    setTimeout(() => setQueueLimitMessage(null), 4000)
+    toast.error(msg)
   }
 
   async function toggleQueue(episode: Episode) {
@@ -519,7 +516,7 @@ export default function PodcastPage() {
       audioUrl: ep.audioUrl,
       artworkUrl: artwork || null,
       podcastTitle: title,
-      duration: ep.duration,
+      duration: ep.duration ?? undefined,
       pubDate: ep.pubDate,
       description: ep.description,
     })
@@ -626,12 +623,6 @@ export default function PodcastPage() {
 
   return (
     <div>
-      {queueLimitMessage && (
-        <div className="fixed bottom-6 right-4 z-50 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 shadow-xl max-w-xs flex items-start gap-3">
-          <p className="text-sm text-gray-200 flex-1">{queueLimitMessage}</p>
-          <button onClick={() => setQueueLimitMessage(null)} className="text-gray-500 hover:text-gray-300 flex-shrink-0 leading-none mt-0.5" aria-label="Dismiss">✕</button>
-        </div>
-      )}
       {/* Hero header — blurred artwork backdrop */}
       <div className="relative overflow-hidden mb-6">
         {artwork && (
@@ -857,42 +848,42 @@ export default function PodcastPage() {
             )}
 
             {/* Custom filter modal */}
-            {filterModalOpen && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm shadow-xl">
-                  <h3 className="text-base font-semibold text-white mb-1">{s.podcast_page.filter_modal_title}</h3>
-                  <p className="text-xs text-gray-400 mb-4">
-                    {s.podcast_page.filter_modal_description}
-                  </p>
-                  <input
-                    type="text"
-                    value={episodeFilter}
-                    onChange={(e) => setEpisodeFilter(e.target.value)}
-                    placeholder="e.g. 90 Day, interview, recap..."
-                    autoFocus
-                    className="w-full bg-gray-800 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-violet-500 mb-4"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') saveEpisodeFilter().then(() => setFilterModalOpen(false))
-                    }}
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => { setEpisodeFilter(subscription?.episode_filter ?? ''); setFilterModalOpen(false) }}
-                      className="flex-1 py-2 rounded-lg text-sm bg-gray-800 text-gray-300 hover:text-white transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={() => saveEpisodeFilter().then(() => setFilterModalOpen(false))}
-                      disabled={savingFilter}
-                      className="flex-1 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 transition-colors"
-                    >
-                      {savingFilter ? '...' : s.podcast_page.filter_save}
-                    </button>
+            <Dialog.Root open={filterModalOpen} onOpenChange={(o) => { if (!o) { setEpisodeFilter(subscription?.episode_filter ?? ''); setFilterModalOpen(false) } }}>
+              <Dialog.Portal>
+                <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
+                <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 p-4 focus:outline-none">
+                  <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 shadow-xl">
+                    <Dialog.Title className="text-base font-semibold text-white mb-1">{s.podcast_page.filter_modal_title}</Dialog.Title>
+                    <Dialog.Description className="text-xs text-gray-400 mb-4">{s.podcast_page.filter_modal_description}</Dialog.Description>
+                    <input
+                      type="text"
+                      value={episodeFilter}
+                      onChange={(e) => setEpisodeFilter(e.target.value)}
+                      placeholder="e.g. 90 Day, interview, recap..."
+                      autoFocus
+                      className="w-full bg-gray-800 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-violet-500 mb-4"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') saveEpisodeFilter().then(() => setFilterModalOpen(false))
+                      }}
+                    />
+                    <div className="flex gap-2">
+                      <Dialog.Close asChild>
+                        <button className="flex-1 py-2 rounded-lg text-sm bg-gray-800 text-gray-300 hover:text-white transition-colors">
+                          Cancel
+                        </button>
+                      </Dialog.Close>
+                      <button
+                        onClick={() => saveEpisodeFilter().then(() => setFilterModalOpen(false))}
+                        disabled={savingFilter}
+                        className="flex-1 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 transition-colors"
+                      >
+                        {savingFilter ? '...' : s.podcast_page.filter_save}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
+                </Dialog.Content>
+              </Dialog.Portal>
+            </Dialog.Root>
 
             {/* Auth prompt modal for guests */}
             <AuthPromptModal
@@ -903,41 +894,42 @@ export default function PodcastPage() {
             <UpgradeModal open={upgradeModalOpen} onClose={() => setUpgradeModalOpen(false)} />
 
             {/* Navigation warning modal */}
-            {navWarningOpen && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm shadow-xl">
-                  <h3 className="text-base font-semibold text-white mb-1">
-                    {s.podcast_page.nav_warning_title}
-                  </h3>
-                  <p className="text-xs text-gray-400 mb-6">
-                    {s.podcast_page.nav_warning_body.replace('{{n}}', String(unqueuedNewEpisodes.length))}
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    <button
-                      onClick={queueAllAndLeave}
-                      disabled={queuingAll}
-                      className="w-full py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 transition-colors"
-                    >
-                      {queuingAll ? s.podcast_page.nav_warning_queuing : s.podcast_page.nav_warning_queue_and_leave}
-                    </button>
-                    <button
-                      onClick={proceedWithNavigation}
-                      disabled={queuingAll}
-                      className="w-full py-2 rounded-lg text-sm bg-gray-800 text-gray-300 hover:text-white disabled:opacity-40 transition-colors"
-                    >
-                      {s.podcast_page.nav_warning_leave}
-                    </button>
-                    <button
-                      onClick={() => { setNavWarningOpen(false); pendingNavRef.current = null; isBeforeUnloadRef.current = false }}
-                      disabled={queuingAll}
-                      className="w-full py-2 rounded-lg text-sm bg-gray-800 text-gray-300 hover:text-white disabled:opacity-40 transition-colors"
-                    >
-                      {s.podcast_page.nav_warning_stay}
-                    </button>
+            <Dialog.Root open={navWarningOpen} onOpenChange={(o) => { if (!o && !queuingAll) { setNavWarningOpen(false); pendingNavRef.current = null; isBeforeUnloadRef.current = false } }}>
+              <Dialog.Portal>
+                <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
+                <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 p-4 focus:outline-none">
+                  <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 shadow-xl">
+                    <Dialog.Title className="text-base font-semibold text-white mb-1">{s.podcast_page.nav_warning_title}</Dialog.Title>
+                    <Dialog.Description className="text-xs text-gray-400 mb-6">
+                      {s.podcast_page.nav_warning_body.replace('{{n}}', String(unqueuedNewEpisodes.length))}
+                    </Dialog.Description>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={queueAllAndLeave}
+                        disabled={queuingAll}
+                        className="w-full py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 transition-colors"
+                      >
+                        {queuingAll ? s.podcast_page.nav_warning_queuing : s.podcast_page.nav_warning_queue_and_leave}
+                      </button>
+                      <button
+                        onClick={proceedWithNavigation}
+                        disabled={queuingAll}
+                        className="w-full py-2 rounded-lg text-sm bg-gray-800 text-gray-300 hover:text-white disabled:opacity-40 transition-colors"
+                      >
+                        {s.podcast_page.nav_warning_leave}
+                      </button>
+                      <button
+                        onClick={() => { setNavWarningOpen(false); pendingNavRef.current = null; isBeforeUnloadRef.current = false }}
+                        disabled={queuingAll}
+                        className="w-full py-2 rounded-lg text-sm bg-gray-800 text-gray-300 hover:text-white disabled:opacity-40 transition-colors"
+                      >
+                        {s.podcast_page.nav_warning_stay}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
+                </Dialog.Content>
+              </Dialog.Portal>
+            </Dialog.Root>
 
             {/* Search results or episode list */}
             {searchQuery ? (

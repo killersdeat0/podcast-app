@@ -191,6 +191,8 @@ const en = {
     play: 'Play Playlist',
     add_to_queue: 'Add to Queue',
     add_to_playlist: 'Add to Playlist',
+    search_placeholder: 'Search playlists…',
+    search_no_results: 'No playlists found',
     copy_link: 'Copy link',
     link_copied: 'Link copied! ✓',
     public_badge: 'Public',

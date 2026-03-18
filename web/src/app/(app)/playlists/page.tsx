@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ListMusic, Lock, Globe, Plus, Trash2 } from 'lucide-react'
+import * as Dialog from '@radix-ui/react-dialog'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
 import { LIMITS } from '@/lib/limits'
@@ -153,16 +154,12 @@ export default function PlaylistsPage() {
       )}
 
       {/* Create modal */}
-      {createOpen && (
-        <>
-          <div className="fixed inset-0 bg-black/60 z-40" onClick={() => setCreateOpen(false)} />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <form
-              onSubmit={handleCreate}
-              className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-md"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h2 className="text-lg font-semibold mb-4">{strings.playlists.create_modal_title}</h2>
+      <Dialog.Root open={createOpen} onOpenChange={(o) => { if (!o) { setCreateOpen(false); setCreateError('') } }}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 p-4 focus:outline-none">
+            <form onSubmit={handleCreate} className="bg-gray-900 border border-gray-700 rounded-xl p-6">
+              <Dialog.Title className="text-lg font-semibold mb-4">{strings.playlists.create_modal_title}</Dialog.Title>
               <input
                 type="text"
                 value={createName}
@@ -180,13 +177,11 @@ export default function PlaylistsPage() {
               />
               {createError && <p className="text-red-400 text-sm mb-3">{createError}</p>}
               <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setCreateOpen(false)}
-                  className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
-                >
-                  Cancel
-                </button>
+                <Dialog.Close asChild>
+                  <button type="button" className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">
+                    Cancel
+                  </button>
+                </Dialog.Close>
                 <button
                   type="submit"
                   disabled={creating || !createName.trim()}
@@ -196,9 +191,9 @@ export default function PlaylistsPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </>
-      )}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   )
 }
