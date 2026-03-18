@@ -109,26 +109,20 @@ Let users create named, reusable playlists separate from the ephemeral queue. Pl
 - [x] Click the remove button on an episode — it disappears immediately
 
 ### Public sharing
-- [ ] On `/playlist/[id]`, click "Make public" — badge changes to Public; "Copy link" button appears
-- [ ] Click "Copy link" — URL is copied; button shows "Link copied! ✓" briefly
-- [ ] Open the copied URL in an incognito window — playlist loads with episodes visible; no login required
-- [ ] Verify Play and "Add to Queue" work for a guest on a public playlist
-- [ ] Click "Make private" — go back to incognito, reload the URL → 404
+- [x] On `/playlist/[id]`, click "Make public" — badge changes to Public; "Copy link" button appears
+- [x] Click "Copy link" — URL is copied; button shows "Link copied! ✓" briefly
+- [x] Open the copied URL in an incognito window — blocking login modal shown; no guest access
+- [x] Click "Make private" — go back to incognito, reload the URL → blocking login modal (no 404 leak)
 
 ### Guest behaviour
-- [ ] Visit `/playlists` as a guest — see sign-in EmptyState only, no create button *(note: CTA currently links back to same page — known bug)*
-- [ ] Click "Playlists" in the sidebar as a guest — auth prompt modal appears
+- [x] Visit `/playlists` as a guest — see sign-in EmptyState only, no create button *(note: CTA currently links back to same page — known bug)*
+- [x] Click "Playlists" in the sidebar as a guest — auth prompt modal appears
 
 ### Freemium limits (free tier)
-- [ ] Create 3 playlists — create button becomes disabled; over-limit warning appears
-- [ ] Try creating a 4th via the form anyway (if possible) — `403` returned, error shown
-- [ ] Add 10 episodes to a playlist — 11th add attempt shows an error
-- [ ] Downgrade account (dev button on Profile), then visit a playlist with >10 episodes — over-limit banner appears; existing episodes still visible
-
-### Sidebar
-- [ ] Episode count badge next to each playlist name in sidebar matches the actual count
-- [ ] Collapse the sidebar — "My Playlists" section is hidden (icons only, no playlist list)
-- [ ] Active playlist route is highlighted in the sidebar
+- [x] Create 3 playlists — create button becomes disabled; over-limit warning appears
+- [x] Try creating a 4th via the form anyway (if possible) — `403` returned, error shown
+- [x] Add 10 episodes to a playlist — 11th add attempt shows a toast error; green checkmark does not appear
+- [x] Downgrade account (dev button on Profile), then visit a playlist with >10 episodes — over-limit banner appears; existing episodes still visible (requires page refresh after dev downgrade, now fixed via `router.refresh()`)
 
 ## Deferred / Next Session
 

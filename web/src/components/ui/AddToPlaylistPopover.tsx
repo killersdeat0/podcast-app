@@ -18,11 +18,12 @@ export default function AddToPlaylistPopover({
   className = '',
 }: {
   playlists: Playlist[]
-  onSelect: (playlistId: string) => void
+  onSelect: (playlistId: string) => Promise<void>
   className?: string
 }) {
   const [open, setOpen] = useState(false)
   const [added, setAdded] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [query, setQuery] = useState('')
   const searchRef = useRef<HTMLInputElement>(null)
   const strings = useStrings()
@@ -75,15 +76,21 @@ export default function AddToPlaylistPopover({
     <div className={`relative flex-shrink-0 ${className}`}>
       <button
         ref={refs.setReference}
-        onClick={(e) => { e.stopPropagation(); if (!added) setOpen((o) => !o) }}
+        onClick={(e) => { e.stopPropagation(); if (!added && !loading) setOpen((o) => !o) }}
         title={strings.playlists.add_to_playlist}
+        disabled={loading}
         className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${
           added
             ? 'text-green-400 bg-green-500/10'
             : 'text-gray-600 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100'
         }`}
       >
-        {added ? <Check className="w-3.5 h-3.5" strokeWidth={2.5} /> : <ListPlus className="w-3.5 h-3.5" />}
+        {loading
+          ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin block" />
+          : added
+            ? <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+            : <ListPlus className="w-3.5 h-3.5" />
+        }
       </button>
       {open && (
         <div
@@ -115,7 +122,7 @@ export default function AddToPlaylistPopover({
               filtered.map((pl) => (
                 <button
                   key={pl.id}
-                  onClick={(e) => { e.stopPropagation(); onSelect(pl.id); handleClose(); setAdded(true); setTimeout(() => setAdded(false), 1500) }}
+                  onClick={async (e) => { e.stopPropagation(); handleClose(); setLoading(true); try { await onSelect(pl.id); setAdded(true); setTimeout(() => setAdded(false), 1500) } catch {} finally { setLoading(false) } }}
                   className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
                 >
                   {pl.name}

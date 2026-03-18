@@ -106,6 +106,16 @@ Public playlists are viewable at `/playlist/[id]` by anyone including unauthenti
 
 The "Copy link" button copies `window.location.origin + /playlist/${id}`.
 
+### Guest access to shared playlists
+
+When a guest (unauthenticated user) lands on `/playlist/[id]`, a **blocking login modal** appears immediately — `AuthPromptModal` with `dismissable={false}`. There is no "Maybe later" option; the only actions are "Sign in" and "Create account", both with `returnTo` set to the current URL so the user returns after authenticating.
+
+This modal fires in two cases:
+- The API returns the playlist (public playlist) — content is rendered behind the modal but inaccessible.
+- The API returns 404 (private playlist or non-existent) — blank content with the modal only, so the guest cannot determine whether the playlist exists.
+
+`AuthPromptModal` accepts a `dismissable?: boolean` prop (default `true`). When `false`, `onOpenChange` is a no-op and the cancel button is hidden.
+
 ## Events
 
 - `playlists-changed` — dispatched after create, delete, or rename. Sidebar and any page with a playlist list listens for this.

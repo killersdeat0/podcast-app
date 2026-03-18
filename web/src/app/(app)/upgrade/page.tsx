@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 
@@ -8,6 +9,7 @@ const MONTHLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID ?? ''
 const YEARLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_YEARLY_PRICE_ID ?? ''
 
 export default function UpgradePage() {
+  const router = useRouter()
   const [tier, setTier] = useState<'free' | 'paid' | null>(null)
   const [loading, setLoading] = useState<'monthly' | 'yearly' | null>(null)
   const [upgrading, setUpgrading] = useState(false)
@@ -144,6 +146,7 @@ export default function UpgradePage() {
             await fetch('/api/dev/upgrade', { method: 'POST' })
             setTier('paid')
             setUpgrading(false)
+            router.refresh()
           }}
           disabled={upgrading}
           className="mt-6 text-xs text-green-400 underline disabled:opacity-50"

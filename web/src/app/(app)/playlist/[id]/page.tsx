@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   DndContext,
@@ -23,6 +23,7 @@ import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
 import { usePlayer } from '@/components/player/PlayerContext'
 import type { PlaylistEpisodeRef } from '@/components/player/PlayerContext'
+import AuthPromptModal from '@/components/ui/AuthPromptModal'
 
 interface PlaylistEpisode {
   id: string
@@ -143,6 +144,7 @@ function SortableEpisodeRow({
 export default function PlaylistDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const pathname = usePathname()
   const strings = useStrings()
   const { isGuest, tier } = useUser()
   const { play, playPlaylist } = usePlayer()
@@ -357,10 +359,22 @@ export default function PlaylistDetailPage() {
   if (notFound || !playlist) {
     return (
       <div className="p-4 md:p-8">
-        <p className="text-gray-400">Playlist not found.</p>
-        <Link href="/playlists" className="text-violet-400 hover:text-violet-300 text-sm mt-2 inline-block">
-          ← Back to playlists
-        </Link>
+        {!isGuest && (
+          <>
+            <p className="text-gray-400">Playlist not found.</p>
+            <Link href="/playlists" className="text-violet-400 hover:text-violet-300 text-sm mt-2 inline-block">
+              ← Back to playlists
+            </Link>
+          </>
+        )}
+        <AuthPromptModal
+          open={isGuest}
+          onClose={() => {}}
+          returnTo={pathname}
+          title={strings.playlists.auth_prompt_shared_title}
+          body={strings.playlists.auth_prompt_shared_body}
+          dismissable={false}
+        />
       </div>
     )
   }
@@ -518,6 +532,15 @@ export default function PlaylistDetailPage() {
           </SortableContext>
         </DndContext>
       )}
+
+      <AuthPromptModal
+        open={isGuest}
+        onClose={() => {}}
+        returnTo={pathname}
+        title={strings.playlists.auth_prompt_shared_title}
+        body={strings.playlists.auth_prompt_shared_body}
+        dismissable={false}
+      />
     </div>
   )
 }

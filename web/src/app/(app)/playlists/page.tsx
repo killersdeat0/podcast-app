@@ -27,6 +27,7 @@ export default function PlaylistsPage() {
   const [createDesc, setCreateDesc] = useState('')
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (isGuest) { setLoading(false); return }
@@ -62,9 +63,14 @@ export default function PlaylistsPage() {
 
   async function handleDelete(id: string) {
     if (!confirm(strings.playlists.delete_confirm)) return
-    await fetch(`/api/playlists/${id}`, { method: 'DELETE' })
-    setPlaylists((prev) => prev.filter((p) => p.id !== id))
-    window.dispatchEvent(new Event('playlists-changed'))
+    setDeletingId(id)
+    try {
+      await fetch(`/api/playlists/${id}`, { method: 'DELETE' })
+      setPlaylists((prev) => prev.filter((p) => p.id !== id))
+      window.dispatchEvent(new Event('playlists-changed'))
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   if (isGuest) {
@@ -143,10 +149,13 @@ export default function PlaylistsPage() {
               </Link>
               <button
                 onClick={() => handleDelete(pl.id)}
-                className="absolute top-3 right-3 p-1.5 text-gray-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                disabled={deletingId === pl.id}
+                className="absolute top-3 right-3 p-1.5 text-gray-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
                 title={strings.playlists.delete}
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                {deletingId === pl.id
+                  ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin block" />
+                  : <Trash2 className="w-3.5 h-3.5" />}
               </button>
             </div>
           ))}

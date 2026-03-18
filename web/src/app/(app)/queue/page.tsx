@@ -55,10 +55,11 @@ function SortableQueueItem({
 }: {
   item: QueueItem
   onPlay: (item: QueueItem) => void
-  onRemove: (guid: string) => void
+  onRemove: (guid: string) => Promise<void>
   playlists: Array<{ id: string; name: string }>
   onAddToPlaylist: (playlistId: string, item: QueueItem) => void
 }) {
+  const [removing, setRemoving] = useState(false)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.episode_guid,
   })
@@ -115,11 +116,14 @@ function SortableQueueItem({
         </div>
       </button>
       <button
-        onClick={() => onRemove(item.episode_guid)}
+        onClick={async () => { setRemoving(true); try { await onRemove(item.episode_guid) } finally { setRemoving(false) } }}
+        disabled={removing}
         title="Remove from queue"
-        className="p-3 text-gray-500 hover:text-red-400 transition-colors"
+        className="p-3 text-gray-500 hover:text-red-400 transition-colors disabled:opacity-50"
       >
-        ✕
+        {removing
+          ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin block" />
+          : '✕'}
       </button>
       {playlists.length > 0 && (
         <AddToPlaylistPopover

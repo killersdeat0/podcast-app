@@ -84,6 +84,7 @@ export default function PodcastPage() {
   const [subscribed, setSubscribed] = useState(false)
   const [subscribing, setSubscribing] = useState(false)
   const [queuedGuids, setQueuedGuids] = useState<Set<string>>(new Set())
+  const [togglingQueueGuid, setTogglingQueueGuid] = useState<string | null>(null)
   const userPlaylists = useUserPlaylists(isGuest)
   const [subscription, setSubscription] = useState<SubscriptionRow | null>(null)
   const [oldLastVisitedAt, setOldLastVisitedAt] = useState<string | null>(null)
@@ -447,64 +448,69 @@ export default function PodcastPage() {
   }
 
   async function toggleQueue(episode: Episode) {
-    const inQueue = queuedGuids.has(episode.guid)
-    if (isGuest) {
-      if (inQueue) {
-        dequeueClient(episode.guid)
-        setQueuedGuids((prev) => { const s = new Set(prev); s.delete(episode.guid); return s })
-      } else {
-        if (clientQueue.length >= 10) {
-          showQueueLimit(s.queue.limit_reached_guest)
-          return
+    setTogglingQueueGuid(episode.guid)
+    try {
+      const inQueue = queuedGuids.has(episode.guid)
+      if (isGuest) {
+        if (inQueue) {
+          dequeueClient(episode.guid)
+          setQueuedGuids((prev) => { const s = new Set(prev); s.delete(episode.guid); return s })
+        } else {
+          if (clientQueue.length >= 10) {
+            showQueueLimit(s.queue.limit_reached_guest)
+            return
+          }
+          enqueueClient({
+            guid: episode.guid,
+            feedUrl,
+            title: episode.title,
+            audioUrl: episode.audioUrl,
+            artworkUrl: artwork || feed?.artworkUrl || '',
+            podcastTitle: title,
+            duration: episode.duration ?? 0,
+            chapterUrl: episode.chapterUrl,
+          })
+          setQueuedGuids((prev) => new Set([...prev, episode.guid]))
         }
-        enqueueClient({
-          guid: episode.guid,
-          feedUrl,
-          title: episode.title,
-          audioUrl: episode.audioUrl,
-          artworkUrl: artwork || feed?.artworkUrl || '',
-          podcastTitle: title,
-          duration: episode.duration ?? 0,
-          chapterUrl: episode.chapterUrl,
-        })
-        setQueuedGuids((prev) => new Set([...prev, episode.guid]))
-      }
-      return
-    }
-    if (inQueue) {
-      await fetch('/api/queue', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ guid: episode.guid }),
-      })
-      setQueuedGuids((prev) => {
-        const s = new Set(prev)
-        s.delete(episode.guid)
-        return s
-      })
-      window.dispatchEvent(new Event('queue-changed'))
-    } else {
-      const res = await fetch('/api/queue', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          guid: episode.guid,
-          feedUrl,
-          title: episode.title,
-          audioUrl: episode.audioUrl,
-          artworkUrl: artwork || feed?.artworkUrl || '',
-          podcastTitle: title,
-          duration: episode.duration,
-          pubDate: episode.pubDate,
-          description: episode.description,
-        }),
-      })
-      if (!res.ok) {
-        if (res.status === 403) showQueueLimit(s.queue.limit_reached_free)
         return
       }
-      setQueuedGuids((prev) => new Set([...prev, episode.guid]))
-      window.dispatchEvent(new Event('queue-changed'))
+      if (inQueue) {
+        await fetch('/api/queue', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ guid: episode.guid }),
+        })
+        setQueuedGuids((prev) => {
+          const s = new Set(prev)
+          s.delete(episode.guid)
+          return s
+        })
+        window.dispatchEvent(new Event('queue-changed'))
+      } else {
+        const res = await fetch('/api/queue', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            guid: episode.guid,
+            feedUrl,
+            title: episode.title,
+            audioUrl: episode.audioUrl,
+            artworkUrl: artwork || feed?.artworkUrl || '',
+            podcastTitle: title,
+            duration: episode.duration,
+            pubDate: episode.pubDate,
+            description: episode.description,
+          }),
+        })
+        if (!res.ok) {
+          if (res.status === 403) showQueueLimit(s.queue.limit_reached_free)
+          return
+        }
+        setQueuedGuids((prev) => new Set([...prev, episode.guid]))
+        window.dispatchEvent(new Event('queue-changed'))
+      }
+    } finally {
+      setTogglingQueueGuid(null)
     }
   }
 
@@ -602,6 +608,7 @@ export default function PodcastPage() {
         {/* Queue button — hidden until hover, stays visible when queued */}
         <button
           onClick={() => toggleQueue(ep)}
+          disabled={togglingQueueGuid === ep.guid}
           title={inQueue ? s.podcast_page.remove_from_queue : s.podcast_page.add_to_queue}
           className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all ${
             inQueue
@@ -609,7 +616,9 @@ export default function PodcastPage() {
               : 'text-gray-600 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100'
           }`}
         >
-          {inQueue ? <Check className="w-3.5 h-3.5" strokeWidth={2.5} /> : <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />}
+          {togglingQueueGuid === ep.guid
+            ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin block" />
+            : inQueue ? <Check className="w-3.5 h-3.5" strokeWidth={2.5} /> : <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />}
         </button>
         {!isGuest && userPlaylists.length > 0 && (
           <AddToPlaylistPopover

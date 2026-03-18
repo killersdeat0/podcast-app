@@ -179,13 +179,13 @@ const en = {
     suffix: 'for an ad-free experience.',
   },
   playlists: {
-    heading: 'Playlists 🎵',
+    heading: 'Playlists 🎙️',
     create: 'New Playlist',
     create_modal_title: 'Create Playlist',
     create_name_placeholder: 'Playlist name',
     create_description_placeholder: 'Description (optional)',
     create_submit: 'Create',
-    empty_title: 'No playlists yet 🎵',
+    empty_title: 'No playlists yet 🎙️',
     empty_description: 'Create a playlist to save and organize your favorite episodes.',
     empty_cta: 'Create playlist',
     play: 'Play Playlist',
@@ -212,7 +212,9 @@ const en = {
     sidebar_heading: 'My Playlists',
     sidebar_empty_hint: 'No playlists yet',
     guest_hint: 'Sign in to create playlists',
-    auth_prompt_title: 'Sign in to use playlists 🎵',
+    auth_prompt_title: 'Sign in to use playlists 🎙️',
+    auth_prompt_shared_title: 'Sign in to view this playlist 🎙️',
+    auth_prompt_shared_body: 'Create a free account or sign in to view and play this playlist.',
   },
 }
 

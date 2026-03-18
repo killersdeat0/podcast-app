@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useStrings, useLocale, LOCALE_LABELS } from '@/lib/i18n/LocaleContext'
@@ -30,6 +31,7 @@ function formatHours(seconds: number): string {
 }
 
 export default function ProfilePage() {
+  const router = useRouter()
   const [data, setData] = useState<ProfileData | null>(null)
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [downgrading, setDowngrading] = useState(false)
@@ -83,6 +85,7 @@ export default function ProfilePage() {
     await fetch('/api/dev/downgrade', { method: 'POST' })
     fetchProfile()
     setDowngrading(false)
+    router.refresh()
   }
 
   async function handleResetLastVisited() {

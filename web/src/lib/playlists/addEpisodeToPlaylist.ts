@@ -11,10 +11,16 @@ export interface PlaylistEpisodePayload {
 }
 
 export async function addEpisodeToPlaylist(playlistId: string, episode: PlaylistEpisodePayload): Promise<void> {
-  await fetch(`/api/playlists/${playlistId}/episodes`, {
+  const res = await fetch(`/api/playlists/${playlistId}/episodes`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(episode),
-  }).catch(() => {})
+  }).catch(() => null)
+  if (!res || !res.ok) {
+    const { toast } = await import('sonner')
+    const body = res ? await res.json().catch(() => ({})) : {}
+    toast.error(body.error ?? 'Failed to add episode to playlist')
+    throw new Error(body.error ?? 'Failed to add episode to playlist')
+  }
   window.dispatchEvent(new CustomEvent('playlist-episodes-changed', { detail: { playlistId } }))
 }

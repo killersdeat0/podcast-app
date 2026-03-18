@@ -8,15 +8,17 @@ interface AuthPromptModalProps {
   onClose: () => void
   returnTo?: string
   title?: string
+  body?: string
+  dismissable?: boolean
 }
 
-export default function AuthPromptModal({ open, onClose, returnTo, title }: AuthPromptModalProps) {
+export default function AuthPromptModal({ open, onClose, returnTo, title, body, dismissable = true }: AuthPromptModalProps) {
   const strings = useStrings()
   const loginHref = returnTo ? `/login?returnTo=${encodeURIComponent(returnTo)}` : '/login'
   const signupHref = returnTo ? `/signup?returnTo=${encodeURIComponent(returnTo)}` : '/signup'
 
   return (
-    <Dialog.Root open={open} onOpenChange={(o) => { if (!o) onClose() }}>
+    <Dialog.Root open={open} onOpenChange={(o) => { if (!o && dismissable) onClose() }}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 p-4 focus:outline-none">
@@ -25,7 +27,7 @@ export default function AuthPromptModal({ open, onClose, returnTo, title }: Auth
               {title ?? strings.guest.auth_prompt_title}
             </Dialog.Title>
             <Dialog.Description className="text-sm text-gray-400 mb-6">
-              {strings.guest.auth_prompt_body}
+              {body ?? strings.guest.auth_prompt_body}
             </Dialog.Description>
             <div className="flex flex-col gap-3">
               <a
@@ -40,11 +42,13 @@ export default function AuthPromptModal({ open, onClose, returnTo, title }: Auth
               >
                 {strings.guest.auth_prompt_signup}
               </a>
-              <Dialog.Close asChild>
-                <button className="text-sm text-gray-500 hover:text-gray-300 transition-colors py-1">
-                  {strings.guest.auth_prompt_cancel}
-                </button>
-              </Dialog.Close>
+              {dismissable && (
+                <Dialog.Close asChild>
+                  <button className="text-sm text-gray-500 hover:text-gray-300 transition-colors py-1">
+                    {strings.guest.auth_prompt_cancel}
+                  </button>
+                </Dialog.Close>
+              )}
             </div>
           </div>
         </Dialog.Content>
