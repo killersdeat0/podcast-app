@@ -85,6 +85,7 @@ describe('POST /api/playlists/[id]/episodes', () => {
     mockFrom
       .mockImplementationOnce(() => OWNED)                                                           // playlists ownership check
       .mockImplementationOnce(() => makeChain({ data: { tier: 'free' }, error: null })) // user_profiles
+      .mockImplementationOnce(() => makeChain({ data: null, error: null }))              // existing episode check (not present)
       .mockImplementationOnce(() => makeChain({ count: 10, data: null, error: null }))  // playlist_episodes count
     const req = new NextRequest('http://localhost/api/playlists/pl-1/episodes', {
       method: 'POST',
@@ -95,11 +96,31 @@ describe('POST /api/playlists/[id]/episodes', () => {
     expect((await res.json()).error).toMatch(/Episode limit reached/)
   })
 
+  it('allows re-adding an existing episode even when playlist is at limit', async () => {
+    mockGetUser.mockResolvedValue(AUTH)
+    mockFrom
+      .mockImplementationOnce(() => OWNED)                                                           // playlists ownership check
+      .mockImplementationOnce(() => makeChain({ data: { tier: 'free' }, error: null })) // user_profiles
+      .mockImplementationOnce(() => makeChain({ data: { id: 'pe-1' }, error: null }))   // existing episode check (already present → skip count)
+      .mockImplementationOnce(() => makeChain({ data: null, error: null }))              // subscriptions maybeSingle
+      .mockImplementationOnce(() => makeChain({ data: null, error: null }))              // episodes upsert
+      .mockImplementationOnce(() => makeChain({ data: null, error: null }))              // playlist_episodes max position
+      .mockImplementationOnce(() => makeChain({ data: null, error: null }))              // playlist_episodes upsert
+    const req = new NextRequest('http://localhost/api/playlists/pl-1/episodes', {
+      method: 'POST',
+      body: JSON.stringify(episodeBody),
+    })
+    const res = await POST(req, { params })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ ok: true })
+  })
+
   it('adds episode for free tier user under limit', async () => {
     mockGetUser.mockResolvedValue(AUTH)
     mockFrom
       .mockImplementationOnce(() => OWNED)                                                           // playlists ownership check
       .mockImplementationOnce(() => makeChain({ data: { tier: 'free' }, error: null })) // user_profiles
+      .mockImplementationOnce(() => makeChain({ data: null, error: null }))              // existing episode check (not present)
       .mockImplementationOnce(() => makeChain({ count: 5, data: null, error: null }))   // playlist_episodes count
       .mockImplementationOnce(() => makeChain({ data: null, error: null }))              // subscriptions maybeSingle
       .mockImplementationOnce(() => makeChain({ data: null, error: null }))              // episodes upsert
@@ -119,6 +140,7 @@ describe('POST /api/playlists/[id]/episodes', () => {
     mockFrom
       .mockImplementationOnce(() => OWNED)                                                            // playlists ownership check
       .mockImplementationOnce(() => makeChain({ data: { tier: 'paid' }, error: null })) // user_profiles
+      .mockImplementationOnce(() => makeChain({ data: null, error: null }))              // existing episode check (not present)
       .mockImplementationOnce(() => makeChain({ count: 500, data: null, error: null })) // playlist_episodes count
     const req = new NextRequest('http://localhost/api/playlists/pl-1/episodes', {
       method: 'POST',
@@ -134,6 +156,7 @@ describe('POST /api/playlists/[id]/episodes', () => {
     mockFrom
       .mockImplementationOnce(() => OWNED)                                                            // playlists ownership check
       .mockImplementationOnce(() => makeChain({ data: { tier: 'paid' }, error: null })) // user_profiles
+      .mockImplementationOnce(() => makeChain({ data: null, error: null }))              // existing episode check (not present)
       .mockImplementationOnce(() => makeChain({ count: 100, data: null, error: null })) // playlist_episodes count
       .mockImplementationOnce(() => makeChain({ data: null, error: null }))              // subscriptions maybeSingle
       .mockImplementationOnce(() => makeChain({ data: null, error: null }))              // episodes upsert

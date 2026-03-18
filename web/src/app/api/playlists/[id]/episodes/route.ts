@@ -24,16 +24,27 @@ export async function POST(
     .single()
 
   const episodeLimit = (!profile || profile.tier === 'free') ? LIMITS.free.playlistEpisodes : LIMITS.paid.playlistEpisodes
-  const { count } = await supabase
-    .from('playlist_episodes')
-    .select('*', { count: 'exact', head: true })
-    .eq('playlist_id', id)
 
-  if ((count ?? 0) >= episodeLimit) {
-    return NextResponse.json(
-      { error: 'Episode limit reached. Upgrade for unlimited episodes per playlist.' },
-      { status: 403 }
-    )
+  // Check if episode already exists — if so, skip the count check (upsert is a no-op)
+  const { data: existing } = await supabase
+    .from('playlist_episodes')
+    .select('id')
+    .eq('playlist_id', id)
+    .eq('episode_guid', guid)
+    .maybeSingle()
+
+  if (!existing) {
+    const { count } = await supabase
+      .from('playlist_episodes')
+      .select('*', { count: 'exact', head: true })
+      .eq('playlist_id', id)
+
+    if ((count ?? 0) >= episodeLimit) {
+      return NextResponse.json(
+        { error: 'Episode limit reached. Upgrade for unlimited episodes per playlist.' },
+        { status: 403 }
+      )
+    }
   }
 
   // Subscription artwork priority

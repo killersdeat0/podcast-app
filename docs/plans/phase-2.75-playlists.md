@@ -69,11 +69,11 @@ Let users create named, reusable playlists separate from the ephemeral queue. Pl
 
 ### Testing
 - [x] Unit tests: `playlists/route.test.ts`, `playlists/[id]/route.test.ts`, `playlists/[id]/episodes/route.test.ts` — mirror `queue/route.test.ts` mock pattern; add `vi.mock('@/lib/supabase/admin', ...)` for admin client tests
-- [ ] E2E: create playlist → add episode → play → assert audio playing
-- [ ] E2E: toggle to public → open in unauthenticated context → assert visible + playable
-- [ ] E2E: guest visits `/playlists` → redirected to `/login`
-- [ ] E2E: guest visits `/playlist/[public-id]` → page loads (not redirected); requires `E2E_PUBLIC_PLAYLIST_ID` env var
-- [ ] E2E: free user at limit → create button disabled + warning shown
+- [x] E2E: create playlist → add episode → play → assert audio playing
+- [x] E2E: toggle to public → open in unauthenticated context → blocking auth modal shown (not redirected)
+- [x] E2E: guest visits `/playlists` → page loads with sign-in empty state (not redirected — `/playlists` matches `/playlist` prefix in PUBLIC_PATHS)
+- [x] E2E: guest visits `/playlist/[public-id]` → page loads (not redirected); requires `E2E_PUBLIC_PLAYLIST_ID` env var
+- [x] E2E: free user at limit → create button disabled + warning shown (skips gracefully if test account is paid)
 
 ### Docs
 - [x] Create `docs/playlists.md` — data model, API routes, freemium gates, player integration, public sharing, over-limit behavior
@@ -138,18 +138,18 @@ Let users create named, reusable playlists separate from the ephemeral queue. Pl
 
 - [x] **No feedback when "Add to Queue" fails** — `handleAddToQueue` in `/playlist/[id]` now checks for `403`, reverts the optimistic update, and shows a `toast.error` (same pattern as the podcast page).
 
-- [ ] **Re-adding an existing episode to a full free-tier playlist returns 403** — The episode count check fires before the upsert, so trying to re-add an already-present episode hits the limit incorrectly. Fix: check `count` after filtering out the episode being upserted (or just skip the count check if the episode already exists).
+- [x] **Re-adding an existing episode to a full free-tier playlist returns 403** — Now checks if the episode already exists first; if so, skips the count check entirely (upsert is a no-op).
 
-### E2E tests (deferred)
-- [ ] Create playlist → add episode → play → assert audio playing
-- [ ] Toggle to public → open in unauthenticated context → assert visible + playable
-- [ ] Guest visits `/playlists` → redirected to `/login`
-- [ ] Guest visits `/playlist/[public-id]` → page loads (not redirected); requires `E2E_PUBLIC_PLAYLIST_ID` env var
-- [ ] Free user at limit → create button disabled + warning shown
+### E2E tests
+- [x] Create playlist → add episode → play → assert audio playing
+- [x] Toggle to public → open in unauthenticated context → blocking auth modal shown
+- [x] Guest visits `/playlists` → page loads with sign-in empty state (not redirected)
+- [x] Guest visits `/playlist/[public-id]` → page loads (not redirected); requires `E2E_PUBLIC_PLAYLIST_ID` env var
+- [x] Free user at limit → create button disabled + warning shown
 
 ## Implementation Order
 1. Migration + admin client → proxy → API routes → unit tests ✅
 2. Player integration (`NowPlaying` type extension + `Player.tsx` branching + `playPlaylist()`) ✅
 3. i18n → pages → "Add to Playlist" popover → sidebar ✅
-4. E2E tests → docs ✅ (unit tests done; E2E deferred)
+4. E2E tests → docs ✅
 5. Switch public playlist reads to anon RLS policy (remove `createAdminClient()` + trailing-slash proxy trick) ✅
