@@ -84,7 +84,7 @@ interface PlaylistEpisodeRef {
 playlistContext?: { playlistId: string; episodes: PlaylistEpisodeRef[] } | null
 ```
 
-When `playlistContext` is set, `Player.tsx` advances through the playlist non-destructively — it does **not** touch the queue. On each advance (skip or auto-complete), the Player fetches fresh order from `GET /api/playlists/[id]` so reordering mid-playback takes effect immediately. The context is persisted in `localStorage` via the existing `play()` call.
+When `playlistContext` is set, `Player.tsx` advances through the playlist non-destructively — it does **not** touch the queue. On each advance (skip or auto-complete), the Player fetches fresh order from `GET /api/playlists/[id]` so reordering mid-playback takes effect immediately. **Exception:** on natural completion (`completeAndAdvance`), the finished episode is also removed from the queue (fire-and-forget DELETE) so it doesn't replay when the user returns to queue mode. Manual skip does not dequeue. The context is persisted in `localStorage` via the existing `play()` call.
 
 ### `playPlaylist(playlistId, episodes, startIndex?)`
 

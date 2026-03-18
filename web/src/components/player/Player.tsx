@@ -271,8 +271,16 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
 
     // TODO: play audio ad clip here for free tier before advancing
 
-    // Playlist context: fetch fresh order, advance non-destructively (don't touch queue)
+    // Playlist context: fetch fresh order, advance non-destructively (don't touch queue).
+    // But if the completed episode was also queued, remove it so it doesn't replay.
     if (np.playlistContext) {
+      fetch('/api/queue', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guid: np.guid }),
+      })
+        .then(() => window.dispatchEvent(new Event('queue-changed')))
+        .catch(() => {})
       advancePlaylist(np.playlistContext.playlistId, np.guid)
       return
     }

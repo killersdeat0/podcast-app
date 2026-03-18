@@ -38,6 +38,7 @@ Let users create named, reusable playlists separate from the ephemeral queue. Pl
 ### Player Integration
 - [x] Add `PlaylistEpisodeRef` interface and extend `NowPlaying` with `playlistContext?: { playlistId: string; episodes: PlaylistEpisodeRef[] } | null` — persisted automatically via existing `localStorage` in `play()`
 - [x] `completeAndAdvance` + `skipToNext` in `Player.tsx` branch on `playlistContext`: if present, advance through `playlistContext.episodes` (non-destructive — does NOT touch queue); otherwise existing queue logic unchanged
+- [x] On natural completion via playlist, fire-and-forget DELETE the episode from the queue so it doesn't replay later; manual skip does not dequeue
 - [x] `hasNextInQueue` checks `playlistContext?.episodes` first, then falls back to `dbQueue`
 - [x] Add `playPlaylist(playlistId, episodes, startIndex?)` helper in `PlayerContext.tsx`
 - [x] On each advance (`skipToNext` / `completeAndAdvance`), fetch fresh order from `GET /api/playlists/[id]` instead of using the stale snapshot — reordering mid-playback takes effect immediately
