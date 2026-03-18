@@ -157,6 +157,12 @@ All freemium caps live in `web/src/lib/limits.ts` — **never hardcode limit num
 
 Use `playPlaylist(playlistId, episodes, startIndex?)` from `usePlayer()` to start playlist playback. It wraps `play()` with the correct `playlistContext`.
 
+### Modals and toasts
+
+All modal dialogs use `@radix-ui/react-dialog` (`import * as Dialog from '@radix-ui/react-dialog'`). Do not use custom backdrop + `useEscapeKey` patterns for new modals — Radix Dialog provides focus trap, escape handling, and accessible close for free. Pattern: `<Dialog.Root open={open} onOpenChange={(o) => { if (!o) onClose() }}>` with `<Dialog.Portal>`, `<Dialog.Overlay>`, and `<Dialog.Content>`.
+
+Toast notifications use **sonner** via the single `<AppToasts />` component rendered in the app shell layout (`web/src/app/(app)/layout.tsx`). Do not create new standalone toast components — add new toast triggers inside `AppToasts`.
+
 ### Ownership verification
 
 `web/src/lib/playlists/verifyOwnership.ts` exports `verifyPlaylistOwnership(playlistId, userId): Promise<boolean>`. All mutating playlist API routes call this before proceeding.
