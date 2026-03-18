@@ -172,7 +172,9 @@ See `docs/theming.md` for the full token table and light-theme migration notes.
 
 All modal dialogs use `@radix-ui/react-dialog` (`import * as Dialog from '@radix-ui/react-dialog'`). Do not use custom backdrop + `useEscapeKey` patterns for new modals — Radix Dialog provides focus trap, escape handling, and accessible close for free. Pattern: `<Dialog.Root open={open} onOpenChange={(o) => { if (!o) onClose() }}>` with `<Dialog.Portal>`, `<Dialog.Overlay>`, and `<Dialog.Content>`.
 
-Toast notifications use **sonner** via the single `<AppToasts />` component rendered in the app shell layout (`web/src/app/(app)/layout.tsx`). Do not create new standalone toast components — add new toast triggers inside `AppToasts`.
+**Blocking (non-dismissable) modals:** `AuthPromptModal` accepts `dismissable={false}` to prevent closing — `onOpenChange` becomes a no-op and the "Maybe later" cancel button is hidden. Use this for hard gates (e.g. guests on `/playlist/[id]`) where continuing without auth is not allowed.
+
+Toast notifications use **sonner** via the single `<AppToasts />` component rendered in the app shell layout (`web/src/app/(app)/layout.tsx`). Do not create new standalone toast components — add new toast triggers inside `AppToasts`. **Exception:** utility/library functions (e.g. `addEpisodeToPlaylist`) may call `toast.error()` directly via dynamic import to surface errors at the call site, without needing a component context.
 
 ### Ownership verification
 
