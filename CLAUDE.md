@@ -67,6 +67,7 @@ Read any relevant docs before making changes
 - `docs/data-model.md` — DB tables, columns, RLS policies, key patterns. Read before touching DB schema or queries.
 - `docs/player.md` — player state machine, progress saving, queue auto-advance, chapters. Read before touching player/queue logic.
 - `docs/i18n.md` — i18n system: adding languages, string namespaces, EmptyState component, tone guidelines. Read before adding any user-visible text.
+- `docs/theming.md` — Material3 color token system (web CSS variables + Tailwind utilities, mobile ColorScheme). Read before adding colors to any component.
 - `docs/deployment.md` — Vercel setup, root directory config, preview deployments. Read before touching deployment config.
 - `docs/playlists.md` — playlist data model, freemium limits, RLS, player integration, public sharing. Read before touching playlist routes or components.
 
@@ -156,6 +157,16 @@ All freemium caps live in `web/src/lib/limits.ts` — **never hardcode limit num
 `NowPlaying` (in `PlayerContext.tsx`) has an optional `playlistContext?: { playlistId: string; episodes: PlaylistEpisodeRef[] } | null`. When set, `Player.tsx` advances through playlist episodes non-destructively — does not touch the queue. The context is persisted automatically via the existing `play()` localStorage write.
 
 Use `playPlaylist(playlistId, episodes, startIndex?)` from `usePlayer()` to start playlist playback. It wraps `play()` with the correct `playlistContext`.
+
+### Theming and colors
+
+Both web and mobile use **Material3** color roles as the shared design vocabulary. Source color: `#7c3aed` (violet-600).
+
+**Web:** All colors are defined as `--md-*` CSS custom properties in `web/src/app/globals.css` and exposed as Tailwind utilities via `@theme inline`. Use semantic tokens — `bg-surface`, `text-on-surface-variant`, `bg-primary`, `text-error` — never raw palette classes like `bg-gray-950` or `text-violet-400`.
+
+**Mobile:** `SyncPodsTheme` in `mobile/.../theme/Theme.kt` wraps `MaterialTheme` with a custom `darkColorScheme`. All Composables use `MaterialTheme.colorScheme.*` — never hardcoded hex values.
+
+See `docs/theming.md` for the full token table and light-theme migration notes.
 
 ### Modals and toasts
 
