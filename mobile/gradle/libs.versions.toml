@@ -19,7 +19,9 @@ koin = "4.0.4"
 coil = "3.2.0"
 kotlinx-datetime = "0.6.2"
 kotlinx-serialization = "1.8.1"
+kotlinx-coroutines = "1.10.1"
 navigation-compose = "2.9.0-beta03"
+turbine = "1.2.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -52,6 +54,8 @@ coil-network-ktor = { module = "io.coil-kt.coil3:coil-network-ktor3", version.re
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigation-compose" }
+turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

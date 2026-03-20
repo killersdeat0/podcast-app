@@ -2,6 +2,18 @@
 
 All routes under `src/app/api/`. Every route requires an authenticated Supabase session via cookie (server client) unless noted otherwise.
 
+## Supabase Edge Functions (Mobile)
+
+The mobile app calls Supabase Edge Functions directly rather than web API routes. Edge functions live in `supabase/functions/` and require `Authorization: Bearer <anon_key>`.
+
+| Function | Description |
+|----------|-------------|
+| `podcasts-search?q=<term>` | iTunes Search API proxy (same as `/api/podcasts/search`) |
+| `podcasts-trending?genreId=<id>` | Top charts (no genreId) or genre-filtered trending podcasts |
+| `podcasts-feed?url=<feedUrl>` | RSS feed parse (same as `/api/podcasts/feed`) |
+
+`podcasts-trending` mirrors the web's `/api/podcasts/trending` route: without `genreId` it fetches Apple Top Charts then enriches via iTunes Lookup; with `genreId > 0` it uses iTunes Search with `genreId` filter.
+
 ---
 
 ## Podcast Discovery

@@ -53,12 +53,15 @@ kotlin {
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.navigation.compose)
+            implementation(compose.materialIconsExtended)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.turbine)
+            implementation(libs.kotlinx.coroutines.test)
         }
     }
 }
