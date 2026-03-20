@@ -10,9 +10,12 @@ import { useUser } from '@/lib/auth/UserContext'
 import { toast } from 'sonner'
 import { useUserPlaylists } from '@/hooks/useUserPlaylists'
 import { addEpisodeToPlaylist } from '@/lib/playlists/addEpisodeToPlaylist'
-import { Play, Plus, Check } from 'lucide-react'
+import { Play, Plus, Check, RefreshCw } from 'lucide-react'
 import { computeNewEpisodes } from '@/lib/subscriptions/computeNewEpisodes'
 import { mergeEpisodeSources } from '@/lib/episodes/mergeEpisodeSources'
+import { PodcastCard } from '@/components/podcasts/PodcastCard'
+import { SkeletonPodcastCard } from '@/components/ui/Skeleton'
+import type { ItunesResult } from '@/lib/itunes/search'
 import * as Dialog from '@radix-ui/react-dialog'
 import AuthPromptModal from '@/components/ui/AuthPromptModal'
 import UpgradeModal from '@/components/ui/UpgradeModal'
@@ -111,12 +114,24 @@ export default function PodcastPage() {
   const [itunesEpisodes, setItunesEpisodes] = useState<ItunesEpisode[] | null>(null)
   const [itunesLoading, setItunesLoading] = useState(false)
 
+  // Feed refresh key (increment to bypass cache)
+  const [feedRefreshKey, setFeedRefreshKey] = useState(0)
+
+  // All subscriptions (for filtering similar podcasts)
+  const [allSubscriptions, setAllSubscriptions] = useState<{ feedUrl: string }[]>([])
+
+  // Similar podcasts
+  const [similarPodcasts, setSimilarPodcasts] = useState<ItunesResult[]>([])
+  const [similarLoading, setSimilarLoading] = useState(false)
+  const [similarDebug, setSimilarDebug] = useState<Record<string, unknown> | null>(null)
+
 
   useEffect(() => {
     if (!feedUrl) return
     setLoading(true)
     setError(false)
-    fetch(`/api/podcasts/feed?url=${encodeURIComponent(feedUrl)}`)
+    const url = `/api/podcasts/feed?url=${encodeURIComponent(feedUrl)}${feedRefreshKey > 0 ? '&nocache=1' : ''}`
+    fetch(url)
       .then((r) => {
         if (!r.ok) throw new Error()
         return r.json()
@@ -128,7 +143,7 @@ export default function PodcastPage() {
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false))
-  }, [feedUrl]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [feedUrl, feedRefreshKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Check subscription status + current queue + tier
   useEffect(() => {
@@ -141,6 +156,7 @@ export default function PodcastPage() {
     fetch('/api/subscriptions')
       .then((r) => r.json())
       .then((subs: SubscriptionRow[]) => {
+        setAllSubscriptions(subs.map((s) => ({ feedUrl: s.feed_url })))
         // Match by feed URL param (discover links), iTunes collection ID, or encoded feed URL
         const sub = subs.find((s) => {
           if (paramFeedUrl && s.feed_url === paramFeedUrl) return true
@@ -193,6 +209,28 @@ export default function PodcastPage() {
       .catch(() => {})
   }, [feedUrl, oldLastVisitedAt, subscribed])
 
+  const handleRefreshFeed = () => setFeedRefreshKey(k => k + 1)
+
+  const fetchSimilar = useCallback(async () => {
+    if (!feed) return
+    setSimilarLoading(true)
+    try {
+      const params = new URLSearchParams({ term: feed.title })
+      if (collectionId) params.set('excludeId', collectionId)
+      else if (feedUrl) params.set('excludeFeedUrl', feedUrl)
+      if (allSubscriptions.length > 0)
+        params.set('subscribedFeedUrls', allSubscriptions.map((sub: { feedUrl: string }) => sub.feedUrl).join(','))
+      const res = await fetch(`/api/podcasts/similar?${params}`)
+      const data = await res.json()
+      setSimilarPodcasts(data.results ?? [])
+      if (process.env.NODE_ENV === 'development') setSimilarDebug(data.debug ?? null)
+    } catch {
+      setSimilarPodcasts([])
+    } finally {
+      setSimilarLoading(false)
+    }
+  }, [feed, collectionId, feedUrl, allSubscriptions])
+
   // Fetch episode progress for this feed to show played/partial indicators
   const refreshEpisodeProgress = useCallback(() => {
     if (!feedUrl || isGuest) return
@@ -212,6 +250,13 @@ export default function PodcastPage() {
     window.addEventListener('history-changed', refreshEpisodeProgress)
     return () => window.removeEventListener('history-changed', refreshEpisodeProgress)
   }, [refreshEpisodeProgress])
+
+  useEffect(() => { fetchSimilar() }, [fetchSimilar])
+
+  useEffect(() => {
+    window.addEventListener('subscriptions-changed', fetchSimilar)
+    return () => window.removeEventListener('subscriptions-changed', fetchSimilar)
+  }, [fetchSimilar])
 
   // Fetch iTunes episodes lazily when user starts searching
   useEffect(() => {
@@ -990,6 +1035,14 @@ export default function PodcastPage() {
                     <span className="text-xs font-semibold uppercase tracking-wider text-gray-600">All Episodes</span>
                     <div className="flex-1 h-px bg-gray-800/60" />
                     {totalPages > 1 && <span className="text-xs text-gray-700">{episodePage + 1} / {totalPages}</span>}
+                    <button
+                      onClick={handleRefreshFeed}
+                      disabled={loading}
+                      title="Refresh episodes"
+                      className="text-gray-600 hover:text-gray-400 disabled:opacity-30 transition-colors"
+                    >
+                      <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+                    </button>
                   </div>
                   {pagedEpisodes.map((ep) => renderEpisodeRow(ep))}
                   {totalPages > 1 && (
@@ -1002,6 +1055,35 @@ export default function PodcastPage() {
               </>
             )}
           </>
+        )}
+
+        {/* Similar Podcasts */}
+        {(similarLoading || similarPodcasts.length > 0) && (
+          <div className="mt-8">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-xs font-semibold uppercase tracking-wider text-gray-600">
+                {s.podcast_page.similar_heading}
+              </span>
+              <div className="flex-1 h-px bg-gray-800/60" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {similarLoading
+                ? Array.from({ length: 6 }).map((_, i) => <SkeletonPodcastCard key={i} />)
+                : similarPodcasts.map((p) => <PodcastCard key={p.collectionId} podcast={p} />)}
+            </div>
+          </div>
+        )}
+
+        {/* Dev-only: similar podcasts debug panel */}
+        {process.env.NODE_ENV === 'development' && !similarLoading && similarDebug && (
+          <details className="mt-6 rounded-lg border border-dashed border-gray-700 p-3 text-xs text-gray-500">
+            <summary className="cursor-pointer font-mono text-yellow-600 hover:text-yellow-400">
+              [dev] similar podcasts — {similarPodcasts.length} result{similarPodcasts.length !== 1 ? 's' : ''}
+            </summary>
+            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-gray-400">
+              {JSON.stringify(similarDebug, null, 2)}
+            </pre>
+          </details>
         )}
       </div>
     </div>

@@ -16,12 +16,37 @@ Proxies the iTunes Search API. No auth required.
 
 ---
 
-### `GET /api/podcasts/feed?url=<feedUrl>`
-Fetches and parses an RSS feed server-side. No auth required.
+### `GET /api/podcasts/feed?url=<feedUrl>&nocache=1`
+Fetches and parses an RSS feed server-side. No auth required. Responses are cached server-side for 1 hour (shared across all users for the same feedUrl). Pass `nocache=1` to bypass the cache and force a fresh fetch.
 
 **Response:** Parsed feed object with `title`, `artworkUrl`, `episodes[]` (see `src/lib/rss/parser.ts` for full shape).
 
 **Errors:** `400` if `url` missing, `502` if feed fails to parse.
+
+---
+
+### `GET /api/podcasts/similar?term=<title>&excludeId=<collectionId>&excludeFeedUrl=<feedUrl>&subscribedFeedUrls=<csv>`
+Returns up to 6 similar podcasts. No auth required. Underlying iTunes calls are cached 24 hours server-side; route response is not cached (results are personalised by subscription filtering).
+
+**Search strategy (runs in parallel):**
+1. If `excludeId` is provided, looks up the podcast's `genreIds` via iTunes (cached 24hr), filters out generic parent categories (IDs < 1300), caps at 3 genres
+2. **With genres:** name+genre search for each genre + genre-only popular search for each genre (max 6 parallel iTunes calls)
+3. **Without genres** (no `excludeId` or lookup failed): name-only search as fallback
+
+Results are merged in priority order (name+genre first, genre-only second), deduplicated by `collectionId` (first occurrence wins), filtered, and capped at 6.
+
+**Query params:**
+- `term` (required) — podcast title; stop words (`the`, `podcast`, `show`, etc.) are stripped before searching
+- `excludeId` (optional) — collectionId of the current podcast to exclude and use for genre lookup
+- `excludeFeedUrl` (optional) — feedUrl fallback for exclusion when `excludeId` is unavailable
+- `subscribedFeedUrls` (optional) — comma-separated feedUrls to exclude (user's existing subscriptions)
+
+**Response:**
+```json
+{ "results": [{ "collectionId": 123, "collectionName": "...", "artworkUrl600": "...", "feedUrl": "...", "primaryGenreName": "..." }] }
+```
+
+In `NODE_ENV=development`, also returns a `debug` object with `cleanedTerm`, `genreIds`, per-pass result counts, and a filtering breakdown.
 
 ---
 

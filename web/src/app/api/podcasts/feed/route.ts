@@ -10,9 +10,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 })
   }
 
+  const nocache = req.nextUrl.searchParams.get('nocache') === '1'
+
   const res = await fetch(
     `${supabaseUrl}/functions/v1/podcasts-feed?url=${encodeURIComponent(feedUrl)}`,
-    { headers: { Authorization: `Bearer ${supabaseKey}` } }
+    {
+      headers: { Authorization: `Bearer ${supabaseKey}` },
+      ...(nocache ? { cache: 'no-store' } : { next: { revalidate: 3600 } }),
+    }
   )
   if (!res.ok) return NextResponse.json({ error: 'Failed to parse feed' }, { status: 502 })
   const feed = await res.json()

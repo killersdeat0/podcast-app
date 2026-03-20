@@ -3,7 +3,7 @@
 ## Context
 
 Two improvements to the podcast detail page:
-1. **Similar Podcasts** — A "You might also like 🎧" section at the bottom of the podcast page, using iTunes keyword search (existing infrastructure) to surface related content and filtering out the current podcast + already-subscribed podcasts.
+1. **Similar Podcasts** — A "You might also like 🎧" section at the bottom of the podcast page. Uses a multi-pass iTunes search strategy (name+genre per genre, then genre-only per genre, fallback to name-only) to surface relevant content. Filters out the current podcast and already-subscribed podcasts.
 2. **Episode list caching** — The RSS feed is re-fetched on every page load. Cache it server-side (Next.js fetch cache, shared across all users) for 1 hour with a manual refresh button next to the "All Episodes" label.
 
 ---
@@ -12,14 +12,16 @@ Two improvements to the podcast detail page:
 
 | Decision | Choice |
 |---|---|
-| Similarity signal | iTunes keyword search on podcast title |
+| Similarity signal | Multi-pass iTunes search: name+genre (all genres) → genre-only (all genres) → name-only fallback |
 | Placement | Below episodes |
 | Card count | 6 |
 | Guest visibility | Visible (no auth required) |
 | Subscription filtering | Client passes loaded feedUrls; API filters server-side |
 | Subscription invalidation | Re-fetch on `subscriptions-changed` window event |
 | No-results behavior | Hide section entirely |
-| iTunes cache TTL | 24 hours |
+| iTunes cache TTL | 24 hours (fetch-level; route response not cached — personalised) |
+| Genre lookup | iTunes lookup by collectionId → `genreIds[]`, IDs ≥ 1300 only, max 3 |
+| Dev debug panel | Always visible in dev; shows cleanedTerm, genreIds, per-pass counts, filter breakdown |
 | Episode list cache | Server-side Next.js fetch cache, shared across users, 1hr TTL |
 | Refresh button location | Next to "All Episodes" divider label |
 | Section heading | "You might also like 🎧" |
@@ -30,21 +32,27 @@ Two improvements to the podcast detail page:
 
 ### Part 1 — Similar Podcasts
 
-- [ ] **1a. Create `/api/podcasts/similar/route.ts`**
-- [ ] **1b. Extract `PodcastCard` to `web/src/components/podcasts/PodcastCard.tsx`**
-- [ ] **1c. Update `discover/page.tsx`** to import `PodcastCard` from shared location
-- [ ] **1d. Add i18n strings** (`podcast_page.similar_heading`) to `en.ts` and `es.ts`
-- [ ] **1e. Update podcast detail page** — add state, `fetchSimilar`, `subscriptions-changed` listener, and UI section
+- [x] **1a. Create `/api/podcasts/similar/route.ts`**
+- [x] **1b. Extract `PodcastCard` to `web/src/components/podcasts/PodcastCard.tsx`**
+- [x] **1c. Update `discover/page.tsx`** to import `PodcastCard` from shared location
+- [x] **1d. Add i18n strings** (`podcast_page.similar_heading`) to `en.ts` and `es.ts`
+- [x] **1e. Update podcast detail page** — add state, `fetchSimilar`, `subscriptions-changed` listener, and UI section
 
 ### Part 2 — Episode List Caching + Refresh Button
 
-- [ ] **2a. Update `/api/podcasts/feed/route.ts`** — add `revalidate: 3600` + `nocache` param support
-- [ ] **2b. Update podcast detail page** — add `feedRefreshKey` state, `handleRefreshFeed`, and refresh button UI
+- [x] **2a. Update `/api/podcasts/feed/route.ts`** — add `revalidate: 3600` + `nocache` param support
+- [x] **2b. Update podcast detail page** — add `feedRefreshKey` state, `handleRefreshFeed`, and refresh button UI
+
+### Tests
+
+- [x] **3a. Unit tests for `/api/podcasts/similar/route.ts`** — new `route.test.ts`
+- [x] **3b. Unit tests for `/api/podcasts/feed/route.ts`** — add nocache cases to existing `route.test.ts`
+- [x] **3c. E2E tests** — extend `smoke.spec.ts` podcast page flow with refresh button + similar section
 
 ### Wrap-up
 
-- [ ] **3a. Update `docs/api.md`** — document `/api/podcasts/similar`
-- [ ] **3b. Run unit tests** — `cd web && npm test -- --run`
+- [x] **4a. Update `docs/api.md`** — document `/api/podcasts/similar`
+- [x] **4b. Run unit tests** — `cd web && npm test -- --run`
 
 ---
 

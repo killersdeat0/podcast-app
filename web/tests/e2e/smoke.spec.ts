@@ -143,7 +143,15 @@ test.describe('core user flow', () => {
     const sidebarHref = await sidebarPodcastLink.getAttribute('href')
     expect(sidebarHref).not.toContain('?')
 
-    // ─── Step 7c: play the first episode ─────────────────────────────────
+    // ─── Step 7c: verify refresh button and similar podcasts section ──────
+    // The refresh button sits next to the "All Episodes" label.
+    await expect(page.getByTitle('Refresh episodes')).toBeVisible({ timeout: 5_000 })
+
+    // The "You might also like" section loads after the feed — wait for it.
+    // It renders when the /api/podcasts/similar response arrives (iTunes API).
+    await expect(page.getByText(/you might also like/i)).toBeVisible({ timeout: 15_000 })
+
+    // ─── Step 7d: play the first episode ─────────────────────────────────
     // Each episode row has a flex-1 play button. Clicking it calls play()
     // on PlayerContext, which sets nowPlaying and updates the <audio> src.
     const firstPlayBtn = page.locator('button.flex-1').first()

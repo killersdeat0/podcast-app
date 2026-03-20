@@ -130,6 +130,7 @@ const en = {
     filter_save: 'Save 🎯',
     search_results: 'Search Results',
     loading_more: 'Loading more…',
+    similar_heading: 'You might also like 🎧',
   },
   auth: {
     login_heading: 'Welcome back',

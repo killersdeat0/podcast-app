@@ -42,4 +42,22 @@ describe('GET /api/podcasts/feed', () => {
     expect(body.episodes[0].guid).toBe('ep-1')
     expect(body.episodes[0].duration).toBe(1800) // 30:00 = 1800s
   })
+
+  it('uses revalidate cache by default', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({}) }))
+    const req = new NextRequest('http://localhost/api/podcasts/feed?url=https://example.com/feed.xml')
+    await GET(req)
+    const fetchCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(fetchCall[1]).toMatchObject({ next: { revalidate: 3600 } })
+    expect(fetchCall[1].cache).toBeUndefined()
+  })
+
+  it('uses no-store cache when nocache=1 is set', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({}) }))
+    const req = new NextRequest('http://localhost/api/podcasts/feed?url=https://example.com/feed.xml&nocache=1')
+    await GET(req)
+    const fetchCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(fetchCall[1]).toMatchObject({ cache: 'no-store' })
+    expect(fetchCall[1].next).toBeUndefined()
+  })
 })
