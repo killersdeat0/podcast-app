@@ -100,6 +100,14 @@ Read any relevant docs before making changes
 
 Podcast discovery proxies through `web/src/app/api/podcasts/search` → calls `supabase/functions/podcasts-search` → iTunes Search API. Episode list fetches via `web/src/app/api/podcasts/feed` → calls `supabase/functions/podcasts-feed` → fetches and parses RSS with `fast-xml-parser`. The Edge Functions are also used directly by the mobile app.
 
+`/api/podcasts/feed` caches responses server-side for 1 hour (shared across all users for the same feedUrl). Pass `?nocache=1` to bypass the cache — the route switches to `cache: 'no-store'` for that request. Use this pattern for any route that needs manual cache invalidation without a full revalidation strategy.
+
+`/api/podcasts/similar` returns up to 6 similar podcasts using a multi-pass iTunes search (name+genre per genre, genre-only per genre, name-only fallback). Looks up `genreIds` via iTunes lookup cached 24hr. See `docs/api.md` for full details.
+
+**Shared UI components:** `web/src/components/podcasts/PodcastCard.tsx` — reusable podcast card used by both the Discover page and the podcast detail page's similar podcasts section.
+
+**Dev-only debug panels:** API routes can return an additional `debug` object when `process.env.NODE_ENV === 'development'`. The client checks `process.env.NODE_ENV === 'development'` and renders a collapsible `<details>` panel with `JSON.stringify(debug)`. Never include `debug` in production responses.
+
 ### i18n
 
 All user-facing strings live in `web/src/lib/i18n/`. The active locale is stored in `localStorage` and toggled from **Profile → Language**. Use `useStrings()` from `LocaleContext.tsx` in every client component — never the static `strings` export from `index.ts`. When writing or editing user-visible text, keep it fun: use emojis in titles/empty states and write CTAs as actions. See `docs/i18n.md` for the full guide.
