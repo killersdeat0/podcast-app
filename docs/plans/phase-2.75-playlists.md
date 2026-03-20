@@ -21,7 +21,6 @@ Let users create named, reusable playlists separate from the ephemeral queue. Pl
 - [x] RLS: owner full access; authenticated users can read public playlists/episodes; **no anon policy**
 - [x] Anonymous reads for public playlists handled via `createAdminClient()` in API route (no anon RLS policy)
 - [x] New file: `web/src/lib/supabase/admin.ts` — service-role client (never `NEXT_PUBLIC_*`) — already existed
-- [ ] Add `SUPABASE_SERVICE_ROLE_KEY=` to `web/.env.local`
 - [x] Shared helper: `web/src/lib/playlists/verifyOwnership.ts`
 
 ### API Routes (`src/app/api/playlists/`)
