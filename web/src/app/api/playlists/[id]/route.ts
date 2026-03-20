@@ -38,7 +38,7 @@ export async function GET(
       ? supabase.from('subscriptions').select('feed_url, artwork_url').in('feed_url', feedUrls)
       : { data: [] },
     guids.length > 0 && user
-      ? supabase.from('playback_progress').select('episode_guid, position_seconds, completed').eq('user_id', user.id).in('episode_guid', guids)
+      ? supabase.from('playback_progress').select('episode_guid, position_seconds, position_pct, completed').eq('user_id', user.id).in('episode_guid', guids)
       : { data: [] },
   ])
 
@@ -53,6 +53,7 @@ export async function GET(
       ...pe,
       episode: ep ? { ...ep, artwork_url: subArtworkMap.get(pe.feed_url) || ep.artwork_url || null } : null,
       position_seconds: prog?.position_seconds ?? 0,
+      position_pct: prog?.position_pct ?? null,
       completed: prog?.completed ?? false,
     }
   })

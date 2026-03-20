@@ -15,6 +15,7 @@ export interface PodcastFeed {
   description: string
   artworkUrl: string
   episodes: Episode[]
+  total?: number
 }
 
 const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' })

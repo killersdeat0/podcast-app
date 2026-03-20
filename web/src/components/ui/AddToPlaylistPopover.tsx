@@ -81,8 +81,8 @@ export default function AddToPlaylistPopover({
         disabled={loading}
         className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${
           added
-            ? 'text-green-400 bg-green-500/10'
-            : 'text-gray-600 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100'
+            ? 'text-playback-indicator bg-playback-indicator/10'
+            : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high opacity-0 group-hover:opacity-100'
         }`}
       >
         {loading
@@ -96,14 +96,14 @@ export default function AddToPlaylistPopover({
         <div
           ref={refs.setFloating}
           style={floatingStyles}
-          className="z-20 bg-gray-800 border border-gray-700 rounded-lg overflow-hidden shadow-xl flex flex-col max-h-72 w-52"
+          className="z-20 bg-surface-container border border-outline-variant rounded-lg overflow-hidden shadow-xl flex flex-col max-h-72 w-52"
           onClick={(e) => e.stopPropagation()}
         >
-          <p className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-700 flex-shrink-0">
+          <p className="px-3 py-2 text-xs font-semibold text-on-surface-variant uppercase tracking-wider border-b border-outline-variant flex-shrink-0">
             {strings.playlists.add_to_playlist}
           </p>
           {playlists.length > SEARCH_THRESHOLD && (
-            <div className="px-2 py-1.5 border-b border-gray-700 flex-shrink-0">
+            <div className="px-2 py-1.5 border-b border-outline-variant flex-shrink-0">
               <input
                 ref={searchRef}
                 type="text"
@@ -111,19 +111,19 @@ export default function AddToPlaylistPopover({
                 onChange={(e) => setQuery(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
                 placeholder={strings.playlists.search_placeholder}
-                className="w-full bg-gray-700 text-sm text-gray-200 placeholder-gray-500 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-violet-500"
+                className="w-full bg-surface-container-high text-sm text-on-surface placeholder-on-surface-variant rounded px-2 py-1 outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
           )}
           <div className="overflow-y-auto">
             {filtered.length === 0 ? (
-              <p className="px-3 py-3 text-sm text-gray-500 text-center">{strings.playlists.search_no_results}</p>
+              <p className="px-3 py-3 text-sm text-on-surface-variant text-center">{strings.playlists.search_no_results}</p>
             ) : (
               filtered.map((pl) => (
                 <button
                   key={pl.id}
                   onClick={async (e) => { e.stopPropagation(); handleClose(); setLoading(true); try { await onSelect(pl.id); setAdded(true); setTimeout(() => setAdded(false), 1500) } catch {} finally { setLoading(false) } }}
-                  className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+                  className="w-full text-left px-3 py-2 text-sm text-on-surface hover:bg-surface-container-high transition-colors"
                 >
                   {pl.name}
                 </button>

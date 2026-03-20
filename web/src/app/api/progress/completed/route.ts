@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
   const { data } = await supabase
     .from('playback_progress')
-    .select('episode_guid, position_seconds, completed')
+    .select('episode_guid, position_seconds, position_pct, completed')
     .eq('user_id', user.id)
     .eq('feed_url', feedUrl)
     .gt('position_seconds', 0)
@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
     progress: (data ?? []).map((r) => ({
       guid: r.episode_guid,
       positionSeconds: r.position_seconds,
+      positionPct: r.position_pct ?? null,
       completed: r.completed ?? false,
     })),
   })

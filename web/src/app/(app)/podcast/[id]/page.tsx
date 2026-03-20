@@ -10,7 +10,8 @@ import { useUser } from '@/lib/auth/UserContext'
 import { toast } from 'sonner'
 import { useUserPlaylists } from '@/hooks/useUserPlaylists'
 import { addEpisodeToPlaylist } from '@/lib/playlists/addEpisodeToPlaylist'
-import { Play, Plus, Check, RefreshCw } from 'lucide-react'
+import { Play, Plus, Check, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
+import { LIVE_POSITION_INTERVAL_MS } from '@/lib/player/constants'
 import { computeNewEpisodes } from '@/lib/subscriptions/computeNewEpisodes'
 import { mergeEpisodeSources } from '@/lib/episodes/mergeEpisodeSources'
 import { PodcastCard } from '@/components/podcasts/PodcastCard'
@@ -20,6 +21,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import AuthPromptModal from '@/components/ui/AuthPromptModal'
 import UpgradeModal from '@/components/ui/UpgradeModal'
 import AddToPlaylistPopover from '@/components/ui/AddToPlaylistPopover'
+import { EpisodeProgressOverlay } from '@/components/ui/EpisodeProgressOverlay'
 
 interface SubscriptionRow {
   feed_url: string
@@ -67,7 +69,7 @@ export default function PodcastPage() {
   const paramFeedUrl = params.get('feed') ?? ''
   const paramTitle = params.get('title') ?? ''
   const paramArtwork = params.get('artwork') ?? ''
-  const { play, clientQueue, enqueueClient, dequeueClient } = usePlayer()
+  const { play, clientQueue, enqueueClient, dequeueClient, nowPlaying, playing, audioRef } = usePlayer()
   const { isGuest, tier: contextTier } = useUser()
   const s = useStrings()
   const router = useRouter()
@@ -100,7 +102,9 @@ export default function PodcastPage() {
   const [episodePage, setEpisodePage] = useState(0)
   const [searchPage, setSearchPage] = useState(0)
   const [storedNewEpisodes, setStoredNewEpisodes] = useState<Episode[]>([])
-  const [episodeProgress, setEpisodeProgress] = useState<Map<string, { positionSeconds: number; completed: boolean }>>(new Map())
+  const [episodeProgress, setEpisodeProgress] = useState<Map<string, { positionSeconds: number; positionPct: number | null; completed: boolean }>>(new Map())
+  const [livePosition, setLivePosition] = useState(0)
+  const [liveDuration, setLiveDuration] = useState(0)
 
   // Navigation warning modal state
   const [navWarningOpen, setNavWarningOpen] = useState(false)
@@ -116,6 +120,7 @@ export default function PodcastPage() {
 
   // Feed refresh key (increment to bypass cache)
   const [feedRefreshKey, setFeedRefreshKey] = useState(0)
+  const [episodeLimit, setEpisodeLimit] = useState(15)
 
   // All subscriptions (for filtering similar podcasts)
   const [allSubscriptions, setAllSubscriptions] = useState<{ feedUrl: string }[]>([])
@@ -130,7 +135,7 @@ export default function PodcastPage() {
     if (!feedUrl) return
     setLoading(true)
     setError(false)
-    const url = `/api/podcasts/feed?url=${encodeURIComponent(feedUrl)}${feedRefreshKey > 0 ? '&nocache=1' : ''}`
+    const url = `/api/podcasts/feed?url=${encodeURIComponent(feedUrl)}&limit=${episodeLimit}${feedRefreshKey > 0 ? '&nocache=1' : ''}`
     fetch(url)
       .then((r) => {
         if (!r.ok) throw new Error()
@@ -143,7 +148,7 @@ export default function PodcastPage() {
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false))
-  }, [feedUrl, feedRefreshKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [feedUrl, feedRefreshKey, episodeLimit]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Check subscription status + current queue + tier
   useEffect(() => {
@@ -236,7 +241,7 @@ export default function PodcastPage() {
     if (!feedUrl || isGuest) return
     fetch(`/api/progress/completed?feedUrl=${encodeURIComponent(feedUrl)}`)
       .then((r) => r.json())
-      .then((data: { progress: Array<{ guid: string; positionSeconds: number; completed: boolean }> }) => {
+      .then((data: { progress: Array<{ guid: string; positionSeconds: number; positionPct: number | null; completed: boolean }> }) => {
         setEpisodeProgress(new Map((data.progress ?? []).map((p) => [p.guid, p])))
       })
       .catch(() => {})
@@ -250,6 +255,22 @@ export default function PodcastPage() {
     window.addEventListener('history-changed', refreshEpisodeProgress)
     return () => window.removeEventListener('history-changed', refreshEpisodeProgress)
   }, [refreshEpisodeProgress])
+
+  useEffect(() => {
+    setLivePosition(0)
+    setLiveDuration(0)
+  }, [nowPlaying?.guid])
+
+  useEffect(() => {
+    if (!nowPlaying || nowPlaying.feedUrl !== feedUrl) return
+    const id = setInterval(() => {
+      if (audioRef.current) {
+        setLivePosition(audioRef.current.currentTime)
+        setLiveDuration(audioRef.current.duration || 0)
+      }
+    }, LIVE_POSITION_INTERVAL_MS)
+    return () => clearInterval(id)
+  }, [nowPlaying, feedUrl, audioRef])
 
   useEffect(() => { fetchSimilar() }, [fetchSimilar])
 
@@ -611,43 +632,34 @@ export default function PodcastPage() {
     const inQueue = queuedGuids.has(ep.guid)
     const prog = episodeProgress.get(ep.guid)
     const isPlayed = prog?.completed ?? false
-    const pct = (!isPlayed && prog && ep.duration && ep.duration > 0)
-      ? Math.min(100, Math.round((prog.positionSeconds / ep.duration) * 100))
-      : null
-    const remaining = (pct !== null && ep.duration)
-      ? formatDuration(ep.duration - prog!.positionSeconds)
-      : null
+    const isCurrentlyPlaying = nowPlaying?.guid === ep.guid && playing
+    const isLoaded = nowPlaying?.guid === ep.guid
+    const livePct = isLoaded && liveDuration > 0 ? Math.min(100, Math.round((livePosition / liveDuration) * 100)) : null
+    const pct = isPlayed ? 100 : (livePct ?? prog?.positionPct ?? null)
     return (
-      <div key={ep.guid} className="group flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-lg transition-colors">
+      <div key={ep.guid} className={`group relative flex items-center gap-3 px-4 py-3 rounded-lg transition-colors overflow-hidden ${isCurrentlyPlaying ? 'bg-now-playing-surface' : 'hover:bg-surface-container-high/30'}`}>
+        <EpisodeProgressOverlay pct={pct} isPlaying={isCurrentlyPlaying} />
         {/* New dot */}
-        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isNew ? 'bg-violet-400' : 'opacity-0'}`} />
+        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isNew ? 'bg-brand' : 'opacity-0'}`} />
 
         {/* Play button — fades in on hover */}
         <button
           onClick={() => playEpisode(ep)}
           title="Play"
-          className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all text-transparent bg-transparent group-hover:bg-violet-600 group-hover:text-white"
+          className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all text-transparent bg-transparent group-hover:bg-brand group-hover:text-on-surface"
         >
           <Play className="w-3.5 h-3.5 ml-0.5" fill="currentColor" />
         </button>
 
         {/* Title + metadata */}
         <button onClick={() => playEpisode(ep)} className="flex-1 text-left min-w-0">
-          <p className={`text-sm font-medium truncate ${isPlayed ? 'text-gray-400' : 'text-white'}`}>{ep.title}</p>
+          <p className={`text-sm font-medium truncate ${isPlayed ? 'text-on-surface-variant' : 'text-on-surface'}`}>{ep.title}</p>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xs text-gray-500">{new Date(ep.pubDate).toLocaleDateString()}</span>
-            {ep.duration && <span className="text-xs text-gray-500">{formatDuration(ep.duration)}</span>}
-            {isNew && <span className="text-[10px] font-semibold uppercase tracking-wide text-violet-400">New</span>}
-            {isPlayed && !isNew && <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-600">✓ Played</span>}
-            {pct !== null && remaining && (
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">{remaining} left</span>
-            )}
+            <span className="text-xs text-on-surface-dim">{new Date(ep.pubDate).toLocaleDateString()}</span>
+            {ep.duration && <span className="text-xs text-on-surface-dim">{formatDuration(ep.duration)}</span>}
+            {isNew && <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">New</span>}
+            {isPlayed && !isNew && <span className="text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant">✓ Played</span>}
           </div>
-          {pct !== null && (
-            <div className="mt-1.5 h-0.5 w-full bg-gray-800 rounded-full overflow-hidden">
-              <div className="h-full bg-violet-500/60 rounded-full" style={{ width: `${pct}%` }} />
-            </div>
-          )}
         </button>
 
         {/* Queue button — hidden until hover, stays visible when queued */}
@@ -657,8 +669,8 @@ export default function PodcastPage() {
           title={inQueue ? s.podcast_page.remove_from_queue : s.podcast_page.add_to_queue}
           className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all ${
             inQueue
-              ? 'text-violet-400 hover:text-red-400 bg-violet-500/10'
-              : 'text-gray-600 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100'
+              ? 'text-primary hover:text-error bg-primary/10'
+              : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high opacity-0 group-hover:opacity-100'
           }`}
         >
           {togglingQueueGuid === ep.guid
@@ -689,25 +701,25 @@ export default function PodcastPage() {
         <div className="relative flex gap-4 md:gap-5 items-end px-4 md:px-8 pt-8 md:pt-10 pb-6">
           {artwork && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={artwork} alt={title} className="w-24 h-24 md:w-36 md:h-36 rounded-xl md:rounded-2xl object-cover flex-shrink-0 shadow-2xl ring-1 ring-white/10" />
+            <img src={artwork} alt={title} className="w-24 h-24 md:w-36 md:h-36 rounded-xl md:rounded-2xl object-cover flex-shrink-0 shadow-2xl ring-1 ring-outline-variant" />
           )}
           <div className="min-w-0 pb-1">
-            <h1 className="text-2xl md:text-3xl font-bold text-white leading-tight mb-1">{title}</h1>
-            {feed && <p className="text-gray-300/80 text-sm line-clamp-2 mb-3 leading-relaxed">{feed.description}</p>}
+            <h1 className="text-2xl md:text-3xl font-bold text-on-surface leading-tight mb-1">{title}</h1>
+            {feed && <p className="text-on-surface/80 text-sm line-clamp-2 mb-3 leading-relaxed">{feed.description}</p>}
             <div className="flex items-center gap-3 flex-wrap">
               <button
                 onClick={toggleSubscribe}
                 disabled={subscribing}
                 className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors disabled:opacity-50 ${
                   subscribed
-                    ? 'bg-white/10 hover:bg-white/20 text-white ring-1 ring-white/20'
-                    : 'bg-violet-600 hover:bg-violet-500 text-white'
+                    ? 'bg-surface-container-high hover:bg-surface-container-highest text-on-surface ring-1 ring-outline-variant'
+                    : 'bg-brand hover:bg-brand text-on-surface'
                 }`}
               >
                 {subscribing ? '...' : subscribed ? s.podcast_page.subscribed : s.podcast_page.subscribe}
               </button>
               {process.env.NODE_ENV === 'development' && subscribed && (
-                <button onClick={devResetLastVisited} className="text-xs text-red-400 underline">
+                <button onClick={devResetLastVisited} className="text-xs text-error underline">
                   [dev] reset last visited → 7 days ago
                 </button>
               )}
@@ -720,8 +732,8 @@ export default function PodcastPage() {
       <div className="px-4 md:px-8 pb-8">
         {error ? (
           <div className="text-center py-12">
-            <p className="text-gray-400 mb-3">Failed to load episodes.</p>
-            <button onClick={() => window.location.reload()} className="text-violet-400 hover:text-violet-300 text-sm">
+            <p className="text-on-surface-variant mb-3">Failed to load episodes.</p>
+            <button onClick={() => window.location.reload()} className="text-primary hover:text-primary text-sm">
               Try again
             </button>
           </div>
@@ -730,21 +742,21 @@ export default function PodcastPage() {
             {Array.from({ length: 8 }).map((_, i) => <SkeletonEpisodeRow key={i} />)}
           </div>
         ) : feed?.episodes.length === 0 ? (
-          <p className="text-gray-400 text-sm">No episodes found.</p>
+          <p className="text-on-surface-variant text-sm">No episodes found.</p>
         ) : (
           <>
             {/* Guest nudge — sign in to track new episodes */}
             {isGuest && (
-              <div className="flex items-center gap-3 bg-violet-950/50 border border-violet-800/40 rounded-xl px-4 py-3 mb-4">
+              <div className="flex items-center gap-3 bg-primary-container/40 border border-primary/20 rounded-xl px-4 py-3 mb-4">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white">{s.podcast_page.guest_nudge_title}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{s.podcast_page.guest_nudge_description}</p>
+                  <p className="text-sm font-medium text-on-surface">{s.podcast_page.guest_nudge_title}</p>
+                  <p className="text-xs text-on-surface-variant mt-0.5">{s.podcast_page.guest_nudge_description}</p>
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
-                  <a href={`/login?returnTo=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '')}`} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/10 hover:bg-white/20 text-white transition-colors">
+                  <a href={`/login?returnTo=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '')}`} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-surface-container-high hover:bg-surface-container-highest text-on-surface transition-colors">
                     {s.podcast_page.guest_nudge_login}
                   </a>
-                  <a href="/signup" className="px-3 py-1.5 rounded-lg text-xs font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors">
+                  <a href="/signup" className="px-3 py-1.5 rounded-lg text-xs font-medium bg-brand hover:bg-brand text-on-surface transition-colors">
                     {s.podcast_page.guest_nudge_signup}
                   </a>
                 </div>
@@ -757,15 +769,15 @@ export default function PodcastPage() {
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setEpisodePage(0); setSearchPage(0) }}
               placeholder={s.podcast_page.search_placeholder}
-              className="w-full bg-gray-900 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-violet-500 mb-4"
+              className="w-full bg-surface-container-low rounded-lg px-4 py-2.5 text-sm text-on-surface placeholder-on-surface-variant outline-none focus:ring-2 focus:ring-primary mb-4"
             />
 
             {/* Filter skeleton */}
             {subscribed && contextTier === null && (
               <div className="flex items-center gap-2 mb-4 animate-pulse">
-                <div className="h-4 w-24 bg-gray-800 rounded-full" />
-                <div className="h-6 w-14 bg-gray-800 rounded-full" />
-                <div className="h-6 w-14 bg-gray-800 rounded-full" />
+                <div className="h-4 w-24 bg-surface-container rounded-full" />
+                <div className="h-6 w-14 bg-surface-container rounded-full" />
+                <div className="h-6 w-14 bg-surface-container rounded-full" />
               </div>
             )}
 
@@ -773,7 +785,7 @@ export default function PodcastPage() {
             {subscribed && contextTier === 'paid' && (
               <div className="mb-4">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-gray-600">{s.podcast_page.notifications_label}</span>
+                  <span className="text-xs text-on-surface-dim">{s.podcast_page.notifications_label}</span>
                   <button
                     onClick={async () => {
                       if (subscription?.episode_filter === '') return
@@ -791,8 +803,8 @@ export default function PodcastPage() {
                     disabled={savingFilter}
                     className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors disabled:opacity-50 ${
                       subscription?.episode_filter === ''
-                        ? 'bg-violet-600 text-white'
-                        : 'bg-gray-800 text-gray-400 hover:text-white'
+                        ? 'bg-brand text-on-surface'
+                        : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
                     }`}
                   >
                     {s.podcast_page.filter_off}
@@ -813,8 +825,8 @@ export default function PodcastPage() {
                     disabled={savingFilter}
                     className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors disabled:opacity-50 ${
                       subscription?.episode_filter === '*'
-                        ? 'bg-violet-600 text-white'
-                        : 'bg-gray-800 text-gray-400 hover:text-white'
+                        ? 'bg-brand text-on-surface'
+                        : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
                     }`}
                   >
                     📻 All
@@ -823,8 +835,8 @@ export default function PodcastPage() {
                     onClick={() => setFilterModalOpen(true)}
                     className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                       subscription?.episode_filter && subscription.episode_filter !== '*'
-                        ? 'bg-violet-600 text-white'
-                        : 'bg-gray-800 text-gray-400 hover:text-white'
+                        ? 'bg-brand text-on-surface'
+                        : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
                     }`}
                   >
                     {subscription?.episode_filter && subscription.episode_filter !== '*'
@@ -833,14 +845,14 @@ export default function PodcastPage() {
                   </button>
                   <button
                     onClick={() => setHelpOpen((v) => !v)}
-                    className="text-gray-700 hover:text-gray-400 transition-colors text-sm leading-none"
+                    className="text-on-surface-variant hover:text-on-surface-variant transition-colors text-sm leading-none"
                     title={s.podcast_page.filter_help_button}
                   >
                     ⓘ
                   </button>
                 </div>
                 {helpOpen && (
-                  <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+                  <p className="text-xs text-on-surface-dim mt-2 leading-relaxed">
                     {s.podcast_page.filter_help_text}
                   </p>
                 )}
@@ -850,7 +862,7 @@ export default function PodcastPage() {
             {/* Episode filter — free: compact pill row */}
             {subscribed && contextTier === 'free' && (
               <div className="flex items-center gap-2 flex-wrap mb-4">
-                <span className="text-xs text-gray-600">{s.podcast_page.notifications_label}</span>
+                <span className="text-xs text-on-surface-dim">{s.podcast_page.notifications_label}</span>
                 <button
                   onClick={async () => {
                     const next = subscription?.episode_filter === '*' ? '' : '*'
@@ -867,8 +879,8 @@ export default function PodcastPage() {
                   disabled={savingFilter}
                   className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors disabled:opacity-50 ${
                     subscription?.episode_filter !== ''
-                      ? 'bg-violet-600 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:text-white'
+                      ? 'bg-brand text-on-surface'
+                      : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
                   }`}
                 >
                   📻 All
@@ -889,13 +901,13 @@ export default function PodcastPage() {
                   disabled={savingFilter}
                   className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors disabled:opacity-50 ${
                     subscription?.episode_filter === ''
-                      ? 'bg-gray-700 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:text-white'
+                      ? 'bg-surface-container-high text-on-surface'
+                      : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
                   }`}
                 >
                   {s.podcast_page.filter_off}
                 </button>
-                <a href="/upgrade" className="text-xs text-gray-600 hover:text-violet-400 transition-colors ml-1">
+                <a href="/upgrade" className="text-xs text-on-surface-dim hover:text-primary transition-colors ml-1">
                   Pro: custom filters →
                 </a>
               </div>
@@ -904,32 +916,32 @@ export default function PodcastPage() {
             {/* Custom filter modal */}
             <Dialog.Root open={filterModalOpen} onOpenChange={(o) => { if (!o) { setEpisodeFilter(subscription?.episode_filter ?? ''); setFilterModalOpen(false) } }}>
               <Dialog.Portal>
-                <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
+                <Dialog.Overlay className="fixed inset-0 z-50 bg-scrim backdrop-blur-sm" />
                 <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 p-4 focus:outline-none">
-                  <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 shadow-xl">
-                    <Dialog.Title className="text-base font-semibold text-white mb-1">{s.podcast_page.filter_modal_title}</Dialog.Title>
-                    <Dialog.Description className="text-xs text-gray-400 mb-4">{s.podcast_page.filter_modal_description}</Dialog.Description>
+                  <div className="bg-surface-container-low border border-outline-variant rounded-2xl p-6 shadow-xl">
+                    <Dialog.Title className="text-base font-semibold text-on-surface mb-1">{s.podcast_page.filter_modal_title}</Dialog.Title>
+                    <Dialog.Description className="text-xs text-on-surface-variant mb-4">{s.podcast_page.filter_modal_description}</Dialog.Description>
                     <input
                       type="text"
                       value={episodeFilter}
                       onChange={(e) => setEpisodeFilter(e.target.value)}
                       placeholder="e.g. 90 Day, interview, recap..."
                       autoFocus
-                      className="w-full bg-gray-800 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-violet-500 mb-4"
+                      className="w-full bg-surface-container rounded-lg px-3 py-2 text-sm text-on-surface placeholder-on-surface-variant outline-none focus:ring-2 focus:ring-primary mb-4"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') saveEpisodeFilter().then(() => setFilterModalOpen(false))
                       }}
                     />
                     <div className="flex gap-2">
                       <Dialog.Close asChild>
-                        <button className="flex-1 py-2 rounded-lg text-sm bg-gray-800 text-gray-300 hover:text-white transition-colors">
+                        <button className="flex-1 py-2 rounded-lg text-sm bg-surface-container text-on-surface hover:text-on-surface transition-colors">
                           Cancel
                         </button>
                       </Dialog.Close>
                       <button
                         onClick={() => saveEpisodeFilter().then(() => setFilterModalOpen(false))}
                         disabled={savingFilter}
-                        className="flex-1 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 transition-colors"
+                        className="flex-1 py-2 rounded-lg text-sm font-medium bg-brand hover:bg-brand text-on-surface disabled:opacity-50 transition-colors"
                       >
                         {savingFilter ? '...' : s.podcast_page.filter_save}
                       </button>
@@ -950,32 +962,32 @@ export default function PodcastPage() {
             {/* Navigation warning modal */}
             <Dialog.Root open={navWarningOpen} onOpenChange={(o) => { if (!o && !queuingAll) { setNavWarningOpen(false); pendingNavRef.current = null; isBeforeUnloadRef.current = false } }}>
               <Dialog.Portal>
-                <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
+                <Dialog.Overlay className="fixed inset-0 z-50 bg-scrim backdrop-blur-sm" />
                 <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 p-4 focus:outline-none">
-                  <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 shadow-xl">
-                    <Dialog.Title className="text-base font-semibold text-white mb-1">{s.podcast_page.nav_warning_title}</Dialog.Title>
-                    <Dialog.Description className="text-xs text-gray-400 mb-6">
+                  <div className="bg-surface-container-low border border-outline-variant rounded-2xl p-6 shadow-xl">
+                    <Dialog.Title className="text-base font-semibold text-on-surface mb-1">{s.podcast_page.nav_warning_title}</Dialog.Title>
+                    <Dialog.Description className="text-xs text-on-surface-variant mb-6">
                       {s.podcast_page.nav_warning_body.replace('{{n}}', String(unqueuedNewEpisodes.length))}
                     </Dialog.Description>
                     <div className="flex flex-col gap-2">
                       <button
                         onClick={queueAllAndLeave}
                         disabled={queuingAll}
-                        className="w-full py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 transition-colors"
+                        className="w-full py-2 rounded-lg text-sm font-medium bg-brand hover:bg-brand text-on-surface disabled:opacity-50 transition-colors"
                       >
                         {queuingAll ? s.podcast_page.nav_warning_queuing : s.podcast_page.nav_warning_queue_and_leave}
                       </button>
                       <button
                         onClick={proceedWithNavigation}
                         disabled={queuingAll}
-                        className="w-full py-2 rounded-lg text-sm bg-gray-800 text-gray-300 hover:text-white disabled:opacity-40 transition-colors"
+                        className="w-full py-2 rounded-lg text-sm bg-surface-container text-on-surface hover:text-on-surface disabled:opacity-40 transition-colors"
                       >
                         {s.podcast_page.nav_warning_leave}
                       </button>
                       <button
                         onClick={() => { setNavWarningOpen(false); pendingNavRef.current = null; isBeforeUnloadRef.current = false }}
                         disabled={queuingAll}
-                        className="w-full py-2 rounded-lg text-sm bg-gray-800 text-gray-300 hover:text-white disabled:opacity-40 transition-colors"
+                        className="w-full py-2 rounded-lg text-sm bg-surface-container text-on-surface hover:text-on-surface disabled:opacity-40 transition-colors"
                       >
                         {s.podcast_page.nav_warning_stay}
                       </button>
@@ -989,15 +1001,15 @@ export default function PodcastPage() {
             {searchQuery ? (
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-gray-600">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-dim">
                     {s.podcast_page.search_results}{!itunesLoading && searchResults.length > 0 ? ` (${searchResults.length})` : ''}
                   </span>
-                  <div className="flex-1 h-px bg-gray-800/60" />
+                  <div className="flex-1 h-px bg-outline-variant/60" />
                   {itunesLoading && collectionId && (
-                    <span className="text-xs text-gray-600 animate-pulse">{s.podcast_page.loading_more}</span>
+                    <span className="text-xs text-on-surface-dim animate-pulse">{s.podcast_page.loading_more}</span>
                   )}
                   {searchTotalPages > 1 && (
-                    <span className="text-xs text-gray-700">{searchPage + 1} / {searchTotalPages}</span>
+                    <span className="text-xs text-on-surface-dim">{searchPage + 1} / {searchTotalPages}</span>
                   )}
                 </div>
                 {pagedSearchResults.length === 0 && itunesLoading ? (
@@ -1005,14 +1017,14 @@ export default function PodcastPage() {
                     {Array.from({ length: 4 }).map((_, i) => <SkeletonEpisodeRow key={i} />)}
                   </div>
                 ) : pagedSearchResults.length === 0 ? (
-                  <p className="text-gray-500 text-sm py-8 text-center">No episodes found.</p>
+                  <p className="text-on-surface-dim text-sm py-8 text-center">No episodes found.</p>
                 ) : (
                   pagedSearchResults.map((ep) => renderEpisodeRow(ep))
                 )}
                 {searchTotalPages > 1 && (
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-800/60">
-                    <button onClick={() => setSearchPage((p) => Math.max(0, p - 1))} disabled={searchPage === 0} className="px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">← Previous</button>
-                    <button onClick={() => setSearchPage((p) => Math.min(searchTotalPages - 1, p + 1))} disabled={searchPage === searchTotalPages - 1} className="px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">Next →</button>
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-outline-variant/60">
+                    <button onClick={() => setSearchPage((p) => Math.max(0, p - 1))} disabled={searchPage === 0} className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><ChevronLeft size={16} /></button>
+                    <button onClick={() => setSearchPage((p) => Math.min(searchTotalPages - 1, p + 1))} disabled={searchPage === searchTotalPages - 1} className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><ChevronRight size={16} /></button>
                   </div>
                 )}
               </div>
@@ -1022,8 +1034,8 @@ export default function PodcastPage() {
                 {subscribed && newEpisodes.length > 0 && (
                   <div className="mb-4">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-semibold uppercase tracking-wider text-violet-400">New ✨</span>
-                      <div className="flex-1 h-px bg-violet-900/40" />
+                      <span className="text-xs font-semibold uppercase tracking-wider text-primary">New ✨</span>
+                      <div className="flex-1 h-px bg-primary-container/40" />
                     </div>
                     {newEpisodes.map((ep) => renderEpisodeRow(ep, true))}
                   </div>
@@ -1032,23 +1044,34 @@ export default function PodcastPage() {
                 {/* All episodes — flat list */}
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-gray-600">All Episodes</span>
-                    <div className="flex-1 h-px bg-gray-800/60" />
-                    {totalPages > 1 && <span className="text-xs text-gray-700">{episodePage + 1} / {totalPages}</span>}
+                    <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-dim">All Episodes</span>
+                    <div className="flex-1 h-px bg-outline-variant/60" />
+                    {totalPages > 1 && <span className="text-xs text-on-surface-dim">{episodePage + 1} / {totalPages}</span>}
                     <button
                       onClick={handleRefreshFeed}
                       disabled={loading}
                       title="Refresh episodes"
-                      className="text-gray-600 hover:text-gray-400 disabled:opacity-30 transition-colors"
+                      className="text-on-surface-variant hover:text-on-surface-variant disabled:opacity-30 transition-colors"
                     >
                       <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
                     </button>
                   </div>
                   {pagedEpisodes.map((ep) => renderEpisodeRow(ep))}
-                  {totalPages > 1 && (
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-800/60">
-                      <button onClick={() => setEpisodePage((p) => Math.max(0, p - 1))} disabled={episodePage === 0} className="px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">← Previous</button>
-                      <button onClick={() => setEpisodePage((p) => Math.min(totalPages - 1, p + 1))} disabled={episodePage === totalPages - 1} className="px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">Next →</button>
+                  {(totalPages > 1 || (feed?.total && feed.episodes.length < feed.total)) && (
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-outline-variant/60">
+                      <button onClick={() => setEpisodePage((p) => Math.max(0, p - 1))} disabled={episodePage === 0} className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><ChevronLeft size={16} /></button>
+                      <button
+                        onClick={() => {
+                          if (episodePage === totalPages - 1 && feed?.total && feed.episodes.length < feed.total) {
+                            setEpisodeLimit((prev) => prev + 15)
+                            setEpisodePage(0)
+                          } else {
+                            setEpisodePage((p) => Math.min(totalPages - 1, p + 1))
+                          }
+                        }}
+                        disabled={episodePage === totalPages - 1 && !(feed?.total && feed.episodes.length < feed.total)}
+                        className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      ><ChevronRight size={16} /></button>
                     </div>
                   )}
                 </div>
@@ -1061,10 +1084,10 @@ export default function PodcastPage() {
         {(similarLoading || similarPodcasts.length > 0) && (
           <div className="mt-8">
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-xs font-semibold uppercase tracking-wider text-gray-600">
+              <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-dim">
                 {s.podcast_page.similar_heading}
               </span>
-              <div className="flex-1 h-px bg-gray-800/60" />
+              <div className="flex-1 h-px bg-outline-variant/60" />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {similarLoading
@@ -1076,11 +1099,11 @@ export default function PodcastPage() {
 
         {/* Dev-only: similar podcasts debug panel */}
         {process.env.NODE_ENV === 'development' && !similarLoading && similarDebug && (
-          <details className="mt-6 rounded-lg border border-dashed border-gray-700 p-3 text-xs text-gray-500">
-            <summary className="cursor-pointer font-mono text-yellow-600 hover:text-yellow-400">
+          <details className="mt-6 rounded-lg border border-dashed border-outline-variant p-3 text-xs text-on-surface-variant">
+            <summary className="cursor-pointer font-mono text-warning hover:text-warning">
               [dev] similar podcasts — {similarPodcasts.length} result{similarPodcasts.length !== 1 ? 's' : ''}
             </summary>
-            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-gray-400">
+            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-on-surface-variant">
               {JSON.stringify(similarDebug, null, 2)}
             </pre>
           </details>

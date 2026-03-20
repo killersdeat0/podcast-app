@@ -69,6 +69,16 @@ When `nowPlaying` changes:
 
 On every `timeupdate` event, if at least 10 seconds have passed since the last save and `currentTime > 5`, it throttles a `POST /api/progress` call with the current position. The 10-second throttle uses `lastSavedAt` ref (not state, to avoid re-renders).
 
+Progress saves both `position_seconds` (used for seeking on resume) and `position_pct` (used for display in history/queue/playlist). `position_pct` is computed from `audioRef.current.duration` — the real audio duration as decoded by the browser — rather than the RSS `<itunes:duration>` field, which is publisher-provided and frequently wrong (often by 5–10 minutes due to dynamic ad insertion).
+
+#### RSS duration vs. real audio duration
+
+`<itunes:duration>` reflects the "clean" episode the publisher uploaded. Ad platforms (AdsWizz, Megaphone, Spotify DAI) stitch pre-roll, mid-roll, and post-roll ads in at serve time, so the audio file delivered to the client is longer than the RSS value. There is no standard mechanism for a player to know the true duration before loading the audio.
+
+**Impact on `position_seconds` resume accuracy with dynamic ads:** If the number or position of mid-roll ad slots changes between the session when progress was saved and the session when the user resumes, `position_seconds` may land in a slightly different spot in the content. `position_pct` is more resilient to this because ads cluster at fixed break points rather than being uniformly distributed — 68% through is still roughly 68% through the content regardless of which ads were served.
+
+**Known caveat:** If a mid-roll ad is added or removed *at the exact break point where the user paused*, resume position can drift by up to one ad slot length (~60s). This is an inherent limitation of DAI without chapter/cue-point metadata from the publisher, and is the same behavior as Apple Podcasts and Spotify for externally hosted feeds. A proper fix would require publishers to expose ad break timestamps (e.g. via Podlove chapters or VAST cue points), which is out of scope.
+
 ### Completion threshold
 
 Episodes are considered complete when `(currentTime / duration) * 100 >= COMPLETION_THRESHOLD_PCT` (currently **98%**). This constant lives in `src/lib/player/constants.ts` and is shared with the history page's "Done" indicator.

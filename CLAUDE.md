@@ -118,6 +118,10 @@ All user-facing strings live in `web/src/lib/i18n/`. The active locale is stored
 
 The `Player` component (`web/src/components/player/Player.tsx`) always renders the `<audio>` element (even when `nowPlaying` is null) so that event listeners attach on mount. The UI is conditionally shown. It restores saved position from `/api/progress` on episode load (only auto-plays if `playing` is true), saves position to `/api/progress` every 10 seconds via throttle, and on `ended` marks the episode complete, removes it from the queue, and auto-plays the next queue item.
 
+**Progress save paths — all must stay in sync:** There are 4 places in `Player.tsx` that call `POST /api/progress`. All must send `positionPct` (computed from `audio.currentTime / audio.duration`). The switch-away save and 10s throttled save must guard with `!hasCompletedRef.current` to prevent overwriting a completion. `completeAndAdvance` always sends `positionPct: 100, completed: true` and dispatches `progress-saved` so history/queue/playlist refetch immediately. See `docs/player.md` for full details.
+
+**Progress display pages — queue, history, and playlist must be updated together** when changing how progress is fetched or displayed. All three use the same priority chain: `livePct` (from live audio while playing) → `position_pct` (stored in DB, accurate) → RSS-math fallback (inaccurate for ad-heavy podcasts). The podcast page episode list intentionally has no progress display.
+
 ### Silence skipping — canceled for web, mobile only
 
 Do not attempt browser-only silence skipping: podcast audio is cross-origin and CORS headers are absent on tracking redirects (podtrac, vpixl, etc.), so the Web Audio API graph is zeroed out. Implement in mobile Phase 3 only, where native audio APIs have no CORS restriction.
@@ -161,9 +165,9 @@ Use `playPlaylist(playlistId, episodes, startIndex?)` from `usePlayer()` to star
 
 ### Theming and colors
 
-Both web and mobile use **Material3** color roles as the shared design vocabulary. Source color: `#7c3aed` (violet-600).
+Both web and mobile use **Material3** color roles as the shared design vocabulary. Source color: `#7c3aed` (violet-600). The goal is full portability: change a single `--md-*` variable and both platforms update.
 
-**Web:** All colors are defined as `--md-*` CSS custom properties in `web/src/app/globals.css` and exposed as Tailwind utilities via `@theme inline`. Use semantic tokens — `bg-surface`, `text-on-surface-variant`, `bg-primary`, `text-error` — never raw palette classes like `bg-gray-950` or `text-violet-400`.
+**Web:** All colors are defined as `--md-*` CSS custom properties in `web/src/app/globals.css` and exposed as Tailwind utilities via `@theme inline`. **Always use semantic tokens — never raw Tailwind palette classes** (no `bg-gray-*`, `text-violet-*`, `text-white`, `bg-black/60`, etc.). To add a new color: define `--md-*` in `:root` and expose it as `--color-*` in `@theme inline`; never hardcode hex or rgba values in components.
 
 **Mobile:** `SyncPodsTheme` in `mobile/.../theme/Theme.kt` wraps `MaterialTheme` with a custom `darkColorScheme`. All Composables use `MaterialTheme.colorScheme.*` — never hardcoded hex values.
 

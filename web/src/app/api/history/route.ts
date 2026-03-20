@@ -17,7 +17,7 @@ export async function GET() {
 
   let query = supabase
     .from('playback_progress')
-    .select('episode_guid, feed_url, position_seconds, completed, updated_at')
+    .select('episode_guid, feed_url, position_seconds, position_pct, completed, updated_at')
     .eq('user_id', user.id)
     .gt('position_seconds', 0)
     .order('updated_at', { ascending: false })

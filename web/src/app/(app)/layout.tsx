@@ -29,7 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <UserProvider isGuest={!user} tier={isFreeTier ? 'free' : 'paid'}>
       <LocaleProvider>
-        <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
+        <div className="flex h-screen bg-background text-on-surface overflow-hidden">
           <Sidebar defaultOpen={sidebarOpen} />
           <div className="flex-1 flex flex-col overflow-hidden">
             {isFreeTier && <AdBanner />}

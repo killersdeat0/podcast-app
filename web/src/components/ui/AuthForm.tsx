@@ -46,15 +46,15 @@ export default function AuthForm({ mode }: { mode: Mode }) {
   }
 
   return (
-    <div className="bg-gray-900 rounded-2xl p-8 shadow-xl">
-      <h1 className="text-2xl font-bold text-white mb-1">
+    <div className="bg-surface-container-low rounded-2xl p-8 shadow-xl">
+      <h1 className="text-2xl font-bold text-on-surface mb-1">
         {mode === 'login' ? s.auth.login_heading : s.auth.signup_heading}
       </h1>
-      <p className="text-gray-400 text-sm mb-6">
+      <p className="text-on-surface-variant text-sm mb-6">
         {mode === 'login' ? `${s.auth.no_account} ` : `${s.auth.have_account} `}
         <a
           href={mode === 'login' ? '/signup' : '/login'}
-          className="text-violet-400 hover:text-violet-300"
+          className="text-primary hover:text-primary"
         >
           {mode === 'login' ? s.auth.sign_up_link : s.auth.log_in_link}
         </a>
@@ -67,7 +67,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full bg-gray-800 text-white rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-violet-500"
+          className="w-full bg-surface-container text-on-surface rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary"
         />
         <input
           type="password"
@@ -75,13 +75,13 @@ export default function AuthForm({ mode }: { mode: Mode }) {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          className="w-full bg-gray-800 text-white rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-violet-500"
+          className="w-full bg-surface-container text-on-surface rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary"
         />
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {error && <p className="text-error text-sm">{error}</p>}
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white rounded-lg px-4 py-3 text-sm font-medium transition-colors"
+          className="w-full bg-brand hover:bg-brand disabled:opacity-50 text-on-surface rounded-lg px-4 py-3 text-sm font-medium transition-colors"
         >
           {loading ? s.auth.loading : mode === 'login' ? s.auth.login_button : s.auth.signup_button}
         </button>
@@ -89,16 +89,16 @@ export default function AuthForm({ mode }: { mode: Mode }) {
 
       <div className="relative my-6">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-700" />
+          <div className="w-full border-t border-outline-variant" />
         </div>
-        <div className="relative flex justify-center text-xs text-gray-500">
-          <span className="bg-gray-900 px-2">{s.auth.or_divider}</span>
+        <div className="relative flex justify-center text-xs text-on-surface-variant">
+          <span className="bg-surface-container-low px-2">{s.auth.or_divider}</span>
         </div>
       </div>
 
       <button
         onClick={handleGoogle}
-        className="w-full bg-gray-800 hover:bg-gray-700 text-white rounded-lg px-4 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2"
+        className="w-full bg-surface-container hover:bg-surface-container-high text-on-surface rounded-lg px-4 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2"
       >
         <svg className="w-4 h-4" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -109,8 +109,8 @@ export default function AuthForm({ mode }: { mode: Mode }) {
         {s.auth.google_button}
       </button>
 
-      <p className="text-center text-sm text-gray-500 mt-4">
-        <a href="/discover" className="text-violet-400 hover:text-violet-300">
+      <p className="text-center text-sm text-on-surface-variant mt-4">
+        <a href="/discover" className="text-primary hover:text-primary">
           {s.auth.guest_browse}
         </a>
       </p>

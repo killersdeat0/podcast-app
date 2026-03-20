@@ -14,12 +14,14 @@ export async function GET(request: NextRequest) {
 
   const { data } = await supabase
     .from('playback_progress')
-    .select('position_seconds')
+    .select('position_seconds, completed')
     .eq('user_id', user.id)
     .eq('episode_guid', guid)
     .single()
 
-  return NextResponse.json({ positionSeconds: data?.position_seconds ?? 0 })
+  return NextResponse.json({
+    positionSeconds: data?.completed ? 0 : (data?.position_seconds ?? 0),
+  })
 }
 
 export async function POST(request: NextRequest) {
@@ -27,7 +29,7 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { guid, feedUrl, positionSeconds, completed, title, audioUrl, duration, artworkUrl, podcastTitle } =
+  const { guid, feedUrl, positionSeconds, positionPct, completed, title, audioUrl, duration, artworkUrl, podcastTitle } =
     await request.json()
 
   // Upsert episode metadata so history can display it
@@ -61,6 +63,7 @@ export async function POST(request: NextRequest) {
     episode_guid: guid,
     feed_url: feedUrl,
     position_seconds: safePosition,
+    position_pct: positionPct ?? null,
     completed: completed ?? false,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id,episode_guid' })

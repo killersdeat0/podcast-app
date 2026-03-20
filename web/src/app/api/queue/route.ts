@@ -50,7 +50,7 @@ export async function GET() {
       .in('feed_url', feedUrls),
     supabase
       .from('playback_progress')
-      .select('episode_guid, position_seconds')
+      .select('episode_guid, position_seconds, position_pct')
       .eq('user_id', user.id)
       .in('episode_guid', guids),
   ])
@@ -68,6 +68,7 @@ export async function GET() {
         ? { ...ep, artwork_url: subArtworkMap.get(q.feed_url) || ep.artwork_url || null }
         : null,
       position_seconds: prog?.position_seconds ?? 0,
+      position_pct: prog?.position_pct ?? null,
     }
   })
 

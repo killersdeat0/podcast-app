@@ -5,8 +5,9 @@ import { usePlayer } from '@/components/player/PlayerContext'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
-import { COMPLETION_THRESHOLD_PCT } from '@/lib/player/constants'
+import { COMPLETION_THRESHOLD_PCT, LIVE_POSITION_INTERVAL_MS } from '@/lib/player/constants'
 import AddToPlaylistPopover from '@/components/ui/AddToPlaylistPopover'
+import { EpisodeProgressOverlay } from '@/components/ui/EpisodeProgressOverlay'
 import { useUserPlaylists } from '@/hooks/useUserPlaylists'
 import { addEpisodeToPlaylist } from '@/lib/playlists/addEpisodeToPlaylist'
 
@@ -14,6 +15,7 @@ interface HistoryItem {
   episode_guid: string
   feed_url: string
   position_seconds: number
+  position_pct: number | null
   completed: boolean
   updated_at: string
   episode: {
@@ -48,7 +50,9 @@ function progressPct(positionSeconds: number, duration: number | null, completed
 export default function HistoryPage() {
   const [items, setItems] = useState<HistoryItem[]>([])
   const [loading, setLoading] = useState(true)
-  const { play } = usePlayer()
+  const { play, nowPlaying, audioRef } = usePlayer()
+  const [livePosition, setLivePosition] = useState(0)
+  const [liveDuration, setLiveDuration] = useState(0)
   const { isGuest } = useUser()
   const userPlaylists = useUserPlaylists(isGuest)
   const strings = useStrings()
@@ -90,6 +94,23 @@ export default function HistoryPage() {
     }
   }, [handleHistoryChanged, fetchHistory])
 
+  useEffect(() => {
+    const item = items.find(i => i.episode_guid === nowPlaying?.guid)
+    setLivePosition(item?.position_seconds ?? 0)
+    setLiveDuration(0)
+  }, [nowPlaying?.guid]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!nowPlaying) return
+    const id = setInterval(() => {
+      if (audioRef.current) {
+        setLivePosition(audioRef.current.currentTime)
+        setLiveDuration(audioRef.current.duration || 0)
+      }
+    }, LIVE_POSITION_INTERVAL_MS)
+    return () => clearInterval(id)
+  }, [nowPlaying, audioRef])
+
   function playItem(item: HistoryItem) {
     if (!item.episode) return
     setItems((prev) => [
@@ -107,8 +128,8 @@ export default function HistoryPage() {
     })
   }
 
-  function addToPlaylist(playlistId: string, item: HistoryItem) {
-    if (!item.episode) return
+  function addToPlaylist(playlistId: string, item: HistoryItem): Promise<void> {
+    if (!item.episode) return Promise.resolve()
     return addEpisodeToPlaylist(playlistId, {
       guid: item.episode_guid,
       feedUrl: item.feed_url,
@@ -127,7 +148,7 @@ export default function HistoryPage() {
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-16 bg-gray-800 rounded-xl animate-pulse" />
+            <div key={i} className="h-16 bg-surface-container rounded-xl animate-pulse" />
           ))}
         </div>
       ) : items.length === 0 ? (
@@ -139,24 +160,18 @@ export default function HistoryPage() {
       ) : (
         <div className="space-y-2">
           {items.map((item) => {
-            const pct = progressPct(item.position_seconds, item.episode?.duration ?? null, item.completed)
+            const isPlaying = nowPlaying?.guid === item.episode_guid
+            const posSeconds = isPlaying ? livePosition : item.position_seconds
+            const livePct = isPlaying && liveDuration > 0 ? Math.min(100, Math.round((livePosition / liveDuration) * 100)) : null
+            const pct = item.completed ? 100 : (livePct ?? item.position_pct ?? progressPct(posSeconds, item.episode?.duration ?? null, false))
             return (
             <div key={item.episode_guid} className="group relative flex items-center gap-1">
               <button
                 onClick={() => playItem(item)}
                 disabled={!item.episode}
-                className="relative flex-1 flex items-center gap-3 text-left bg-gray-900 hover:bg-gray-800 rounded-xl px-4 py-3 transition-colors disabled:opacity-50 overflow-hidden"
+                className={`relative flex-1 flex items-center gap-3 text-left rounded-xl px-4 py-3 transition-colors disabled:opacity-50 overflow-hidden ${isPlaying ? 'bg-now-playing-surface hover:bg-now-playing-surface' : 'bg-surface-container-low hover:bg-surface-container'}`}
               >
-                {pct !== null && (
-                  <div
-                    className="absolute inset-0 rounded-xl pointer-events-none"
-                    style={{
-                      background: pct >= 100
-                        ? 'rgba(34,197,94,0.12)'
-                        : `linear-gradient(to right, rgba(34,197,94,0.12) ${pct}%, rgba(139,92,246,0.10) ${pct}%)`,
-                    }}
-                  />
-                )}
+                <EpisodeProgressOverlay pct={pct} isPlaying={isPlaying} />
                 {item.episode?.artwork_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -165,30 +180,30 @@ export default function HistoryPage() {
                     className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-lg bg-gray-700 flex-shrink-0" />
+                  <div className="w-10 h-10 rounded-lg bg-surface-container-high flex-shrink-0" />
                 )}
                 <div className="flex-1 overflow-hidden">
-                  <p className="text-sm font-medium text-white truncate">
+                  <p className="text-sm font-medium text-on-surface truncate">
                     {item.episode?.title ?? item.episode_guid}
                   </p>
                   <div className="flex gap-2 mt-0.5">
                     {item.episode?.podcast_title && (
-                      <span className="text-xs text-gray-400 truncate">{item.episode.podcast_title}</span>
+                      <span className="text-xs text-on-surface-variant truncate">{item.episode.podcast_title}</span>
                     )}
                     {item.episode?.duration && (
-                      <span className="text-xs text-gray-500">{formatDuration(item.episode.duration)}</span>
+                      <span className="text-xs text-on-surface-dim">{formatDuration(item.episode.duration)}</span>
                     )}
                   </div>
                 </div>
                 <div className="flex-shrink-0 text-right">
                   {(item.completed || (pct !== null && pct >= COMPLETION_THRESHOLD_PCT)) ? (
-                    <span className="text-xs text-green-400">Done</span>
+                    <span className="text-xs text-playback-indicator">Done</span>
                   ) : (
-                    <span className="text-xs text-gray-500">
-                      {formatProgress(item.position_seconds, item.episode?.duration ?? null)}
+                    <span className="text-xs text-on-surface-dim">
+                      {pct !== null ? `${pct}%` : formatProgress(posSeconds, item.episode?.duration ?? null)}
                     </span>
                   )}
-                  <p className="text-xs text-gray-600 mt-0.5">
+                  <p className="text-xs text-on-surface-dim mt-0.5">
                     {new Date(item.updated_at).toLocaleDateString()}
                   </p>
                 </div>

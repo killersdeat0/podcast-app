@@ -63,36 +63,36 @@ export default function UpgradePage() {
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-12">
-      <h1 className="text-3xl font-bold text-white mb-2">{s.upgrade.heading}</h1>
+      <h1 className="text-3xl font-bold text-on-surface mb-2">{s.upgrade.heading}</h1>
 
       {tier !== null && (
-        <p className="text-sm mb-8 text-gray-400">
+        <p className="text-sm mb-8 text-on-surface-variant">
           {tier === 'paid' ? s.upgrade.paid_tier_status : s.upgrade.free_tier_status}
         </p>
       )}
 
       {message && (
-        <div className="mb-6 px-4 py-3 rounded-lg bg-violet-900/40 border border-violet-700 text-violet-200 text-sm">
+        <div className="mb-6 px-4 py-3 rounded-lg bg-primary-container/40 border border-primary text-on-primary-container text-sm">
           {message}
         </div>
       )}
 
       {tier === 'free' && (
         <>
-          <p className="text-gray-400 mb-8">
+          <p className="text-on-surface-variant mb-8">
             {s.upgrade.benefits_description}
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {/* Monthly */}
-            <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 flex flex-col gap-4">
+            <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6 flex flex-col gap-4">
               <div>
-                <h2 className="text-xl font-semibold text-white">{s.upgrade.monthly_label}</h2>
-                <p className="text-3xl font-bold text-white mt-1">
-                  $4.99 <span className="text-base font-normal text-gray-400">{s.upgrade.monthly_price_suffix}</span>
+                <h2 className="text-xl font-semibold text-on-surface">{s.upgrade.monthly_label}</h2>
+                <p className="text-3xl font-bold text-on-surface mt-1">
+                  $4.99 <span className="text-base font-normal text-on-surface-variant">{s.upgrade.monthly_price_suffix}</span>
                 </p>
               </div>
-              <ul className="text-sm text-gray-400 space-y-1 flex-1">
+              <ul className="text-sm text-on-surface-variant space-y-1 flex-1">
                 <li>{s.upgrade.feature_unlimited_queue}</li>
                 <li>{s.upgrade.feature_all_speeds}</li>
                 <li>{s.upgrade.feature_full_history}</li>
@@ -101,27 +101,27 @@ export default function UpgradePage() {
               <button
                 onClick={() => handleSubscribe(MONTHLY_PRICE_ID, 'monthly')}
                 disabled={loading !== null}
-                className="w-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                className="w-full bg-brand hover:bg-brand disabled:opacity-50 disabled:cursor-not-allowed text-on-brand font-medium py-2 px-4 rounded-lg transition-colors"
               >
                 {loading === 'monthly' ? s.upgrade.redirecting : s.upgrade.subscribe_monthly}
               </button>
             </div>
 
             {/* Annual */}
-            <div className="bg-gray-900 border border-violet-600 rounded-xl p-6 flex flex-col gap-4 relative">
+            <div className="bg-surface-container-low border border-primary rounded-xl p-6 flex flex-col gap-4 relative">
               <div className="absolute -top-3 left-4">
-                <span className="bg-violet-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                <span className="bg-brand text-on-brand text-xs font-semibold px-3 py-1 rounded-full">
                   {s.upgrade.annual_savings_badge}
                 </span>
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-white">{s.upgrade.annual_label}</h2>
-                <p className="text-3xl font-bold text-white mt-1">
-                  $50 <span className="text-base font-normal text-gray-400">{s.upgrade.annual_price_suffix}</span>
+                <h2 className="text-xl font-semibold text-on-surface">{s.upgrade.annual_label}</h2>
+                <p className="text-3xl font-bold text-on-surface mt-1">
+                  $50 <span className="text-base font-normal text-on-surface-variant">{s.upgrade.annual_price_suffix}</span>
                 </p>
-                <p className="text-xs text-gray-500 mt-0.5">{s.upgrade.annual_monthly_equiv}</p>
+                <p className="text-xs text-on-surface-variant mt-0.5">{s.upgrade.annual_monthly_equiv}</p>
               </div>
-              <ul className="text-sm text-gray-400 space-y-1 flex-1">
+              <ul className="text-sm text-on-surface-variant space-y-1 flex-1">
                 <li>{s.upgrade.feature_unlimited_queue}</li>
                 <li>{s.upgrade.feature_all_speeds}</li>
                 <li>{s.upgrade.feature_full_history}</li>
@@ -130,7 +130,7 @@ export default function UpgradePage() {
               <button
                 onClick={() => handleSubscribe(YEARLY_PRICE_ID, 'yearly')}
                 disabled={loading !== null}
-                className="w-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                className="w-full bg-brand hover:bg-brand disabled:opacity-50 disabled:cursor-not-allowed text-on-brand font-medium py-2 px-4 rounded-lg transition-colors"
               >
                 {loading === 'yearly' ? s.upgrade.redirecting : s.upgrade.subscribe_annually}
               </button>
@@ -149,20 +149,20 @@ export default function UpgradePage() {
             router.refresh()
           }}
           disabled={upgrading}
-          className="mt-6 text-xs text-green-400 underline disabled:opacity-50"
+          className="mt-6 text-xs text-playback-indicator underline disabled:opacity-50"
         >
           {upgrading ? '...' : s.upgrade.dev_upgrade}
         </button>
       )}
 
       {tier === 'paid' && (
-        <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 text-gray-300 text-sm">
+        <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6 text-on-surface text-sm">
           {s.upgrade.paid_management}{' '}
           <a
             href="https://billing.stripe.com/p/login"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-violet-400 hover:text-violet-300 underline"
+            className="text-primary hover:text-primary underline"
           >
             {s.upgrade.stripe_portal_link}
           </a>

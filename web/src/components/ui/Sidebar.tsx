@@ -61,14 +61,14 @@ function SortableSub({ sub, active }: { sub: Subscription; active: boolean }) {
       <div
         {...attributes}
         {...listeners}
-        className="p-1 text-gray-700 hover:text-gray-500 cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
+        className="p-1 text-on-surface-dim hover:text-on-surface-variant cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
       >
         <GripVertical className="w-3 h-3" />
       </div>
       <Link
         href={href}
         className={`flex flex-1 items-center gap-2 px-2 py-2 rounded-lg text-sm transition-colors min-w-0 ${
-          active ? 'bg-violet-600 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          active ? 'bg-brand text-on-surface' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
         }`}
       >
         <div className="relative w-6 h-6 flex-shrink-0">
@@ -76,10 +76,10 @@ function SortableSub({ sub, active }: { sub: Subscription; active: boolean }) {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={sub.artwork_url} alt="" className="w-6 h-6 rounded object-cover" />
           ) : (
-            <span className="w-6 h-6 rounded bg-gray-700 block" />
+            <span className="w-6 h-6 rounded bg-surface-container-high block" />
           )}
           {sub.new_episode_count > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-0.5 bg-violet-500 rounded-full border border-gray-900 flex items-center justify-center text-[9px] font-bold text-white leading-none">
+            <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-0.5 bg-brand rounded-full border border-surface flex items-center justify-center text-[9px] font-bold text-on-surface leading-none">
               {sub.new_episode_count > 99 ? '99+' : sub.new_episode_count}
             </span>
           )}
@@ -184,12 +184,12 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
   }
 
   return (
-    <aside className={`${open ? 'w-56' : 'w-14'} flex-shrink-0 bg-gray-900 flex flex-col border-r border-gray-800 transition-[width] duration-200`}>
-      <div className={`py-5 border-b border-gray-800 flex items-center min-w-0 ${open ? 'px-3 justify-between' : 'justify-center'}`}>
-        {open && <span className="text-xl font-bold text-violet-400 truncate mr-2">PodSync</span>}
+    <aside className={`${open ? 'w-56' : 'w-14'} flex-shrink-0 bg-surface-container-low flex flex-col border-r border-outline-variant transition-[width] duration-200`}>
+      <div className={`py-5 border-b border-outline-variant flex items-center min-w-0 ${open ? 'px-3 justify-between' : 'justify-center'}`}>
+        {open && <span className="text-xl font-bold text-primary truncate mr-2">PodSync</span>}
         <button
           onClick={toggleSidebar}
-          className="text-gray-400 hover:text-white flex-shrink-0 p-1 rounded hover:bg-gray-800 transition-colors"
+          className="text-on-surface-variant hover:text-on-surface flex-shrink-0 p-1 rounded hover:bg-surface-container transition-colors"
           aria-label={open ? 'Collapse sidebar' : 'Expand sidebar'}
         >
           {open ? <ChevronLeft className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
@@ -201,7 +201,7 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
           {navItems.filter(({ href }) => !(href === '/upgrade' && tier === 'paid')).map(({ href, label, icon, guestModal }) => {
             const isActive = pathname.startsWith(href)
             const cls = `flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
-              isActive ? 'bg-violet-600 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+              isActive ? 'bg-brand text-on-surface' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
             }`
             if (isGuest && guestModal) {
               return (
@@ -218,11 +218,11 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
           })}
           <div className="flex-1" />
           {isGuest ? (
-            <Link href="/login" className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors" title={strings.guest.toast_signin}>
+            <Link href="/login" className="flex items-center justify-center w-8 h-8 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" title={strings.guest.toast_signin}>
               <LogIn className="w-4 h-4" />
             </Link>
           ) : (
-            <button onClick={handleSignOut} className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors" title={strings.nav.sign_out}>
+            <button onClick={handleSignOut} className="flex items-center justify-center w-8 h-8 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" title={strings.nav.sign_out}>
               <LogOut className="w-4 h-4" />
             </button>
           )}
@@ -235,7 +235,7 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
             {navItems.filter(({ href }) => !(href === '/upgrade' && tier === 'paid')).map(({ href, label, icon, guestModal }) => {
               const isActive = pathname.startsWith(href)
               const cls = `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full ${
-                isActive ? 'bg-violet-600 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                isActive ? 'bg-brand text-on-surface' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
               }`
               if (isGuest && guestModal) {
                 return (
@@ -252,19 +252,19 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
             })}
 
 <>
-              <p className="px-3 pt-4 pb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <p className="px-3 pt-4 pb-1 text-xs font-semibold text-on-surface-dim uppercase tracking-wider">
                 {strings.sidebar.my_podcasts}
               </p>
               {isGuest ? (
                 <div className="px-3 py-2">
-                  <p className="text-xs text-gray-600">{strings.guest.sidebar_sign_in_hint}</p>
+                  <p className="text-xs text-on-surface-variant">{strings.guest.sidebar_sign_in_hint}</p>
                 </div>
               ) : subscriptions.length === 0 ? (
                 <div className="px-3 py-2">
-                  <p className="text-xs text-gray-600 mb-2">{strings.sidebar.empty_hint}</p>
+                  <p className="text-xs text-on-surface-variant mb-2">{strings.sidebar.empty_hint}</p>
                   <Link
                     href="/discover"
-                    className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                    className="text-xs text-primary hover:text-primary transition-colors"
                   >
                     {strings.sidebar.empty_cta} →
                   </Link>
@@ -283,11 +283,11 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
               )}
             </>
           </nav>
-          <div className="px-3 pt-1 pb-2 border-t border-gray-800">
+          <div className="px-3 pt-1 pb-2 border-t border-outline-variant">
             {isGuest ? (
               <Link
                 href="/login"
-                className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+                className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
               >
                 <LogIn className="w-4 h-4 flex-shrink-0" />
                 {strings.guest.toast_signin}
@@ -295,7 +295,7 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
             ) : (
               <button
                 onClick={handleSignOut}
-                className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+                className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
               >
                 <LogOut className="w-4 h-4 flex-shrink-0" />
                 {strings.nav.sign_out}

@@ -78,9 +78,9 @@ export default function PlaylistsPage() {
       <div className="p-4 md:p-8">
         <h1 className="text-2xl font-bold mb-6">{strings.playlists.heading}</h1>
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <p className="text-lg font-semibold text-white mb-2">{strings.playlists.auth_prompt_title}</p>
-          <p className="text-sm text-gray-400 mb-6">{strings.playlists.guest_hint}</p>
-          <Link href="/login" className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm font-medium transition-colors">
+          <p className="text-lg font-semibold text-on-surface mb-2">{strings.playlists.auth_prompt_title}</p>
+          <p className="text-sm text-on-surface-variant mb-6">{strings.playlists.guest_hint}</p>
+          <Link href="/login" className="px-4 py-2 bg-brand hover:bg-brand text-on-surface rounded-lg text-sm font-medium transition-colors">
             {strings.auth.login_button}
           </Link>
         </div>
@@ -97,7 +97,7 @@ export default function PlaylistsPage() {
         <button
           onClick={() => { if (!atLimit) setCreateOpen(true) }}
           disabled={atLimit}
-          className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand disabled:opacity-50 disabled:cursor-not-allowed text-on-surface rounded-lg text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" />
           {strings.playlists.create}
@@ -105,40 +105,40 @@ export default function PlaylistsPage() {
       </div>
 
       {atLimit && (
-        <div className="mb-4 p-3 bg-yellow-900/30 border border-yellow-700/50 rounded-lg text-sm text-yellow-300">
+        <div className="mb-4 p-3 bg-warning-container border border-warning rounded-lg text-sm text-on-warning-container">
           {strings.playlists.limit_reached_playlists}{' '}
-          <a href="/upgrade" className="underline hover:text-yellow-200">{strings.playlists.upgrade_cta}</a>
+          <a href="/upgrade" className="underline hover:text-on-warning-container">{strings.playlists.upgrade_cta}</a>
         </div>
       )}
 
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-32 bg-gray-800 rounded-xl animate-pulse" />
+            <div key={i} className="h-32 bg-surface-container rounded-xl animate-pulse" />
           ))}
         </div>
       ) : playlists.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <p className="text-lg font-semibold text-white mb-2">{strings.playlists.empty_title}</p>
-          <p className="text-sm text-gray-400">{strings.playlists.empty_description}</p>
+          <p className="text-lg font-semibold text-on-surface mb-2">{strings.playlists.empty_title}</p>
+          <p className="text-sm text-on-surface-dim">{strings.playlists.empty_description}</p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {playlists.map((pl) => (
-            <div key={pl.id} className="relative group bg-gray-900 rounded-xl p-4 border border-gray-800 hover:border-gray-700 transition-colors">
+            <div key={pl.id} className="relative group bg-surface-container-low rounded-xl p-4 border border-outline-variant hover:border-outline-variant transition-colors">
               <Link href={`/playlist/${pl.id}`} className="block">
                 <div className="flex items-start gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-violet-900/40 flex items-center justify-center flex-shrink-0">
-                    <ListMusic className="w-5 h-5 text-violet-400" />
+                  <div className="w-10 h-10 rounded-lg bg-primary-container/40 flex items-center justify-center flex-shrink-0">
+                    <ListMusic className="w-5 h-5 text-primary" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-white truncate">{pl.name}</p>
+                    <p className="font-medium text-on-surface truncate">{pl.name}</p>
                     {pl.description && (
-                      <p className="text-xs text-gray-400 truncate mt-0.5">{pl.description}</p>
+                      <p className="text-xs text-on-surface-variant truncate mt-0.5">{pl.description}</p>
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-gray-500">
+                <div className="flex items-center gap-2 text-xs text-on-surface-dim">
                   {pl.is_public ? (
                     <><Globe className="w-3 h-3" />{strings.playlists.public_badge}</>
                   ) : (
@@ -150,7 +150,7 @@ export default function PlaylistsPage() {
               <button
                 onClick={() => handleDelete(pl.id)}
                 disabled={deletingId === pl.id}
-                className="absolute top-3 right-3 p-1.5 text-gray-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                className="absolute top-3 right-3 p-1.5 text-on-surface-dim hover:text-error transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
                 title={strings.playlists.delete}
               >
                 {deletingId === pl.id
@@ -165,16 +165,16 @@ export default function PlaylistsPage() {
       {/* Create modal */}
       <Dialog.Root open={createOpen} onOpenChange={(o) => { if (!o) { setCreateOpen(false); setCreateError('') } }}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60" />
+          <Dialog.Overlay className="fixed inset-0 z-40 bg-scrim" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 p-4 focus:outline-none">
-            <form onSubmit={handleCreate} className="bg-gray-900 border border-gray-700 rounded-xl p-6">
+            <form onSubmit={handleCreate} className="bg-surface-container-low border border-outline-variant rounded-xl p-6">
               <Dialog.Title className="text-lg font-semibold mb-4">{strings.playlists.create_modal_title}</Dialog.Title>
               <input
                 type="text"
                 value={createName}
                 onChange={(e) => setCreateName(e.target.value)}
                 placeholder={strings.playlists.create_name_placeholder}
-                className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm mb-3 outline-none focus:ring-1 focus:ring-violet-500"
+                className="w-full bg-surface-container text-on-surface rounded-lg px-3 py-2 text-sm mb-3 outline-none focus:ring-1 focus:ring-primary"
                 autoFocus
               />
               <textarea
@@ -182,19 +182,19 @@ export default function PlaylistsPage() {
                 onChange={(e) => setCreateDesc(e.target.value)}
                 placeholder={strings.playlists.create_description_placeholder}
                 rows={2}
-                className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm mb-3 outline-none focus:ring-1 focus:ring-violet-500 resize-none"
+                className="w-full bg-surface-container text-on-surface rounded-lg px-3 py-2 text-sm mb-3 outline-none focus:ring-1 focus:ring-primary resize-none"
               />
-              {createError && <p className="text-red-400 text-sm mb-3">{createError}</p>}
+              {createError && <p className="text-error text-sm mb-3">{createError}</p>}
               <div className="flex justify-end gap-2">
                 <Dialog.Close asChild>
-                  <button type="button" className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">
+                  <button type="button" className="px-4 py-2 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
                     Cancel
                   </button>
                 </Dialog.Close>
                 <button
                   type="submit"
                   disabled={creating || !createName.trim()}
-                  className="px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+                  className="px-4 py-2 bg-brand hover:bg-brand disabled:opacity-50 text-on-surface rounded-lg text-sm font-medium transition-colors"
                 >
                   {creating ? '...' : strings.playlists.create_submit}
                 </button>

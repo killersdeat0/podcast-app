@@ -5,10 +5,15 @@
    To regenerate: https://material-foundation.github.io/material-theme-builder/
    ─────────────────────────────────────────────────────────────────────────── */
 :root {
-  --md-primary:               #cfb8ff;
-  --md-on-primary:            #381e72;
+  --md-primary:               #a78bfa;
+  --md-on-primary:            #1e0070;
   --md-primary-container:     #4f378b;
   --md-on-primary-container:  #eaddff;
+
+  /* ── Brand (vivid source color — for filled buttons, active nav, badges) ── */
+  --md-brand:      #7c3aed;
+  --md-brand-dark: #5b21b6;
+  --md-on-brand:   #ffffff;
 
   --md-secondary:               #cbc2db;
   --md-on-secondary:            #332d41;
@@ -25,22 +30,43 @@
   --md-error-container:     #93000a;
   --md-on-error-container:  #ffdad6;
 
-  --md-background:    #141218;
-  --md-on-background: #e6e1e5;
+  --md-background:    #030712;
+  --md-on-background: #ffffff;
 
-  --md-surface:             #141218;
-  --md-on-surface:          #e6e1e5;
-  --md-surface-variant:     #49454f;
-  --md-on-surface-variant:  #cac4d0;
+  --md-surface:             #030712;
+  --md-on-surface:          #ffffff;
+  --md-surface-variant:     #1f2937;
+  --md-on-surface-variant:  #9ca3af;
+  --md-on-surface-dim:      #6b7280;
 
-  --md-outline:         #938f99;
-  --md-outline-variant: #49454f;
+  --md-outline:         #6b7280;
+  --md-outline-variant: #374151;
 
-  --md-surface-container-lowest:  #0f0d13;
-  --md-surface-container-low:     #1d1b20;
-  --md-surface-container:         #211f26;
-  --md-surface-container-high:    #2b2930;
-  --md-surface-container-highest: #36343b;
+  --md-surface-container-lowest:  #020508;
+  --md-surface-container-low:     #111827;
+  --md-surface-container:         #1f2937;
+  --md-surface-container-high:    #374151;
+  --md-surface-container-highest: #4b5563;
+
+  /* ── Playback state ──────────────────────────────────────────────────────── */
+  /* Background tint for the currently-playing episode row */
+  --md-now-playing-surface: color-mix(in srgb, var(--md-primary-container) 18%, transparent);
+  /* Green fill overlays inside episode cards (progress background) */
+  --md-playback-fill:        rgba(34, 197, 94, 0.10);
+  --md-playback-active-fill: rgba(34, 197, 94, 0.22);
+  /* Solid green for progress bar stroke, "Done" text, success checks */
+  --md-playback-indicator: #4ade80;
+
+  /* ── Scrim ───────────────────────────────────────────────────────────────── */
+  /* Semi-transparent backdrop behind modals */
+  --md-scrim: rgba(0, 0, 0, 0.60);
+
+  /* ── Warning (custom extension — not in standard M3) ─────────────────────── */
+  /* Used for over-limit banners, destructive confirmations, etc. */
+  --md-warning:              #e8c339;
+  --md-on-warning:           #1f1a00;
+  --md-warning-container:    rgba(232, 195, 57, 0.15);
+  --md-on-warning-container: #fce589;
 }
 
 /* ─── Tailwind v4 design tokens (maps --md-* → Tailwind utilities) ───────────
@@ -54,6 +80,10 @@
   --color-on-primary:           var(--md-on-primary);
   --color-primary-container:    var(--md-primary-container);
   --color-on-primary-container: var(--md-on-primary-container);
+
+  --color-brand:      var(--md-brand);
+  --color-brand-dark: var(--md-brand-dark);
+  --color-on-brand:   var(--md-on-brand);
 
   --color-secondary:              var(--md-secondary);
   --color-on-secondary:           var(--md-on-secondary);
@@ -77,6 +107,7 @@
   --color-on-surface:         var(--md-on-surface);
   --color-surface-variant:    var(--md-surface-variant);
   --color-on-surface-variant: var(--md-on-surface-variant);
+  --color-on-surface-dim:     var(--md-on-surface-dim);
 
   --color-outline:         var(--md-outline);
   --color-outline-variant: var(--md-outline-variant);
@@ -86,10 +117,26 @@
   --color-surface-container:         var(--md-surface-container);
   --color-surface-container-high:    var(--md-surface-container-high);
   --color-surface-container-highest: var(--md-surface-container-highest);
+
+  --color-now-playing-surface:  var(--md-now-playing-surface);
+  --color-playback-fill:        var(--md-playback-fill);
+  --color-playback-active-fill: var(--md-playback-active-fill);
+  --color-playback-indicator:   var(--md-playback-indicator);
+
+  --color-scrim: var(--md-scrim);
+
+  --color-warning:              var(--md-warning);
+  --color-on-warning:           var(--md-on-warning);
+  --color-warning-container:    var(--md-warning-container);
+  --color-on-warning-container: var(--md-on-warning-container);
 }
 
 body {
   background: var(--md-background);
   color: var(--md-on-background);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+input[type=range]:hover {
+  accent-color: var(--md-brand-dark);
 }

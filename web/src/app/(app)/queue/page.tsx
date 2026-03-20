@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { LIVE_POSITION_INTERVAL_MS } from '@/lib/player/constants'
 import {
   DndContext,
   closestCenter,
@@ -21,6 +22,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
 import AddToPlaylistPopover from '@/components/ui/AddToPlaylistPopover'
+import { EpisodeProgressOverlay } from '@/components/ui/EpisodeProgressOverlay'
 import { useUserPlaylists } from '@/hooks/useUserPlaylists'
 import { addEpisodeToPlaylist } from '@/lib/playlists/addEpisodeToPlaylist'
 
@@ -29,6 +31,7 @@ interface QueueItem {
   feed_url: string
   position: number
   position_seconds: number
+  position_pct: number | null
   episode: {
     title: string
     audio_url: string
@@ -52,21 +55,29 @@ function SortableQueueItem({
   onRemove,
   playlists,
   onAddToPlaylist,
+  isPlaying,
+  livePosition,
+  liveDuration,
 }: {
   item: QueueItem
   onPlay: (item: QueueItem) => void
   onRemove: (guid: string) => Promise<void>
   playlists: Array<{ id: string; name: string }>
-  onAddToPlaylist: (playlistId: string, item: QueueItem) => void
+  onAddToPlaylist: (playlistId: string, item: QueueItem) => Promise<void>
+  isPlaying: boolean
+  livePosition: number
+  liveDuration: number
 }) {
   const [removing, setRemoving] = useState(false)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.episode_guid,
   })
 
-  const pct = (item.position_seconds > 0 && item.episode?.duration)
-    ? Math.min(100, Math.round((item.position_seconds / item.episode.duration) * 100))
-    : null
+  const posSeconds = isPlaying ? livePosition : item.position_seconds
+  const livePct = isPlaying && liveDuration > 0 ? Math.min(100, Math.round((livePosition / liveDuration) * 100)) : null
+  const storedPct = item.position_pct
+  const durSeconds = item.episode?.duration ?? 0
+  const pct = livePct ?? storedPct ?? (posSeconds > 0 && durSeconds > 0 ? Math.min(100, Math.round((posSeconds / durSeconds) * 100)) : null)
 
   return (
     <div
@@ -77,7 +88,7 @@ function SortableQueueItem({
       <div
         {...attributes}
         {...listeners}
-        className="p-2 text-gray-600 hover:text-gray-400 cursor-grab active:cursor-grabbing touch-none"
+        className="p-2 text-on-surface-dim hover:text-on-surface-variant cursor-grab active:cursor-grabbing touch-none"
         title="Drag to reorder"
       >
         ⠿
@@ -85,32 +96,25 @@ function SortableQueueItem({
       <button
         onClick={() => onPlay(item)}
         disabled={!item.episode}
-        className="relative flex-1 flex items-center gap-3 text-left bg-gray-900 hover:bg-gray-800 rounded-xl px-4 py-3 transition-colors disabled:opacity-50 overflow-hidden"
+        className={`relative flex-1 flex items-center gap-3 text-left rounded-xl px-4 py-3 transition-colors disabled:opacity-50 overflow-hidden ${isPlaying ? 'bg-now-playing-surface hover:bg-now-playing-surface' : 'bg-surface-container-low hover:bg-surface-container'}`}
       >
-        {pct !== null && (
-          <div
-            className="absolute inset-0 rounded-xl pointer-events-none"
-            style={{
-              background: `linear-gradient(to right, rgba(34,197,94,0.12) ${pct}%, rgba(139,92,246,0.10) ${pct}%)`,
-            }}
-          />
-        )}
+        <EpisodeProgressOverlay pct={pct} isPlaying={isPlaying} />
         {item.episode?.artwork_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={item.episode.artwork_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
         ) : (
-          <div className="w-10 h-10 rounded-lg bg-gray-700 flex-shrink-0" />
+          <div className="w-10 h-10 rounded-lg bg-surface-container-high flex-shrink-0" />
         )}
         <div className="overflow-hidden">
-          <p className="text-sm font-medium text-white truncate">
+          <p className="text-sm font-medium text-on-surface truncate">
             {item.episode?.title ?? item.episode_guid}
           </p>
           <div className="flex gap-2 mt-0.5">
             {item.episode?.podcast_title && (
-              <span className="text-xs text-gray-400 truncate">{item.episode.podcast_title}</span>
+              <span className="text-xs text-on-surface-variant truncate">{item.episode.podcast_title}</span>
             )}
             {item.episode?.duration && (
-              <span className="text-xs text-gray-500">{formatDuration(item.episode.duration)}</span>
+              <span className="text-xs text-on-surface-dim">{formatDuration(item.episode.duration)}</span>
             )}
           </div>
         </div>
@@ -119,7 +123,7 @@ function SortableQueueItem({
         onClick={async () => { setRemoving(true); try { await onRemove(item.episode_guid) } finally { setRemoving(false) } }}
         disabled={removing}
         title="Remove from queue"
-        className="p-3 text-gray-500 hover:text-red-400 transition-colors disabled:opacity-50"
+        className="p-3 text-on-surface-dim hover:text-error transition-colors disabled:opacity-50"
       >
         {removing
           ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin block" />
@@ -138,7 +142,9 @@ function SortableQueueItem({
 export default function QueuePage() {
   const [items, setItems] = useState<QueueItem[]>([])
   const [loading, setLoading] = useState(true)
-  const { play, clientQueue, dequeueClient } = usePlayer()
+  const { play, clientQueue, dequeueClient, nowPlaying, audioRef } = usePlayer()
+  const [livePosition, setLivePosition] = useState(0)
+  const [liveDuration, setLiveDuration] = useState(0)
   const { isGuest } = useUser()
   const userPlaylists = useUserPlaylists(isGuest)
   const strings = useStrings()
@@ -169,6 +175,22 @@ export default function QueuePage() {
     return () => window.removeEventListener('queue-changed', fetchQueue)
   }, [isGuest, fetchQueue])
 
+  useEffect(() => {
+    const item = items.find(i => i.episode_guid === nowPlaying?.guid)
+    setLivePosition(item?.position_seconds ?? 0)
+  }, [nowPlaying?.guid]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!nowPlaying) return
+    const id = setInterval(() => {
+      if (audioRef.current) {
+        setLivePosition(audioRef.current.currentTime)
+        setLiveDuration(audioRef.current.duration || 0)
+      }
+    }, LIVE_POSITION_INTERVAL_MS)
+    return () => clearInterval(id)
+  }, [nowPlaying, audioRef])
+
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     if (!over || active.id === over.id) return
@@ -198,8 +220,8 @@ export default function QueuePage() {
     window.dispatchEvent(new Event('queue-changed'))
   }
 
-  function addItemToPlaylist(playlistId: string, item: QueueItem) {
-    if (!item.episode) return
+  function addItemToPlaylist(playlistId: string, item: QueueItem): Promise<void> {
+    if (!item.episode) return Promise.resolve()
     return addEpisodeToPlaylist(playlistId, {
       guid: item.episode_guid,
       feedUrl: item.feed_url,
@@ -228,10 +250,10 @@ export default function QueuePage() {
     return (
       <div className="p-4 md:p-8">
         <h1 className="text-2xl font-bold mb-4">{strings.queue.heading}</h1>
-        <div className="flex items-start gap-3 bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 mb-6">
-          <p className="text-sm text-gray-400 flex-1">
+        <div className="flex items-start gap-3 bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 mb-6">
+          <p className="text-sm text-on-surface-variant flex-1">
             {strings.guest.queue_sync_hint}{' '}
-            <a href="/login" className="text-violet-400 hover:text-violet-300 font-medium">{strings.guest.queue_sync_cta}</a>
+            <a href="/login" className="text-primary hover:text-primary font-medium">{strings.guest.queue_sync_cta}</a>
           </p>
         </div>
         {clientQueue.length === 0 ? (
@@ -246,23 +268,23 @@ export default function QueuePage() {
               <div key={ep.guid} className="flex items-center gap-2">
                 <button
                   onClick={() => play(ep)}
-                  className="flex-1 flex items-center gap-3 text-left bg-gray-900 hover:bg-gray-800 rounded-xl px-4 py-3 transition-colors"
+                  className="flex-1 flex items-center gap-3 text-left bg-surface-container-low hover:bg-surface-container rounded-xl px-4 py-3 transition-colors"
                 >
                   {ep.artworkUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={ep.artworkUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
                   ) : (
-                    <div className="w-10 h-10 rounded-lg bg-gray-700 flex-shrink-0" />
+                    <div className="w-10 h-10 rounded-lg bg-surface-container-high flex-shrink-0" />
                   )}
                   <div className="overflow-hidden">
-                    <p className="text-sm font-medium text-white truncate">{ep.title}</p>
-                    <p className="text-xs text-gray-400 truncate">{ep.podcastTitle}</p>
+                    <p className="text-sm font-medium text-on-surface truncate">{ep.title}</p>
+                    <p className="text-xs text-on-surface-variant truncate">{ep.podcastTitle}</p>
                   </div>
                 </button>
                 <button
                   onClick={() => dequeueClient(ep.guid)}
                   title="Remove from queue"
-                  className="p-3 text-gray-500 hover:text-red-400 transition-colors"
+                  className="p-3 text-on-surface-variant hover:text-error transition-colors"
                 >
                   ✕
                 </button>
@@ -281,7 +303,7 @@ export default function QueuePage() {
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-16 bg-gray-800 rounded-xl animate-pulse" />
+            <div key={i} className="h-16 bg-surface-container rounded-xl animate-pulse" />
           ))}
         </div>
       ) : items.length === 0 ? (
@@ -302,6 +324,9 @@ export default function QueuePage() {
                   onRemove={removeFromQueue}
                   playlists={userPlaylists}
                   onAddToPlaylist={addItemToPlaylist}
+                  isPlaying={nowPlaying?.guid === item.episode_guid}
+                  livePosition={livePosition}
+                  liveDuration={liveDuration}
                 />
               ))}
             </div>

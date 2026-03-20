@@ -116,21 +116,21 @@ export default function DiscoverPage() {
               if (query.trim()) setShowDropdown(true)
             }}
             placeholder={strings.discover.search_placeholder}
-            className="w-full bg-gray-800 text-white rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-violet-500"
+            className="w-full bg-surface-container text-on-surface rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary"
           />
 
           {/* Autocomplete Dropdown */}
           {showDropdown && query.trim() && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-gray-800 rounded-xl shadow-2xl overflow-hidden z-50 backdrop-blur-md bg-opacity-95">
+            <div className="absolute top-full left-0 right-0 mt-2 bg-surface-container-low border border-outline-variant rounded-xl shadow-2xl overflow-hidden z-50 backdrop-blur-md bg-opacity-95">
               {loadingSuggestions ? (
-                <div className="p-4 text-sm text-gray-400">{strings.discover.loading_suggestions}</div>
+                <div className="p-4 text-sm text-on-surface-variant">{strings.discover.loading_suggestions}</div>
               ) : suggestions.length > 0 ? (
                 <ul>
                   {suggestions.map((podcast) => (
                     <li key={podcast.collectionId}>
                       <Link
                         href={`/podcast/${podcast.collectionId}?feed=${encodeURIComponent(podcast.feedUrl)}`}
-                        className="flex items-center gap-3 px-4 py-3 hover:bg-gray-800 transition-colors"
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-surface-container transition-colors"
                         onClick={() => setShowDropdown(false)}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -140,15 +140,15 @@ export default function DiscoverPage() {
                           className="w-10 h-10 rounded-md object-cover flex-shrink-0"
                         />
                         <div className="overflow-hidden">
-                          <p className="font-medium text-sm text-white truncate">{podcast.collectionName}</p>
-                          <p className="text-xs text-gray-400 truncate mt-0.5">{podcast.artistName}</p>
+                          <p className="font-medium text-sm text-on-surface truncate">{podcast.collectionName}</p>
+                          <p className="text-xs text-on-surface-variant truncate mt-0.5">{podcast.artistName}</p>
                         </div>
                       </Link>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <div className="p-4 text-sm text-gray-400">
+                <div className="p-4 text-sm text-on-surface-variant">
                   {strings.discover.no_suggestions} &ldquo;{query}&rdquo;
                 </div>
               )}
@@ -158,14 +158,14 @@ export default function DiscoverPage() {
         <button
           type="submit"
           disabled={loading}
-          className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white rounded-lg px-6 py-3 text-sm font-medium transition-colors"
+          className="bg-brand hover:bg-brand disabled:opacity-50 text-on-surface rounded-lg px-6 py-3 text-sm font-medium transition-colors"
         >
           {loading ? '...' : strings.discover.search_button}
         </button>
       </form>
 
       {error && (
-        <p className="text-red-400 text-sm mb-4">{error}</p>
+        <p className="text-error text-sm mb-4">{error}</p>
       )}
 
       {/* Genre tabs — shown when browsing trending */}
@@ -179,8 +179,8 @@ export default function DiscoverPage() {
                 onClick={() => setActiveGenre(genre.id)}
                 className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                   activeGenre === genre.id
-                    ? 'bg-violet-600 text-white'
-                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    ? 'bg-brand text-on-surface'
+                    : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
                 }`}
               >
                 {strings.genres[genre.id] ?? genre.label}

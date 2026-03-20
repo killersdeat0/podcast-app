@@ -61,8 +61,8 @@ describe('GET /api/progress/completed', () => {
     mockGetUser.mockResolvedValue(AUTH)
     mockFrom.mockReturnValue(makeChain({
       data: [
-        { episode_guid: 'ep1', position_seconds: 1800, completed: true },
-        { episode_guid: 'ep2', position_seconds: 600, completed: false },
+        { episode_guid: 'ep1', position_seconds: 1800, position_pct: 95, completed: true },
+        { episode_guid: 'ep2', position_seconds: 600, position_pct: null, completed: false },
       ],
       error: null,
     }))
@@ -71,8 +71,8 @@ describe('GET /api/progress/completed', () => {
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({
       progress: [
-        { guid: 'ep1', positionSeconds: 1800, completed: true },
-        { guid: 'ep2', positionSeconds: 600, completed: false },
+        { guid: 'ep1', positionSeconds: 1800, positionPct: 95, completed: true },
+        { guid: 'ep2', positionSeconds: 600, positionPct: null, completed: false },
       ],
     })
   })

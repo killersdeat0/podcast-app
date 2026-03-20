@@ -105,34 +105,34 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-lg mx-auto px-6 py-12">
-      <h1 className="text-2xl font-bold text-white mb-8">{strings.profile.heading}</h1>
+      <h1 className="text-2xl font-bold text-on-surface mb-8">{strings.profile.heading}</h1>
 
       {!data ? (
         <div className="space-y-4">
-          <div className="h-6 bg-gray-800 rounded animate-pulse w-48" />
-          <div className="h-24 bg-gray-800 rounded-xl animate-pulse" />
-          <div className="h-24 bg-gray-800 rounded-xl animate-pulse" />
+          <div className="h-6 bg-surface-container rounded animate-pulse w-48" />
+          <div className="h-24 bg-surface-container rounded-xl animate-pulse" />
+          <div className="h-24 bg-surface-container rounded-xl animate-pulse" />
         </div>
       ) : (
         <div className="space-y-4">
-          <p className="text-gray-400 text-sm">{data.email}</p>
+          <p className="text-on-surface-variant text-sm">{data.email}</p>
 
-          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 flex items-center justify-between">
+          <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6 flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">{strings.profile.account}</p>
-              <p className="text-white font-semibold text-lg capitalize">{data.tier}</p>
+              <p className="text-xs text-on-surface-variant uppercase tracking-wider mb-1">{strings.profile.account}</p>
+              <p className="text-on-surface font-semibold text-lg capitalize">{data.tier}</p>
             </div>
             {data.tier === 'free' && (
               <div className="flex flex-col items-end gap-2">
                 <Link
                   href="/upgrade"
-                  className="bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                  className="bg-brand hover:bg-brand text-on-brand text-sm font-medium px-4 py-2 rounded-lg transition-colors"
                 >
                   {strings.profile.upgrade_cta}
                 </Link>
                 {process.env.NODE_ENV === 'development' && (
                   <button onClick={handleResetLastVisited} disabled={resettingLastVisited}
-                    className="text-xs text-yellow-500 underline">
+                    className="text-xs text-warning underline">
                     {resettingLastVisited ? 'Resetting…' : 'DEV: Reset last seen → 7 days ago'}
                   </button>
                 )}
@@ -140,15 +140,15 @@ export default function ProfilePage() {
             )}
             {data.tier === 'paid' && (
               <div className="flex flex-col items-end">
-                <span className="text-violet-400 text-sm font-medium">{strings.profile.pro_label}</span>
+                <span className="text-primary text-sm font-medium">{strings.profile.pro_label}</span>
                 {process.env.NODE_ENV === 'development' && (
                   <div className="flex flex-col items-end gap-1 mt-2">
                     <button onClick={handleDowngrade} disabled={downgrading}
-                      className="text-xs text-red-400 underline">
+                      className="text-xs text-error underline">
                       {strings.profile.dev_downgrade}
                     </button>
                     <button onClick={handleResetLastVisited} disabled={resettingLastVisited}
-                      className="text-xs text-yellow-500 underline">
+                      className="text-xs text-warning underline">
                       {resettingLastVisited ? 'Resetting…' : 'DEV: Reset last seen → 7 days ago'}
                     </button>
                   </div>
@@ -157,30 +157,30 @@ export default function ProfilePage() {
             )}
           </div>
 
-          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">{strings.profile.listened}</p>
-            <p className="text-white font-semibold text-3xl">{formatHours(data.listeningSeconds)}</p>
+          <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6">
+            <p className="text-xs text-on-surface-variant uppercase tracking-wider mb-1">{strings.profile.listened}</p>
+            <p className="text-on-surface font-semibold text-3xl">{formatHours(data.listeningSeconds)}</p>
           </div>
 
           {data.tier === 'paid' && (
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-900 border border-gray-700 rounded-xl p-6">
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">{strings.profile.completed_this_week}</p>
-                <p className="text-white font-semibold text-3xl">{data.completedThisWeek}</p>
+              <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6">
+                <p className="text-xs text-on-surface-variant uppercase tracking-wider mb-1">{strings.profile.completed_this_week}</p>
+                <p className="text-on-surface font-semibold text-3xl">{data.completedThisWeek}</p>
               </div>
-              <div className="bg-gray-900 border border-gray-700 rounded-xl p-6">
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">{strings.profile.streak}</p>
-                <p className="text-white font-semibold text-3xl">{data.streakDays}</p>
+              <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6">
+                <p className="text-xs text-on-surface-variant uppercase tracking-wider mb-1">{strings.profile.streak}</p>
+                <p className="text-on-surface font-semibold text-3xl">{data.streakDays}</p>
               </div>
             </div>
           )}
 
-          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 flex items-center justify-between">
-            <p className="text-xs text-gray-500 uppercase tracking-wider">{strings.profile.language}</p>
+          <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6 flex items-center justify-between">
+            <p className="text-xs text-on-surface-variant uppercase tracking-wider">{strings.profile.language}</p>
             <select
               value={locale}
               onChange={(e) => setLocale(e.target.value as Locale)}
-              className="bg-gray-800 text-white text-sm rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-violet-500"
+              className="bg-surface-container text-on-surface text-sm rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-primary"
             >
               {(Object.entries(LOCALE_LABELS) as [Locale, string][]).map(([code, label]) => (
                 <option key={code} value={code}>{label}</option>
@@ -188,21 +188,21 @@ export default function ProfilePage() {
             </select>
           </div>
 
-          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6">
+          <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6">
             <div className="flex items-center justify-between mb-1">
-              <p className="text-xs text-gray-500 uppercase tracking-wider">
+              <p className="text-xs text-on-surface-variant uppercase tracking-wider">
                 {strings.profile.subscriptions} ({subscriptions.length})
               </p>
               <div className="flex items-center gap-2">
                 <a
                   href="/api/opml/export"
                   download="subscriptions.opml"
-                  className="text-xs text-gray-400 hover:text-white transition-colors"
+                  className="text-xs text-on-surface-variant hover:text-on-surface transition-colors"
                 >
                   {strings.profile.opml_export}
                 </a>
-                <span className="text-gray-700">|</span>
-                <label className="text-xs text-gray-400 hover:text-white transition-colors cursor-pointer">
+                <span className="text-on-surface-variant">|</span>
+                <label className="text-xs text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">
                   {importStatus === 'loading' ? strings.profile.opml_importing : strings.profile.opml_import}
                   <input
                     type="file"
@@ -215,12 +215,12 @@ export default function ProfilePage() {
               </div>
             </div>
             {importStatus === 'success' && (
-              <p className="text-xs text-green-400 mb-2">
+              <p className="text-xs text-playback-indicator mb-2">
                 {strings.profile.opml_import_success.replace('{{n}}', String(importedCount))}
               </p>
             )}
             {importStatus === 'error' && (
-              <p className="text-xs text-red-400 mb-2">{strings.profile.opml_import_error}</p>
+              <p className="text-xs text-error mb-2">{strings.profile.opml_import_error}</p>
             )}
             {subscriptions.length === 0 ? (
               <EmptyState
@@ -245,25 +245,25 @@ export default function ProfilePage() {
                             className="w-10 h-10 rounded-lg object-cover"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-lg bg-gray-800" />
+                          <div className="w-10 h-10 rounded-lg bg-surface-container" />
                         )}
                         {sub.new_episode_count > 0 && (
-                          <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-0.5 bg-violet-500 rounded-full border-2 border-gray-900 flex items-center justify-center text-[10px] font-bold text-white leading-none">
+                          <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-0.5 bg-brand rounded-full border-2 border-surface flex items-center justify-center text-[10px] font-bold text-on-brand leading-none">
                             {sub.new_episode_count > 99 ? '99+' : sub.new_episode_count}
                           </span>
                         )}
                       </div>
                       <div className="min-w-0">
-                        <span className="text-sm text-gray-300 group-hover:text-white truncate transition-colors block">
+                        <span className="text-sm text-on-surface group-hover:text-on-surface truncate transition-colors block">
                           {sub.title}
                         </span>
                         {sub.episode_filter === '*' && (
-                          <span className="text-[11px] text-violet-400 bg-violet-500/10 px-1.5 py-0.5 rounded mt-0.5 inline-block">
+                          <span className="text-[11px] text-primary bg-primary/10 px-1.5 py-0.5 rounded mt-0.5 inline-block">
                             📻 All episodes
                           </span>
                         )}
                         {sub.episode_filter && sub.episode_filter !== '*' && (
-                          <span className="text-[11px] text-violet-400 bg-violet-500/10 px-1.5 py-0.5 rounded mt-0.5 inline-block truncate max-w-full">
+                          <span className="text-[11px] text-primary bg-primary/10 px-1.5 py-0.5 rounded mt-0.5 inline-block truncate max-w-full">
                             🎯 {sub.episode_filter}
                           </span>
                         )}

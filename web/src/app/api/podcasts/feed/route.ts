@@ -11,6 +11,8 @@ export async function GET(req: NextRequest) {
   }
 
   const nocache = req.nextUrl.searchParams.get('nocache') === '1'
+  const limitParam = req.nextUrl.searchParams.get('limit')
+  const limit = limitParam ? parseInt(limitParam, 10) : null
 
   const res = await fetch(
     `${supabaseUrl}/functions/v1/podcasts-feed?url=${encodeURIComponent(feedUrl)}`,
@@ -21,5 +23,9 @@ export async function GET(req: NextRequest) {
   )
   if (!res.ok) return NextResponse.json({ error: 'Failed to parse feed' }, { status: 502 })
   const feed = await res.json()
+
+  if (limit && limit > 0 && Array.isArray(feed.episodes) && feed.episodes.length > limit) {
+    return NextResponse.json({ ...feed, episodes: feed.episodes.slice(0, limit), total: feed.episodes.length })
+  }
   return NextResponse.json(feed)
 }

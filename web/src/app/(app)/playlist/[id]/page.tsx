@@ -1,6 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { LIVE_POSITION_INTERVAL_MS } from '@/lib/player/constants'
+import { EpisodeProgressOverlay } from '@/components/ui/EpisodeProgressOverlay'
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -42,6 +44,7 @@ interface PlaylistEpisode {
     description: string | null
   } | null
   position_seconds: number
+  position_pct: number | null
   completed: boolean
 }
 
@@ -65,6 +68,9 @@ function SortableEpisodeRow({
   item,
   isOwner,
   inQueue,
+  isPlaying,
+  livePosition,
+  liveDuration,
   onPlay,
   onRemove,
   onAddToQueue,
@@ -72,6 +78,9 @@ function SortableEpisodeRow({
   item: PlaylistEpisode
   isOwner: boolean
   inQueue: boolean
+  isPlaying: boolean
+  livePosition: number
+  liveDuration: number
   onPlay: (item: PlaylistEpisode) => void
   onRemove: (guid: string) => void
   onAddToQueue: (item: PlaylistEpisode) => void
@@ -80,6 +89,12 @@ function SortableEpisodeRow({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.episode_guid,
   })
+
+  const posSeconds = isPlaying ? livePosition : item.position_seconds
+  const livePct = isPlaying && liveDuration > 0 ? Math.min(100, Math.round((livePosition / liveDuration) * 100)) : null
+  const storedPct = item.position_pct
+  const durSeconds = item.episode?.duration ?? 0
+  const pct = item.completed ? 100 : (livePct ?? storedPct ?? (posSeconds > 0 && durSeconds > 0 ? Math.min(100, Math.round((posSeconds / durSeconds) * 100)) : null))
 
   return (
     <div
@@ -91,7 +106,7 @@ function SortableEpisodeRow({
         <div
           {...attributes}
           {...listeners}
-          className="p-2 text-gray-600 hover:text-gray-400 cursor-grab active:cursor-grabbing touch-none"
+          className="p-2 text-on-surface-dim hover:text-on-surface-variant cursor-grab active:cursor-grabbing touch-none"
         >
           <GripVertical className="w-4 h-4" />
         </div>
@@ -99,24 +114,25 @@ function SortableEpisodeRow({
       <button
         onClick={() => onPlay(item)}
         disabled={!item.episode}
-        className="flex-1 flex items-center gap-3 text-left bg-gray-900 hover:bg-gray-800 rounded-xl px-4 py-3 transition-colors disabled:opacity-50"
+        className={`relative flex-1 flex items-center gap-3 text-left rounded-xl px-4 py-3 transition-colors disabled:opacity-50 overflow-hidden ${isPlaying ? 'bg-now-playing-surface hover:bg-now-playing-surface' : 'bg-surface-container-low hover:bg-surface-container'}`}
       >
+        <EpisodeProgressOverlay pct={pct} isPlaying={isPlaying} />
         {item.episode?.artwork_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={item.episode.artwork_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
         ) : (
-          <div className="w-10 h-10 rounded-lg bg-gray-700 flex-shrink-0" />
+          <div className="w-10 h-10 rounded-lg bg-surface-container-high flex-shrink-0" />
         )}
         <div className="overflow-hidden flex-1">
-          <p className="text-sm font-medium text-white truncate">
+          <p className="text-sm font-medium text-on-surface truncate">
             {item.episode?.title ?? item.episode_guid}
           </p>
           <div className="flex gap-2 mt-0.5">
             {item.episode?.podcast_title && (
-              <span className="text-xs text-gray-400 truncate">{item.episode.podcast_title}</span>
+              <span className="text-xs text-on-surface-variant truncate">{item.episode.podcast_title}</span>
             )}
             {item.episode?.duration && (
-              <span className="text-xs text-gray-500 flex-shrink-0">{formatDuration(item.episode.duration)}</span>
+              <span className="text-xs text-on-surface-dim flex-shrink-0">{formatDuration(item.episode.duration)}</span>
             )}
           </div>
         </div>
@@ -125,7 +141,7 @@ function SortableEpisodeRow({
         onClick={() => onAddToQueue(item)}
         disabled={!item.episode}
         title={strings.playlists.add_to_queue}
-        className={`p-2 transition-colors disabled:opacity-30 ${inQueue ? 'text-violet-400 hover:text-red-400' : 'text-gray-500 hover:text-violet-400'}`}
+        className={`p-2 transition-colors disabled:opacity-30 ${inQueue ? 'text-primary hover:text-error' : 'text-on-surface-variant hover:text-primary'}`}
       >
         {inQueue ? <Check className="w-4 h-4" /> : <List className="w-4 h-4" />}
       </button>
@@ -133,7 +149,7 @@ function SortableEpisodeRow({
         <button
           onClick={() => onRemove(item.episode_guid)}
           title={strings.playlists.remove_episode}
-          className="p-2 text-gray-500 hover:text-red-400 transition-colors"
+          className="p-2 text-on-surface-dim hover:text-error transition-colors"
         >
           <Trash2 className="w-4 h-4" />
         </button>
@@ -148,7 +164,9 @@ export default function PlaylistDetailPage() {
   const pathname = usePathname()
   const strings = useStrings()
   const { isGuest, tier } = useUser()
-  const { play, playPlaylist } = usePlayer()
+  const { play, playPlaylist, nowPlaying, audioRef } = usePlayer()
+  const [livePosition, setLivePosition] = useState(0)
+  const [liveDuration, setLiveDuration] = useState(0)
   const sensors = useSensors(useSensor(PointerSensor))
 
   const [playlist, setPlaylist] = useState<PlaylistData | null>(null)
@@ -185,6 +203,23 @@ export default function PlaylistDetailPage() {
   }, [id])
 
   useEffect(() => { fetchPlaylist() }, [fetchPlaylist])
+
+  useEffect(() => {
+    const item = episodes.find(i => i.episode_guid === nowPlaying?.guid)
+    setLivePosition(item?.position_seconds ?? 0)
+    setLiveDuration(0)
+  }, [nowPlaying?.guid]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!nowPlaying) return
+    const id = setInterval(() => {
+      if (audioRef.current) {
+        setLivePosition(audioRef.current.currentTime)
+        setLiveDuration(audioRef.current.duration || 0)
+      }
+    }, LIVE_POSITION_INTERVAL_MS)
+    return () => clearInterval(id)
+  }, [nowPlaying, audioRef])
 
   useEffect(() => {
     window.addEventListener('history-changed', fetchPlaylist)
@@ -352,10 +387,10 @@ export default function PlaylistDetailPage() {
   if (loading) {
     return (
       <div className="p-4 md:p-8">
-        <div className="h-8 w-48 bg-gray-800 rounded animate-pulse mb-4" />
+        <div className="h-8 w-48 bg-surface-container rounded animate-pulse mb-4" />
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-16 bg-gray-800 rounded-xl animate-pulse" />
+            <div key={i} className="h-16 bg-surface-container rounded-xl animate-pulse" />
           ))}
         </div>
       </div>
@@ -367,8 +402,8 @@ export default function PlaylistDetailPage() {
       <div className="p-4 md:p-8">
         {!isGuest && (
           <>
-            <p className="text-gray-400">Playlist not found.</p>
-            <Link href="/playlists" className="text-violet-400 hover:text-violet-300 text-sm mt-2 inline-block">
+            <p className="text-on-surface-variant">Playlist not found.</p>
+            <Link href="/playlists" className="text-primary hover:text-primary text-sm mt-2 inline-block">
               ← Back to playlists
             </Link>
           </>
@@ -391,7 +426,7 @@ export default function PlaylistDetailPage() {
     <div className="p-4 md:p-8">
       {/* Header */}
       <div className="mb-6">
-        <Link href="/playlists" className="text-xs text-gray-500 hover:text-gray-400 mb-3 inline-block">
+        <Link href="/playlists" className="text-xs text-on-surface-dim hover:text-on-surface-variant mb-3 inline-block">
           ← Playlists
         </Link>
         {isOwner && editingName ? (
@@ -401,7 +436,7 @@ export default function PlaylistDetailPage() {
               type="text"
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
-              className="text-2xl font-bold bg-gray-800 text-white rounded-lg px-3 py-1 outline-none focus:ring-1 focus:ring-violet-500 w-full max-w-md"
+              className="text-2xl font-bold bg-surface-container text-on-surface rounded-lg px-3 py-1 outline-none focus:ring-1 focus:ring-primary w-full max-w-md"
               onKeyDown={(e) => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setEditingName(false) }}
               autoFocus
             />
@@ -410,18 +445,18 @@ export default function PlaylistDetailPage() {
               onChange={(e) => setEditDesc(e.target.value)}
               placeholder={strings.playlists.create_description_placeholder}
               rows={2}
-              className="bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-violet-500 resize-none w-full max-w-md"
+              className="bg-surface-container text-on-surface rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary resize-none w-full max-w-md"
             />
             <div className="flex gap-2">
               <button
                 onClick={handleSaveName}
-                className="px-3 py-1 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm"
+                className="px-3 py-1 bg-brand hover:bg-brand text-on-brand rounded-lg text-sm"
               >
                 <Check className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setEditingName(false)}
-                className="px-3 py-1 text-gray-400 hover:text-white text-sm"
+                className="px-3 py-1 text-on-surface-variant hover:text-on-surface text-sm"
               >
                 Cancel
               </button>
@@ -434,7 +469,7 @@ export default function PlaylistDetailPage() {
               {isOwner && (
                 <button
                   onClick={() => setEditingName(true)}
-                  className="p-1 text-gray-600 hover:text-violet-400 transition-colors"
+                  className="p-1 text-on-surface-dim hover:text-primary transition-colors"
                   title="Edit"
                 >
                   <Pencil className="w-4 h-4" />
@@ -442,7 +477,7 @@ export default function PlaylistDetailPage() {
               )}
             </div>
             {playlist.description && (
-              <p className="text-gray-400 text-sm mb-2">{playlist.description}</p>
+              <p className="text-on-surface-variant text-sm mb-2">{playlist.description}</p>
             )}
           </div>
         )}
@@ -452,7 +487,7 @@ export default function PlaylistDetailPage() {
           <button
             onClick={handlePlayAll}
             disabled={episodes.length === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand disabled:opacity-50 disabled:cursor-not-allowed text-on-brand rounded-lg text-sm font-medium transition-colors"
           >
             <Play className="w-4 h-4" />
             {strings.playlists.play}
@@ -462,7 +497,7 @@ export default function PlaylistDetailPage() {
           {isOwner && (
             <button
               onClick={handleTogglePublic}
-              className="flex items-center gap-2 px-3 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm transition-colors"
+              className="flex items-center gap-2 px-3 py-2 bg-surface-container hover:bg-surface-container-high text-on-surface rounded-lg text-sm transition-colors"
             >
               {playlist.is_public ? (
                 <><Globe className="w-4 h-4" />{strings.playlists.make_private}</>
@@ -476,7 +511,7 @@ export default function PlaylistDetailPage() {
           {playlist.is_public && (
             <button
               onClick={handleCopyLink}
-              className="flex items-center gap-2 px-3 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm transition-colors"
+              className="flex items-center gap-2 px-3 py-2 bg-surface-container hover:bg-surface-container-high text-on-surface rounded-lg text-sm transition-colors"
             >
               <LinkIcon className="w-4 h-4" />
               {copied ? strings.playlists.link_copied : strings.playlists.copy_link}
@@ -487,7 +522,7 @@ export default function PlaylistDetailPage() {
           {isOwner && (
             <button
               onClick={handleDelete}
-              className="flex items-center gap-2 px-3 py-2 bg-gray-800 hover:bg-red-900/50 text-gray-400 hover:text-red-400 rounded-lg text-sm transition-colors"
+              className="flex items-center gap-2 px-3 py-2 bg-surface-container hover:bg-error-container/50 text-on-surface-dim hover:text-error rounded-lg text-sm transition-colors"
               title={strings.playlists.delete}
             >
               <Trash2 className="w-4 h-4" />
@@ -497,7 +532,7 @@ export default function PlaylistDetailPage() {
 
           {/* Public/private badge (non-owner) */}
           {!isOwner && (
-            <span className="flex items-center gap-1 text-xs text-gray-500">
+            <span className="flex items-center gap-1 text-xs text-on-surface-dim">
               {playlist.is_public ? (
                 <><Globe className="w-3 h-3" />{strings.playlists.public_badge}</>
               ) : (
@@ -518,7 +553,7 @@ export default function PlaylistDetailPage() {
 
       {/* Episode list */}
       {episodes.length === 0 ? (
-        <p className="text-gray-500 text-sm">{strings.playlists.empty_description}</p>
+        <p className="text-on-surface-variant text-sm">{strings.playlists.empty_description}</p>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={isOwner ? handleDragEnd : () => {}}>
           <SortableContext items={episodes.map((e) => e.episode_guid)} strategy={verticalListSortingStrategy}>
@@ -529,6 +564,9 @@ export default function PlaylistDetailPage() {
                   item={ep}
                   isOwner={isOwner}
                   inQueue={queuedGuids.has(ep.episode_guid)}
+                  isPlaying={nowPlaying?.guid === ep.episode_guid}
+                  livePosition={livePosition}
+                  liveDuration={liveDuration}
                   onPlay={handlePlayEpisode}
                   onRemove={handleRemoveEpisode}
                   onAddToQueue={handleAddToQueue}

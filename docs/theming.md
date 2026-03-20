@@ -13,8 +13,8 @@ Color roles are defined as `--md-*` CSS custom properties in `web/src/app/global
 ```css
 /* globals.css */
 :root {
-  --md-primary: #cfb8ff;
-  --md-surface: #141218;
+  --md-primary: #a78bfa;  /* violet-400 — text accents only */
+  --md-surface: #030712;
   /* ... */
 }
 
@@ -36,8 +36,42 @@ This generates Tailwind utilities for every role:
 | Subdued text | `text-on-surface-variant` |
 | Error | `text-error` / `bg-error-container` |
 | Borders | `border-outline` / `border-outline-variant` |
+| Modal backdrop | `bg-scrim` |
+| Warning banners | `bg-warning-container` / `text-on-warning-container` |
 
-Prefer semantic tokens over raw Tailwind palette classes (`bg-surface` not `bg-gray-950`, `text-primary` not `text-violet-400`).
+**Surface token values** (tuned to match the original gray scale, not the M3 generated values):
+
+| Token | Value | Replaces |
+|---|---|---|
+| `bg-background` | `#030712` | `bg-gray-950` |
+| `bg-surface-container-low` | `#111827` | `bg-gray-900` (cards, panels) |
+| `bg-surface-container` | `#1f2937` | `bg-gray-800` (popovers, dropdowns) |
+| `bg-surface-container-high` | `#374151` | `bg-gray-700` (hover states) |
+| `text-on-surface` | `#ffffff` | `text-white` |
+| `text-on-surface-variant` | `#9ca3af` | `text-gray-400` (metadata, subtitles) |
+| `text-on-surface-dim` | `#6b7280` | `text-gray-500`/`text-gray-600` (timestamps, section labels, drag handles) |
+| `border-outline-variant` | `#374151` | `border-gray-700`/`border-gray-800` |
+
+**Brand tokens** (vivid violet fills — distinct from the M3 `primary` role which is for text):
+
+| Token | Value | Usage |
+|---|---|---|
+| `bg-brand` / `text-brand` | `#7c3aed` | Filled buttons, active nav pill, badges — replaces `bg-violet-600` |
+| `hover:bg-brand-dark` | `#5b21b6` | Hover state on brand fills and slider accent |
+| `text-primary` | `#a78bfa` | Violet accent text — replaces `text-violet-400` |
+| `accent-brand` | `#7c3aed` | `input[type=range]` slider track color |
+
+**App-specific tokens** (custom extensions to M3, defined in `globals.css`):
+
+| Token | Usage |
+|---|---|
+| `bg-now-playing-surface` | Purple row tint for the currently-playing episode |
+| `bg-playback-fill` / `bg-playback-active-fill` | Translucent green progress background (inactive / active) |
+| `bg-playback-indicator` / `text-playback-indicator` | Solid green for progress bars, "Done" text, success checks |
+| `bg-scrim` | Semi-transparent black backdrop behind modals |
+| `bg-warning-container` / `text-on-warning-container` / `text-warning` | Yellow warning banners (e.g. over-limit notices) |
+
+**Rule:** never use raw Tailwind palette classes (`bg-gray-*`, `text-violet-*`, `text-white`, `bg-black/60`, etc.) in components. If a color isn't covered by an existing token, add `--md-*` to `:root` and `--color-*` to `@theme inline` in `globals.css` first.
 
 ---
 

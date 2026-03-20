@@ -95,6 +95,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
   }
   const lastSavedAt = useRef(0)
   const nowPlayingRef = useRef(nowPlaying)
+  const prevNowPlayingRef = useRef<NowPlaying | null>(null)
   const playingRef = useRef(playing)
   const clientQueueRef = useRef(clientQueue)
   const isDragging = useRef(false)
@@ -150,6 +151,30 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
   useEffect(() => {
     const audio = audioRef.current
     if (!audio || !nowPlaying) return
+
+    // Save position of the episode we're switching away from (before src changes)
+    const prev = prevNowPlayingRef.current
+    if (!isGuest && prev && prev.guid !== nowPlaying.guid && audio.currentTime > 5 && !hasCompletedRef.current) {
+      const pct = audio.duration > 0 ? Math.min(100, Math.round((audio.currentTime / audio.duration) * 100)) : undefined
+      fetch('/api/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          guid: prev.guid,
+          feedUrl: prev.feedUrl,
+          positionSeconds: Math.floor(audio.currentTime),
+          positionPct: pct,
+          completed: false,
+          title: prev.title,
+          audioUrl: prev.audioUrl,
+          duration: prev.duration,
+          artworkUrl: prev.artworkUrl,
+          podcastTitle: prev.podcastTitle,
+        }),
+      }).catch(() => {})
+    }
+    prevNowPlayingRef.current = nowPlaying
+
     audio.src = nowPlaying.audioUrl
     audio.playbackRate = speed
     setCurrentTime(0)
@@ -199,6 +224,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
     const audio = audioRef.current
     // Save current position without marking complete so the user can resume
     if (audio && audio.currentTime > 5) {
+      const pct = audio.duration > 0 ? Math.min(100, Math.round((audio.currentTime / audio.duration) * 100)) : undefined
       fetch('/api/progress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -206,6 +232,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
           guid: np.guid,
           feedUrl: np.feedUrl,
           positionSeconds: Math.floor(audio.currentTime),
+          positionPct: pct,
           completed: false,
           title: np.title,
           audioUrl: np.audioUrl,
@@ -260,6 +287,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
         guid: np.guid,
         feedUrl: np.feedUrl,
         positionSeconds: Math.floor(audio?.currentTime || audio?.duration || 0),
+        positionPct: 100,
         completed: true,
         title: np.title,
         audioUrl: np.audioUrl,
@@ -267,7 +295,9 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
         artworkUrl: np.artworkUrl,
         podcastTitle: np.podcastTitle,
       }),
-    }).catch(() => {})
+    })
+      .then(() => window.dispatchEvent(new Event('progress-saved')))
+      .catch(() => {})
 
     // TODO: play audio ad clip here for free tier before advancing
 
@@ -330,7 +360,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
           return
         }
       }
-      if (!isGuest && np && audio.currentTime > 5 && now - lastSavedAt.current > 10000) {
+      if (!isGuest && np && audio.currentTime > 5 && now - lastSavedAt.current > 10000 && !hasCompletedRef.current) {
         lastSavedAt.current = now
         fetch('/api/progress', {
           method: 'POST',
@@ -339,6 +369,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
             guid: np.guid,
             feedUrl: np.feedUrl,
             positionSeconds: Math.floor(audio.currentTime),
+            positionPct: audio.duration > 0 ? Math.min(100, Math.round((audio.currentTime / audio.duration) * 100)) : undefined,
             title: np.title,
             audioUrl: np.audioUrl,
             duration: np.duration,
@@ -412,7 +443,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
     <>
       <audio ref={audioRef} preload="metadata" />
       {!nowPlaying ? null : (
-    <div className="bg-gray-900 border-t border-gray-800 px-3 md:px-6 py-3 flex-shrink-0">
+    <div className="bg-surface-container-low border-t border-outline-variant px-3 md:px-6 py-3 flex-shrink-0">
 
       <div className="max-w-screen-xl mx-auto flex items-center gap-3 md:gap-6">
         {/* Artwork + info */}
@@ -427,22 +458,22 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
             />
           )}
           <div className="overflow-hidden min-w-0 hidden sm:block">
-            <p className="text-sm font-medium text-white truncate">{nowPlaying.title}</p>
-            <p className="text-xs text-gray-400 truncate">{nowPlaying.podcastTitle}</p>
+            <p className="text-sm font-medium text-on-surface truncate">{nowPlaying.title}</p>
+            <p className="text-xs text-on-surface-variant truncate">{nowPlaying.podcastTitle}</p>
           </div>
         </div>
 
         {/* Controls */}
         <div className="flex-1 flex flex-col items-center gap-1">
           <div className="flex items-center gap-4">
-            <button onClick={() => seek(currentTime - 15)} className="text-gray-400 hover:text-white text-sm">-15</button>
+            <button onClick={() => seek(currentTime - 15)} className="text-on-surface-variant hover:text-on-surface text-sm">-15</button>
             <button
               onClick={togglePlay}
-              className="w-10 h-10 rounded-full bg-violet-600 hover:bg-violet-500 flex items-center justify-center text-white transition-colors"
+              className="w-10 h-10 rounded-full bg-brand hover:bg-brand-dark flex items-center justify-center text-on-surface transition-colors"
             >
               {playing ? '❚❚' : '▶'}
             </button>
-            <button onClick={() => seek(currentTime + 30)} className="text-gray-400 hover:text-white text-sm">+30</button>
+            <button onClick={() => seek(currentTime + 30)} className="text-on-surface-variant hover:text-on-surface text-sm">+30</button>
             {hasNextInQueue && (
               <button
                 onClick={() => {
@@ -450,14 +481,14 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
                   if (np) skipToNext(np)
                 }}
                 title="Next episode"
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-on-surface-variant hover:text-on-surface transition-colors"
               >
                 <SkipForward className="w-4 h-4" />
               </button>
             )}
           </div>
           <div className="flex items-center gap-2 w-full max-w-lg">
-            <span className="text-xs text-gray-400 w-10 text-right">{formatTime(currentTime)}</span>
+            <span className="text-xs text-on-surface-dim w-10 text-right">{formatTime(currentTime)}</span>
             <div className="relative flex-1">
               <input
                 type="range"
@@ -468,24 +499,24 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
                 onPointerDown={() => { isDragging.current = true; setSliderValue(currentTime) }}
                 onChange={(e) => setSliderValue(Number(e.target.value))}
                 onPointerUp={(e) => { isDragging.current = false; seek(Number(e.currentTarget.value)) }}
-                className="w-full accent-violet-500"
+                className="w-full accent-brand"
               />
               {duration > 0 && chapters.map((ch) => (
                 <div
                   key={ch.startTime}
                   title={ch.title}
                   onClick={() => seek(ch.startTime)}
-                  className="absolute top-1/2 -translate-y-1/2 w-1 h-3 bg-violet-300/70 rounded-full cursor-pointer pointer-events-auto"
+                  className="absolute top-1/2 -translate-y-1/2 w-1 h-3 bg-primary/70 rounded-full cursor-pointer pointer-events-auto"
                   style={{ left: `${(ch.startTime / duration) * 100}%` }}
                 />
               ))}
             </div>
-            <span className="text-xs text-gray-400 w-10">{formatTime(duration)}</span>
+            <span className="text-xs text-on-surface-dim w-10">{formatTime(duration)}</span>
           </div>
           {chapters.length > 0 && (() => {
             const current = [...chapters].reverse().find((ch) => ch.startTime <= currentTime)
             return current?.title ? (
-              <p className="text-xs text-gray-500 truncate max-w-lg">{current.title}</p>
+              <p className="text-xs text-on-surface-variant truncate max-w-lg">{current.title}</p>
             ) : null
           })()}
         </div>
@@ -494,7 +525,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
         <div className="relative md:hidden flex-shrink-0">
           <button
             onClick={() => setMobileMenu('main')}
-            className="text-gray-400 hover:text-white px-1 py-1 text-lg leading-none"
+            className="text-on-surface-variant hover:text-on-surface px-1 py-1 text-lg leading-none"
             aria-label="More options"
           >
             ···
@@ -502,22 +533,22 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
           {mobileMenu && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMobileMenu(null)} />
-              <div className="absolute bottom-full right-0 mb-2 bg-gray-800 border border-gray-700 rounded-lg overflow-hidden z-20 min-w-[160px]">
+              <div className="absolute bottom-full right-0 mb-2 bg-surface-container border border-outline-variant rounded-lg overflow-hidden z-20 min-w-[160px]">
                 {mobileMenu === 'main' && (
                   <>
                     <button
                       onClick={() => setMobileMenu('speed')}
-                      className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700"
+                      className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-on-surface hover:bg-surface-container-high"
                     >
                       <span>{strings.player.playback_speed}</span>
-                      <span className="text-gray-500 ml-4">{speed}x ›</span>
+                      <span className="text-on-surface-variant ml-4">{speed}x ›</span>
                     </button>
                     <button
                       onClick={() => setMobileMenu('volume')}
-                      className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700"
+                      className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-on-surface hover:bg-surface-container-high"
                     >
                       <span>{strings.player.volume}</span>
-                      <span className="text-gray-500 ml-4">{Math.round(volume * 100)}% ›</span>
+                      <span className="text-on-surface-variant ml-4">{Math.round(volume * 100)}% ›</span>
                     </button>
                   </>
                 )}
@@ -525,14 +556,14 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
                   <>
                     <button
                       onClick={() => setMobileMenu('main')}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-400 hover:bg-gray-700 border-b border-gray-700"
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-on-surface-variant hover:bg-surface-container-high border-b border-outline-variant"
                     >
                       <span>‹</span> {strings.player.volume}
                     </button>
                     <div className="px-4 py-3 flex items-center gap-3">
                       <button
                         onClick={() => handleSetVolume(volume === 0 ? 1 : 0)}
-                        className="text-gray-400 hover:text-white flex-shrink-0"
+                        className="text-on-surface-variant hover:text-on-surface flex-shrink-0"
                       >
                         {volume === 0 ? <VolumeX className="w-4 h-4" /> : volume < 0.5 ? <Volume1 className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                       </button>
@@ -543,7 +574,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
                         step={0.05}
                         value={volume}
                         onChange={(e) => handleSetVolume(Number(e.target.value))}
-                        className="flex-1 accent-violet-500"
+                        className="flex-1 accent-brand"
                       />
                     </div>
                   </>
@@ -552,7 +583,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
                   <>
                     <button
                       onClick={() => setMobileMenu('main')}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-400 hover:bg-gray-700 border-b border-gray-700"
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-on-surface-variant hover:bg-surface-container-high border-b border-outline-variant"
                     >
                       <span>‹</span> {strings.player.playback_speed}
                     </button>
@@ -560,7 +591,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
                       <button
                         key={s}
                         onClick={() => { handleSetSpeed(s); setMobileMenu(null) }}
-                        className={`w-full text-left px-4 py-2.5 text-sm ${speed === s ? 'text-violet-400 font-semibold' : 'text-gray-300 hover:bg-gray-700'}`}
+                        className={`w-full text-left px-4 py-2.5 text-sm ${speed === s ? 'text-primary font-semibold' : 'text-on-surface hover:bg-surface-container-high'}`}
                       >
                         {s}x
                       </button>
@@ -578,7 +609,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
             <select
               value={availableSpeeds.includes(speed) ? speed : availableSpeeds[availableSpeeds.length - 1]}
               onChange={(e) => handleSetSpeed(Number(e.target.value))}
-              className="bg-gray-800 text-white text-xs rounded px-2 py-1 outline-none"
+              className="bg-surface-container text-on-surface text-xs rounded px-2 py-1 outline-none"
             >
               {availableSpeeds.map((s) => (
                 <option key={s} value={s}>{s}x</option>
@@ -587,7 +618,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
             <select
               value={sleepMinutes}
               onChange={(e) => startSleepTimer(Number(e.target.value))}
-              className="bg-gray-800 text-white text-xs rounded px-2 py-1 outline-none"
+              className="bg-surface-container text-on-surface text-xs rounded px-2 py-1 outline-none"
             >
               <option value={0}>{strings.player.sleep_off}</option>
               <option value={5}>{strings.player.sleep_5}</option>
@@ -599,7 +630,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
             </select>
             <button
               onClick={() => handleSetVolume(volume === 0 ? 1 : 0)}
-              className="text-gray-400 hover:text-white flex-shrink-0"
+              className="text-on-surface-variant hover:text-on-surface flex-shrink-0"
               aria-label={strings.player.volume}
             >
               {volume === 0 ? <VolumeX className="w-3.5 h-3.5" /> : volume < 0.5 ? <Volume1 className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
@@ -611,12 +642,12 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
               step={0.05}
               value={volume}
               onChange={(e) => handleSetVolume(Number(e.target.value))}
-              className="w-16 accent-violet-500"
+              className="w-16 accent-brand"
               aria-label={strings.player.volume}
             />
           </div>
           {isFreeTier && (
-            <a href="/upgrade" className="text-[10px] text-violet-400 hover:text-violet-300 leading-none whitespace-nowrap">
+            <a href="/upgrade" className="text-[10px] text-primary hover:text-primary leading-none whitespace-nowrap">
               {strings.player.upgrade_for_speeds}
             </a>
           )}
