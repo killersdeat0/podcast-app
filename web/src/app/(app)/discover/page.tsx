@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import type { ItunesResult } from '@/lib/itunes/search'
 import { PODCAST_GENRES } from '@/lib/itunes/trending'
 import { SkeletonPodcastCard } from '@/components/ui/Skeleton'

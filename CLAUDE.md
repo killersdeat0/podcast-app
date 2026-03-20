@@ -22,7 +22,7 @@ cd web && npm run test:e2e    # run Playwright E2E tests (requires dev server on
 
 Unit tests live alongside source files (`web/src/**/*.test.ts`). E2E tests live in `web/tests/e2e/`.
 
-**Before committing:** always run unit tests (`cd web && npm test -- --run`).
+**Before committing:** always run `cd web && npm run build` (TypeScript check) and unit tests (`cd web && npm test -- --run`).
 
 **Before committing large changes:** also run E2E tests (`cd web && npm run test:e2e`). Requires a running dev server (`cd web && npm run dev`) and `E2E_TEST_EMAIL` / `E2E_TEST_PASSWORD` in `web/.env.local`. Run E2E when touching:
 - Auth flow, middleware (`proxy.ts`), or redirect logic
