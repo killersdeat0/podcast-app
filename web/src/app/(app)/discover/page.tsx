@@ -256,24 +256,6 @@ export default function DiscoverPage() {
     <div className="p-4 md:p-8">
       <h1 className="text-2xl font-bold mb-6">{strings.discover.heading}</h1>
 
-      {/* Continue Listening section */}
-      {showContinueSection && (
-        <section className="mb-8">
-          <h2 className="text-lg font-semibold text-on-surface mb-3">
-            {strings.discover.continue_listening}
-          </h2>
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            {showContinueSkeleton
-              ? Array.from({ length: 3 }).map((_, i) => (
-                  <ContinueListeningSkeleton key={i} />
-                ))
-              : continueItems.map((item) => (
-                  <ContinueCard key={item.episode_guid} item={item} />
-                ))}
-          </div>
-        </section>
-      )}
-
       {/* Search bar */}
       <form onSubmit={search} className="relative mb-8" ref={dropdownRef}>
         <div className="relative flex items-center">
@@ -424,6 +406,24 @@ export default function DiscoverPage() {
               <PodcastCard key={podcast.collectionId} podcast={podcast} />
             ))}
       </div>
+
+      {/* Continue Listening section */}
+      {showContinueSection && (
+        <section className="mt-8">
+          <h2 className="text-lg font-semibold text-on-surface mb-3">
+            {strings.discover.continue_listening}
+          </h2>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            {showContinueSkeleton
+              ? Array.from({ length: 3 }).map((_, i) => (
+                  <ContinueListeningSkeleton key={i} />
+                ))
+              : continueItems.map((item) => (
+                  <ContinueCard key={item.episode_guid} item={item} />
+                ))}
+          </div>
+        </section>
+      )}
 
       {searched && !loading && results.length === 0 && !error && (
         <EmptyState
