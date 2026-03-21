@@ -355,7 +355,7 @@ export default function QueuePage() {
                   onRemove={removeFromQueue}
                   playlists={userPlaylists}
                   onAddToPlaylist={addItemToPlaylist}
-                  isPlaying={nowPlaying?.guid === item.episode_guid}
+                  isPlaying={nowPlaying?.guid === item.episode_guid && playing}
                   livePosition={livePosition}
                   liveDuration={liveDuration}
                 />

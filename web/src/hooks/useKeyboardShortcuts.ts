@@ -17,14 +17,17 @@ export function useKeyboardShortcuts({ togglePlay, seekBack, seekForward }: Shor
       switch (e.key) {
         case ' ':
           e.preventDefault()
+          ;(document.activeElement as HTMLElement)?.blur()
           togglePlay()
           break
         case 'ArrowLeft':
           e.preventDefault()
+          ;(document.activeElement as HTMLElement)?.blur()
           seekBack()
           break
         case 'ArrowRight':
           e.preventDefault()
+          ;(document.activeElement as HTMLElement)?.blur()
           seekForward()
           break
       }

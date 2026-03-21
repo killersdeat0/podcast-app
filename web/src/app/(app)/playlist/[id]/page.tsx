@@ -680,7 +680,7 @@ export default function PlaylistDetailPage() {
                   item={ep}
                   isOwner={isOwner}
                   inQueue={queuedGuids.has(ep.episode_guid)}
-                  isPlaying={nowPlaying?.guid === ep.episode_guid}
+                  isPlaying={nowPlaying?.guid === ep.episode_guid && playing}
                   livePosition={livePosition}
                   liveDuration={liveDuration}
                   onPlay={handlePlayEpisode}

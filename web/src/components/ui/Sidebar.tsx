@@ -89,13 +89,15 @@ function SortableSub({ sub, active, isNowPlaying, playing }: { sub: Subscription
           )}
         </div>
         <span className="truncate flex-1">{sub.title}</span>
-        {isNowPlaying && (
-          <span className="flex items-end gap-px h-3 flex-shrink-0" aria-hidden>
-            <span className={`eq-bar${playing ? ' playing' : ''}`} style={{ animationDuration: '0.9s', animationDelay: '0s' }} />
-            <span className={`eq-bar${playing ? ' playing' : ''}`} style={{ animationDuration: '0.7s', animationDelay: '0.2s' }} />
-            <span className={`eq-bar${playing ? ' playing' : ''}`} style={{ animationDuration: '1.1s', animationDelay: '0.1s' }} />
-          </span>
-        )}
+        <span
+          className="flex items-end gap-px h-3 flex-shrink-0 transition-all duration-300"
+          style={{ opacity: isNowPlaying && playing ? 1 : 0, transform: isNowPlaying && playing ? 'scale(1)' : 'scale(0.7)' }}
+          aria-hidden
+        >
+          <span className={`eq-bar${playing ? ' playing' : ''}`} style={{ animationDuration: '0.9s', animationDelay: '0s' }} />
+          <span className={`eq-bar${playing ? ' playing' : ''}`} style={{ animationDuration: '0.7s', animationDelay: '0.2s' }} />
+          <span className={`eq-bar${playing ? ' playing' : ''}`} style={{ animationDuration: '1.1s', animationDelay: '0.1s' }} />
+        </span>
       </Link>
     </div>
   )

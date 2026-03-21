@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
-import { Clock } from 'lucide-react'
 import { usePlayer } from '@/components/player/PlayerContext'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useStrings } from '@/lib/i18n/LocaleContext'
@@ -241,7 +240,8 @@ export default function HistoryPage() {
   const groups = groupByDate(items)
 
   function renderEpisodeRow(item: HistoryItem) {
-    const isPlaying = nowPlaying?.guid === item.episode_guid
+    const isLoaded = nowPlaying?.guid === item.episode_guid
+    const isPlaying = isLoaded && playing
     const posSeconds = isPlaying ? livePosition : item.position_seconds
     const livePct = isPlaying && liveDuration > 0 ? Math.min(100, Math.round((livePosition / liveDuration) * 100)) : null
     const pct = item.completed ? 100 : (livePct ?? item.position_pct ?? (isPlaying ? null : progressPct(posSeconds, item.episode?.duration ?? null, false)))
@@ -317,11 +317,6 @@ export default function HistoryPage() {
         />
       ) : (
         <>
-          <div className="bg-surface-container-low rounded-xl px-4 py-3 flex items-center gap-3 mb-6">
-            <Clock className="w-5 h-5 text-primary flex-shrink-0" />
-            <span className="text-on-surface font-medium">{formatTotalListened(totalSeconds)}</span>
-          </div>
-
           {groups.map((group) => (
             <div key={group.label}>
               <div className="mt-6 mb-2">
