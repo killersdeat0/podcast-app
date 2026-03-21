@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import { Search } from 'lucide-react'
 import type { ItunesResult } from '@/lib/itunes/search'
@@ -102,10 +102,14 @@ export default function DiscoverPage() {
   const displayResults = showTrending ? trendingResults : results
   const isLoading = showTrending ? trendingLoading : loading
 
-  // Split trending results into featured (first) + rest
-  const featuredPodcast = showTrending && !isLoading && displayResults.length > 0 ? displayResults[0] : null
+  // Split trending results into featured (random from top 5) + rest
+  const featuredIndex = useMemo(
+    () => (trendingResults.length > 0 ? Math.floor(Math.random() * trendingResults.length) : 0),
+    [trendingResults]
+  )
+  const featuredPodcast = showTrending && !isLoading && displayResults.length > 0 ? displayResults[featuredIndex] : null
   const gridPodcasts = showTrending && !isLoading && displayResults.length > 0
-    ? displayResults.slice(1)
+    ? displayResults.filter((_, i) => i !== featuredIndex)
     : displayResults
 
   return (
