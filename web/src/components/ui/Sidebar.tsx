@@ -56,34 +56,34 @@ function SortableSub({ sub, active, isNowPlaying, playing }: { sub: Subscription
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex items-center gap-1 ${isDragging ? 'opacity-50' : ''}`}
+      className={`flex items-center gap-0.5 ${isDragging ? 'opacity-50' : ''}`}
     >
       <div
         {...attributes}
         {...listeners}
-        className="p-1 text-on-surface-dim hover:text-on-surface-variant cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
+        className="pl-1 pr-0 py-0.5 text-on-surface-dim hover:text-on-surface-variant cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
       >
         <GripVertical className="w-3 h-3" />
       </div>
       <Link
         href={href}
-        className={`flex flex-1 items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors min-w-0 ${
+        className={`flex flex-1 items-center gap-2 px-2 py-1 rounded-lg text-sm transition-colors min-w-0 ${
           isNowPlaying
-            ? 'bg-now-playing-surface border-l-[3px] border-primary text-on-surface pl-[9px]'
+            ? 'bg-now-playing-surface border-l-[3px] border-primary text-on-surface pl-[5px]'
             : active
             ? 'bg-surface-container text-on-surface font-medium'
             : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
         }`}
       >
-        <div className="relative w-8 h-8 flex-shrink-0">
+        <div className="relative w-6 h-6 flex-shrink-0">
           {sub.artwork_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={sub.artwork_url} alt="" className="w-8 h-8 rounded-lg object-cover" />
+            <img src={sub.artwork_url} alt="" className="w-6 h-6 rounded-md object-cover" />
           ) : (
-            <span className="w-8 h-8 rounded-lg bg-surface-container-high block" />
+            <span className="w-6 h-6 rounded-md bg-surface-container-high block" />
           )}
           {sub.new_episode_count > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-0.5 bg-brand rounded-full border border-surface flex items-center justify-center text-[9px] font-bold text-on-surface leading-none">
+            <span className="absolute -top-1 -right-1 min-w-[12px] h-[12px] px-0.5 bg-brand rounded-full border border-surface flex items-center justify-center text-[8px] font-bold text-on-surface leading-none">
               {sub.new_episode_count > 99 ? '99+' : sub.new_episode_count}
             </span>
           )}
@@ -281,7 +281,7 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
                   </Link>
                 </div>
               ) : (
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} ><div className="-mx-3">
                   <SortableContext items={subscriptions.map((s) => s.feed_url)} strategy={verticalListSortingStrategy}>
                     {subscriptions.map((sub) => {
                       const isActive =
@@ -291,7 +291,7 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
                       return <SortableSub key={sub.feed_url} sub={sub} active={isActive} isNowPlaying={isNowPlaying} playing={playing} />
                     })}
                   </SortableContext>
-                </DndContext>
+                </div></DndContext>
               )}
             </>
           </nav>
