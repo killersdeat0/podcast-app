@@ -108,6 +108,8 @@ Podcast discovery proxies through `web/src/app/api/podcasts/search` → calls `s
 
 **Dev-only debug panels:** API routes can return an additional `debug` object when `process.env.NODE_ENV === 'development'`. The client checks `process.env.NODE_ENV === 'development'` and renders a collapsible `<details>` panel with `JSON.stringify(debug)`. Never include `debug` in production responses.
 
+**Delayed skeleton pattern:** When a UI section fetches data on mount and only shows if data is present, delay the skeleton by 300ms before showing it — this avoids a flash of skeleton UI on fast connections. Pattern: set a `setTimeout` for 300ms that sets a `showSkeleton` flag, then clear both the timer and flag in the fetch's `finally` block. Use a `cancelled` ref to handle unmount races. The section itself stays hidden (`showSkeleton || items.length > 0`) so nothing appears at all if data loads within 300ms. See the "Continue Listening" section in `web/src/app/(app)/discover/page.tsx` for a reference implementation.
+
 ### i18n
 
 All user-facing strings live in `web/src/lib/i18n/`. The active locale is stored in `localStorage` and toggled from **Profile → Language**. Use `useStrings()` from `LocaleContext.tsx` in every client component — never the static `strings` export from `index.ts`. When writing or editing user-visible text, keep it fun: use emojis in titles/empty states and write CTAs as actions. See `docs/i18n.md` for the full guide.
