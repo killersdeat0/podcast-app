@@ -54,6 +54,7 @@ const en = {
   discover: {
     heading: 'Discover',
     trending: 'Trending Podcasts',
+    continue_listening: 'Continue Listening 🎧',
     search_placeholder: 'Search podcasts...',
     search_button: 'Search',
     no_results_title: 'No results found 🔎',

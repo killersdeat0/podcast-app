@@ -54,6 +54,7 @@ const es = {
   discover: {
     heading: 'Explorar',
     trending: 'Podcasts populares',
+    continue_listening: 'Seguir escuchando 🎧',
     search_placeholder: 'Buscar podcasts...',
     search_button: 'Buscar',
     no_results_title: 'Sin resultados 🔎',

@@ -8,9 +8,86 @@ import { SkeletonPodcastCard } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { PodcastCard } from '@/components/podcasts/PodcastCard'
+import { useUser } from '@/lib/auth/UserContext'
+import { usePlayer } from '@/components/player/PlayerContext'
+
+interface HistoryItem {
+  episode_guid: string
+  feed_url: string
+  position_seconds: number
+  position_pct: number | null
+  completed: boolean
+  updated_at: string
+  episode: {
+    title: string
+    audio_url: string
+    duration: number | null
+    artwork_url: string | null
+    podcast_title: string | null
+  } | null
+}
+
+function ContinueCard({ item }: { item: HistoryItem }) {
+  const { play } = usePlayer()
+  const ep = item.episode
+
+  function handleClick() {
+    if (!ep) return
+    play({
+      guid: item.episode_guid,
+      feedUrl: item.feed_url,
+      title: ep.title,
+      podcastTitle: ep.podcast_title ?? '',
+      artworkUrl: ep.artwork_url ?? '',
+      audioUrl: ep.audio_url,
+      duration: ep.duration ?? 0,
+    })
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      className="w-36 flex-shrink-0 text-left hover:opacity-80 transition-opacity"
+    >
+      {ep?.artwork_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={ep.artwork_url}
+          alt={ep.title}
+          className="w-36 h-36 rounded-xl object-cover"
+        />
+      ) : (
+        <div className="w-36 h-36 rounded-xl bg-surface-container-high" />
+      )}
+      <p className="text-xs font-medium text-on-surface line-clamp-2 mt-2">
+        {ep?.title ?? ''}
+      </p>
+      <p className="text-xs text-on-surface-variant truncate mt-0.5">
+        {ep?.podcast_title ?? ''}
+      </p>
+      <div className="h-1 rounded-full bg-surface-container-high mt-2">
+        <div
+          className="h-1 rounded-full bg-playback-indicator"
+          style={{ width: `${item.position_pct ?? 0}%` }}
+        />
+      </div>
+    </button>
+  )
+}
+
+function ContinueListeningSkeleton() {
+  return (
+    <div className="w-36 flex-shrink-0 space-y-2">
+      <div className="w-36 h-36 rounded-xl bg-surface-container animate-pulse" />
+      <div className="h-3 rounded bg-surface-container animate-pulse w-full" />
+      <div className="h-3 rounded bg-surface-container animate-pulse w-3/4" />
+    </div>
+  )
+}
 
 export default function DiscoverPage() {
   const strings = useStrings()
+  const { isGuest } = useUser()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<ItunesResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -27,6 +104,49 @@ export default function DiscoverPage() {
   const [trendingResults, setTrendingResults] = useState<ItunesResult[]>([])
   const [trendingLoading, setTrendingLoading] = useState(true)
   const [activeGenre, setActiveGenre] = useState(0)
+
+  // Continue Listening state
+  const [continueItems, setContinueItems] = useState<HistoryItem[]>([])
+  const [showContinueSkeleton, setShowContinueSkeleton] = useState(false)
+
+  // Fetch continue listening on mount (authenticated users only)
+  useEffect(() => {
+    if (isGuest) return
+
+    let cancelled = false
+
+    // 300ms delay before showing skeletons to avoid flash on fast connections
+    const skeletonTimer = setTimeout(() => {
+      if (!cancelled) setShowContinueSkeleton(true)
+    }, 300)
+
+    fetch('/api/history')
+      .then((res) => res.json())
+      .then((data: HistoryItem[]) => {
+        if (cancelled) return
+        const items = (data ?? [])
+          .filter(
+            (item) =>
+              !item.completed &&
+              item.position_seconds > 30 &&
+              item.position_pct !== null
+          )
+          .slice(0, 10)
+        setContinueItems(items)
+      })
+      .catch(() => {
+        if (!cancelled) setContinueItems([])
+      })
+      .finally(() => {
+        if (!cancelled) setShowContinueSkeleton(false)
+        clearTimeout(skeletonTimer)
+      })
+
+    return () => {
+      cancelled = true
+      clearTimeout(skeletonTimer)
+    }
+  }, [isGuest])
 
   // Fetch trending on mount and when genre changes
   useEffect(() => {
@@ -100,9 +220,30 @@ export default function DiscoverPage() {
   const displayResults = showTrending ? trendingResults : results
   const isLoading = showTrending ? trendingLoading : loading
 
+  const showContinueSection =
+    !isGuest && (showContinueSkeleton || continueItems.length > 0)
+
   return (
     <div className="p-4 md:p-8">
       <h1 className="text-2xl font-bold mb-6">{strings.discover.heading}</h1>
+
+      {/* Continue Listening section */}
+      {showContinueSection && (
+        <section className="mb-8">
+          <h2 className="text-lg font-semibold text-on-surface mb-3">
+            {strings.discover.continue_listening}
+          </h2>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            {showContinueSkeleton
+              ? Array.from({ length: 3 }).map((_, i) => (
+                  <ContinueListeningSkeleton key={i} />
+                ))
+              : continueItems.map((item) => (
+                  <ContinueCard key={item.episode_guid} item={item} />
+                ))}
+          </div>
+        </section>
+      )}
 
       <form onSubmit={search} className="relative flex gap-3 mb-8" ref={dropdownRef}>
         <div className="flex-1 relative">
