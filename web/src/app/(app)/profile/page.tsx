@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Headphones, CheckCircle, Flame, BookOpen, Sparkles } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useStrings, useLocale, LOCALE_LABELS } from '@/lib/i18n/LocaleContext'
 import type { Locale } from '@/lib/i18n'
@@ -26,8 +27,74 @@ interface Subscription {
 
 function formatHours(seconds: number): string {
   const hours = seconds / 3600
-  if (hours < 1) return `${Math.round(seconds / 60)} min`
-  return `${hours.toFixed(1)} hr`
+  if (hours < 1) return `${Math.round(seconds / 60)}m`
+  return `${hours.toFixed(1)}`
+}
+
+function formatHoursLabel(seconds: number): string {
+  const hours = seconds / 3600
+  if (hours < 1) return 'min'
+  return 'hr'
+}
+
+/** Circular SVG ring around an icon. pct is 0–100. */
+function CircularRing({ pct, children }: { pct: number; children: React.ReactNode }) {
+  const size = 64
+  const strokeWidth = 4
+  const radius = (size - strokeWidth) / 2
+  const circumference = 2 * Math.PI * radius
+  const dashOffset = circumference - (pct / 100) * circumference
+
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="absolute inset-0 -rotate-90">
+        {/* Background track */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="var(--md-surface-container-high)"
+          strokeWidth={strokeWidth}
+        />
+        {/* Progress arc */}
+        {pct > 0 && (
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="var(--md-playback-indicator)"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={dashOffset}
+          />
+        )}
+      </svg>
+      <div className="relative z-10 flex items-center justify-center text-playback-indicator">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+/** 7 dots showing which days in the last 7 are within the current streak. */
+function StreakDots({ streakDays }: { streakDays: number }) {
+  // dot i=0 is 6 days ago, i=6 is today
+  // days within streak = last `streakDays` dots
+  const dots = Array.from({ length: 7 }, (_, i) => i >= 7 - streakDays)
+
+  return (
+    <div className="flex gap-1.5 mt-2">
+      {dots.map((active, i) => (
+        <span
+          key={i}
+          className={`w-3 h-3 rounded-full ${active ? 'bg-playback-indicator' : 'bg-surface-container-high'}`}
+        />
+      ))}
+    </div>
+  )
 }
 
 export default function ProfilePage() {
@@ -115,66 +182,117 @@ export default function ProfilePage() {
         </div>
       ) : (
         <div className="space-y-4">
-          <p className="text-on-surface-variant text-sm">{data.email}</p>
 
+          {/* ── Account card ─────────────────────────────────────────────── */}
           <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6 flex items-center justify-between">
             <div>
               <p className="text-xs text-on-surface-variant uppercase tracking-wider mb-1">{strings.profile.account}</p>
-              <p className="text-on-surface font-semibold text-lg capitalize">{data.tier}</p>
+              <p className="text-on-surface text-sm">{data.email}</p>
             </div>
-            {data.tier === 'free' && (
-              <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-3">
+              {/* Tier badge */}
+              {data.tier === 'paid' ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary-container text-on-primary-container">
+                  <Sparkles size={12} />
+                  {strings.profile.pro_label}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant border border-outline-variant">
+                  {strings.profile.free_label}
+                </span>
+              )}
+
+              {data.tier === 'free' && (
                 <Link
                   href="/upgrade"
                   className="bg-brand hover:bg-brand text-on-brand text-sm font-medium px-4 py-2 rounded-lg transition-colors"
                 >
                   {strings.profile.upgrade_cta}
                 </Link>
-                {process.env.NODE_ENV === 'development' && (
-                  <button onClick={handleResetLastVisited} disabled={resettingLastVisited}
-                    className="text-xs text-warning underline">
-                    {resettingLastVisited ? 'Resetting…' : 'DEV: Reset last seen → 7 days ago'}
-                  </button>
-                )}
-              </div>
-            )}
-            {data.tier === 'paid' && (
-              <div className="flex flex-col items-end">
-                <span className="text-primary text-sm font-medium">{strings.profile.pro_label}</span>
-                {process.env.NODE_ENV === 'development' && (
-                  <div className="flex flex-col items-end gap-1 mt-2">
-                    <button onClick={handleDowngrade} disabled={downgrading}
-                      className="text-xs text-error underline">
-                      {strings.profile.dev_downgrade}
-                    </button>
-                    <button onClick={handleResetLastVisited} disabled={resettingLastVisited}
-                      className="text-xs text-warning underline">
-                      {resettingLastVisited ? 'Resetting…' : 'DEV: Reset last seen → 7 days ago'}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
-          <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6">
-            <p className="text-xs text-on-surface-variant uppercase tracking-wider mb-1">{strings.profile.listened}</p>
-            <p className="text-on-surface font-semibold text-3xl">{formatHours(data.listeningSeconds)}</p>
-          </div>
-
-          {data.tier === 'paid' && (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6">
-                <p className="text-xs text-on-surface-variant uppercase tracking-wider mb-1">{strings.profile.completed_this_week}</p>
-                <p className="text-on-surface font-semibold text-3xl">{data.completedThisWeek}</p>
-              </div>
-              <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6">
-                <p className="text-xs text-on-surface-variant uppercase tracking-wider mb-1">{strings.profile.streak}</p>
-                <p className="text-on-surface font-semibold text-3xl">{data.streakDays}</p>
-              </div>
+          {/* Dev tools */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="flex flex-col items-end gap-1">
+              {data.tier === 'paid' && (
+                <button onClick={handleDowngrade} disabled={downgrading}
+                  className="text-xs text-error underline">
+                  {strings.profile.dev_downgrade}
+                </button>
+              )}
+              <button onClick={handleResetLastVisited} disabled={resettingLastVisited}
+                className="text-xs text-warning underline">
+                {resettingLastVisited ? 'Resetting…' : 'DEV: Reset last seen → 7 days ago'}
+              </button>
             </div>
           )}
 
+          {/* ── Stats grid ───────────────────────────────────────────────── */}
+          <div className="grid grid-cols-2 gap-3">
+
+            {/* Hours listened — with circular ring */}
+            <div className="bg-surface-container-low border border-outline-variant rounded-2xl p-5 flex flex-col gap-3">
+              <CircularRing pct={Math.min(100, (data.listeningSeconds / 3600 / 100) * 100)}>
+                <Headphones size={22} />
+              </CircularRing>
+              <div>
+                <p className="text-3xl font-bold text-on-surface leading-none">
+                  {formatHours(data.listeningSeconds)}
+                  <span className="text-base font-normal text-on-surface-variant ml-1">{formatHoursLabel(data.listeningSeconds)}</span>
+                </p>
+                <p className="text-sm text-on-surface-variant mt-1">{strings.profile.listened}</p>
+                <p className="text-xs text-on-surface-dim mt-0.5">{strings.profile.listened_period}</p>
+              </div>
+            </div>
+
+            {/* Subscriptions count */}
+            <div className="bg-surface-container-low border border-outline-variant rounded-2xl p-5 flex flex-col gap-3">
+              <div className="flex items-center justify-center w-16 h-16 text-primary">
+                <BookOpen size={22} />
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-on-surface leading-none">{subscriptions.length}</p>
+                <p className="text-sm text-on-surface-variant mt-1">{strings.profile.subscriptions_stat}</p>
+              </div>
+            </div>
+
+            {/* Completed this week */}
+            {data.tier === 'paid' && (
+              <div className="bg-surface-container-low border border-outline-variant rounded-2xl p-5 flex flex-col gap-3">
+                <div className="flex items-center justify-center w-16 h-16 text-playback-indicator">
+                  <CheckCircle size={22} />
+                </div>
+                <div>
+                  <p className="text-3xl font-bold text-on-surface leading-none">{data.completedThisWeek}</p>
+                  <p className="text-sm text-on-surface-variant mt-1">{strings.profile.completed_this_week}</p>
+                  <p className="text-xs text-on-surface-dim mt-0.5">{strings.profile.completed_period}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Streak — with dot visualization */}
+            {data.tier === 'paid' && (
+              <div className="bg-surface-container-low border border-outline-variant rounded-2xl p-5 flex flex-col gap-3">
+                <div className="flex items-center justify-center w-16 h-16 text-warning">
+                  <Flame size={22} />
+                </div>
+                <div>
+                  <p className="text-3xl font-bold text-on-surface leading-none">{data.streakDays}</p>
+                  <p className="text-sm text-on-surface-variant mt-1">{strings.profile.streak}</p>
+                  {data.streakDays > 0 && (
+                    <>
+                      <StreakDots streakDays={Math.min(7, data.streakDays)} />
+                      <p className="text-xs text-on-surface-dim mt-1">{strings.profile.streak_week_label}</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── Language ─────────────────────────────────────────────────── */}
           <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6 flex items-center justify-between">
             <p className="text-xs text-on-surface-variant uppercase tracking-wider">{strings.profile.language}</p>
             <select
@@ -188,6 +306,7 @@ export default function ProfilePage() {
             </select>
           </div>
 
+          {/* ── Subscriptions list ───────────────────────────────────────── */}
           <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6">
             <div className="flex items-center justify-between mb-1">
               <p className="text-xs text-on-surface-variant uppercase tracking-wider">
