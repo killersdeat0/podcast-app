@@ -20,7 +20,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Play, List, Globe, Lock, Link as LinkIcon, GripVertical, Trash2, Check, Pencil } from 'lucide-react'
+import { Play, List, Globe, Lock, Link as LinkIcon, GripVertical, Trash2, Check, Pencil, ListMusic } from 'lucide-react'
 import { toast } from 'sonner'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
@@ -62,6 +62,77 @@ function formatDuration(s: number | null) {
   const m = Math.floor((s % 3600) / 60)
   if (h > 0) return `${h}h ${m}m`
   return `${m}m`
+}
+
+function formatTotalDuration(totalSeconds: number): string {
+  if (totalSeconds <= 0) return ''
+  const h = Math.floor(totalSeconds / 3600)
+  const m = Math.floor((totalSeconds % 3600) / 60)
+  if (h > 0) return `${h} hr ${m} min`
+  return `${m} min`
+}
+
+function PlaylistCover({ artworkUrls, size = 120 }: { artworkUrls: string[]; size?: number }) {
+  const validUrls = artworkUrls.filter(Boolean)
+
+  if (validUrls.length === 0) {
+    return (
+      <div
+        className="rounded-2xl overflow-hidden shadow-xl flex items-center justify-center bg-surface-container-high flex-shrink-0"
+        style={{ width: size, height: size }}
+      >
+        <ListMusic className="w-10 h-10 text-on-surface-variant" />
+      </div>
+    )
+  }
+
+  if (validUrls.length === 1) {
+    return (
+      <div
+        className="rounded-2xl overflow-hidden shadow-xl flex-shrink-0"
+        style={{ width: size, height: size }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={validUrls[0]} alt="" className="w-full h-full object-cover" />
+      </div>
+    )
+  }
+
+  if (validUrls.length <= 3) {
+    return (
+      <div
+        className="rounded-2xl overflow-hidden shadow-xl flex-shrink-0"
+        style={{ width: size, height: size }}
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', width: size, height: size }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={validUrls[0]} alt="" className="w-full h-full object-cover" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={validUrls[1]} alt="" className="w-full h-full object-cover" />
+          <div className="bg-surface-container col-span-2" />
+        </div>
+      </div>
+    )
+  }
+
+  // 4+ images: true 2×2 grid
+  return (
+    <div
+      className="rounded-2xl overflow-hidden shadow-xl flex-shrink-0"
+      style={{ width: size, height: size }}
+    >
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', width: size, height: size }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={validUrls[0]} alt="" className="w-full h-full object-cover" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={validUrls[1]} alt="" className="w-full h-full object-cover" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={validUrls[2]} alt="" className="w-full h-full object-cover" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={validUrls[3]} alt="" className="w-full h-full object-cover" />
+      </div>
+    </div>
+  )
 }
 
 function SortableEpisodeRow({
@@ -444,126 +515,149 @@ export default function PlaylistDetailPage() {
 
   const overLimit = tier === 'free' && episodes.length > 10
 
+  const artworkUrls = episodes
+    .map((e) => e.episode?.artwork_url ?? null)
+    .filter((url): url is string => !!url)
+
+  const totalDurationSeconds = episodes.reduce((sum, e) => sum + (e.episode?.duration ?? 0), 0)
+
   return (
     <div className="p-4 md:p-8">
-      {/* Header */}
-      <div className="mb-6">
-        <Link href="/playlists" className="text-xs text-on-surface-dim hover:text-on-surface-variant mb-3 inline-block">
-          ← Playlists
-        </Link>
-        {isOwner && editingName ? (
-          <div className="flex flex-col gap-2 mb-4">
-            <input
-              ref={nameInputRef}
-              type="text"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              className="text-2xl font-bold bg-surface-container text-on-surface rounded-lg px-3 py-1 outline-none focus:ring-1 focus:ring-primary w-full max-w-md"
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setEditingName(false) }}
-              autoFocus
-            />
-            <textarea
-              value={editDesc}
-              onChange={(e) => setEditDesc(e.target.value)}
-              placeholder={strings.playlists.create_description_placeholder}
-              rows={2}
-              className="bg-surface-container text-on-surface rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary resize-none w-full max-w-md"
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={handleSaveName}
-                className="px-3 py-1 bg-brand hover:bg-brand text-on-brand rounded-lg text-sm"
-              >
-                <Check className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setEditingName(false)}
-                className="px-3 py-1 text-on-surface-variant hover:text-on-surface text-sm"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-2xl font-bold">{playlist.name}</h1>
-              {isOwner && (
+      {/* Back link */}
+      <Link href="/playlists" className="text-xs text-on-surface-dim hover:text-on-surface-variant mb-4 inline-block">
+        ← Playlists
+      </Link>
+
+      {/* Polished header */}
+      <div className="flex items-end gap-5 mb-8 pt-2">
+        <PlaylistCover artworkUrls={artworkUrls} size={100} />
+
+        <div className="flex-1 min-w-0">
+          {isOwner && editingName ? (
+            <div className="flex flex-col gap-2 mb-2">
+              <input
+                ref={nameInputRef}
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="text-2xl font-bold bg-surface-container text-on-surface rounded-lg px-3 py-1 outline-none focus:ring-1 focus:ring-primary w-full max-w-md"
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setEditingName(false) }}
+                autoFocus
+              />
+              <textarea
+                value={editDesc}
+                onChange={(e) => setEditDesc(e.target.value)}
+                placeholder={strings.playlists.create_description_placeholder}
+                rows={2}
+                className="bg-surface-container text-on-surface rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary resize-none w-full max-w-md"
+              />
+              <div className="flex gap-2">
                 <button
-                  onClick={() => setEditingName(true)}
-                  className="p-1 text-on-surface-dim hover:text-primary transition-colors"
-                  title="Edit"
+                  onClick={handleSaveName}
+                  className="px-3 py-1 bg-brand hover:bg-brand text-on-brand rounded-lg text-sm"
                 >
-                  <Pencil className="w-4 h-4" />
+                  <Check className="w-4 h-4" />
                 </button>
-              )}
+                <button
+                  onClick={() => setEditingName(false)}
+                  className="px-3 py-1 text-on-surface-variant hover:text-on-surface text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
-            {playlist.description && (
-              <p className="text-on-surface-variant text-sm mb-2">{playlist.description}</p>
-            )}
-          </div>
-        )}
-
-        <div className="flex flex-wrap items-center gap-2 mt-3">
-          {/* Play all */}
-          <button
-            onClick={handlePlayAll}
-            disabled={episodes.length === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand disabled:opacity-50 disabled:cursor-not-allowed text-on-brand rounded-lg text-sm font-medium transition-colors"
-          >
-            <Play className="w-4 h-4" />
-            {strings.playlists.play}
-          </button>
-
-          {/* Public/private toggle (owner only) */}
-          {isOwner && (
-            <button
-              onClick={handleTogglePublic}
-              className="flex items-center gap-2 px-3 py-2 bg-surface-container hover:bg-surface-container-high text-on-surface rounded-lg text-sm transition-colors"
-            >
-              {playlist.is_public ? (
-                <><Globe className="w-4 h-4" />{strings.playlists.make_private}</>
-              ) : (
-                <><Lock className="w-4 h-4" />{strings.playlists.make_public}</>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 mb-1">
+                <h1 className="text-2xl font-bold text-on-surface truncate">{playlist.name}</h1>
+                {isOwner && (
+                  <button
+                    onClick={() => setEditingName(true)}
+                    className="p-1 text-on-surface-dim hover:text-primary transition-colors flex-shrink-0"
+                    title="Edit"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              {playlist.description && (
+                <p className="text-on-surface-variant text-sm mb-1 truncate">{playlist.description}</p>
               )}
-            </button>
-          )}
+              <div className="flex items-center gap-2 text-sm text-on-surface-variant mb-3">
+                <span>{episodes.length} {episodes.length === 1 ? 'episode' : 'episodes'}</span>
+                {totalDurationSeconds > 0 && (
+                  <>
+                    <span className="text-on-surface-dim">·</span>
+                    <span>{formatTotalDuration(totalDurationSeconds)}</span>
+                  </>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Play all */}
+                <button
+                  onClick={handlePlayAll}
+                  disabled={episodes.length === 0}
+                  className="flex items-center gap-2 bg-primary text-on-primary rounded-full px-5 py-2 font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Play className="w-4 h-4" />
+                  {strings.playlists.play}
+                </button>
 
-          {/* Copy link (public playlists) */}
-          {playlist.is_public && (
-            <button
-              onClick={handleCopyLink}
-              className="flex items-center gap-2 px-3 py-2 bg-surface-container hover:bg-surface-container-high text-on-surface rounded-lg text-sm transition-colors"
-            >
-              <LinkIcon className="w-4 h-4" />
-              {copied ? strings.playlists.link_copied : strings.playlists.copy_link}
-            </button>
-          )}
+                {/* Public/private toggle (owner only) */}
+                {isOwner && (
+                  <button
+                    onClick={handleTogglePublic}
+                    className="flex items-center gap-2 px-3 py-2 bg-surface-container hover:bg-surface-container-high text-on-surface rounded-lg text-sm transition-colors"
+                  >
+                    {playlist.is_public ? (
+                      <><Globe className="w-4 h-4" />{strings.playlists.make_private}</>
+                    ) : (
+                      <><Lock className="w-4 h-4" />{strings.playlists.make_public}</>
+                    )}
+                  </button>
+                )}
 
-          {/* Delete (owner only) */}
-          {isOwner && (
-            <button
-              onClick={handleDelete}
-              className="flex items-center gap-2 px-3 py-2 bg-surface-container hover:bg-error-container/50 text-on-surface-dim hover:text-error rounded-lg text-sm transition-colors"
-              title={strings.playlists.delete}
-            >
-              <Trash2 className="w-4 h-4" />
-              {strings.playlists.delete}
-            </button>
-          )}
+                {/* Copy link (public playlists) */}
+                {playlist.is_public && (
+                  <button
+                    onClick={handleCopyLink}
+                    className="flex items-center gap-2 px-3 py-2 bg-surface-container hover:bg-surface-container-high text-on-surface rounded-lg text-sm transition-colors"
+                  >
+                    <LinkIcon className="w-4 h-4" />
+                    {copied ? strings.playlists.link_copied : strings.playlists.copy_link}
+                  </button>
+                )}
 
-          {/* Public/private badge (non-owner) */}
-          {!isOwner && (
-            <span className="flex items-center gap-1 text-xs text-on-surface-dim">
-              {playlist.is_public ? (
-                <><Globe className="w-3 h-3" />{strings.playlists.public_badge}</>
-              ) : (
-                <><Lock className="w-3 h-3" />{strings.playlists.private_badge}</>
-              )}
-            </span>
+                {/* Delete (owner only) */}
+                {isOwner && (
+                  <button
+                    onClick={handleDelete}
+                    className="flex items-center gap-2 px-3 py-2 bg-surface-container hover:bg-error-container/50 text-on-surface-dim hover:text-error rounded-lg text-sm transition-colors"
+                    title={strings.playlists.delete}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    {strings.playlists.delete}
+                  </button>
+                )}
+
+                {/* Public/private badge (non-owner) */}
+                {!isOwner && (
+                  <span className="flex items-center gap-1 text-xs text-on-surface-dim">
+                    {playlist.is_public ? (
+                      <><Globe className="w-3 h-3" />{strings.playlists.public_badge}</>
+                    ) : (
+                      <><Lock className="w-3 h-3" />{strings.playlists.private_badge}</>
+                    )}
+                  </span>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>
+
+      {/* Divider */}
+      <div className="border-b border-outline-variant mb-4" />
 
       {/* Over-limit warning */}
       {overLimit && (
