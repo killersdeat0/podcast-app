@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
+import { Clock } from 'lucide-react'
 import { usePlayer } from '@/components/player/PlayerContext'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useStrings } from '@/lib/i18n/LocaleContext'
@@ -27,6 +28,11 @@ interface HistoryItem {
   } | null
 }
 
+interface DateGroup {
+  label: string
+  items: HistoryItem[]
+}
+
 function formatDuration(s: number | null) {
   if (!s) return ''
   const h = Math.floor(s / 3600)
@@ -45,6 +51,55 @@ function progressPct(positionSeconds: number, duration: number | null, completed
   if (completed) return 100
   if (!duration) return null
   return Math.min(100, Math.round((positionSeconds / duration) * 100))
+}
+
+function formatTotalListened(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600)
+  const m = Math.floor((totalSeconds % 3600) / 60)
+  if (h > 0) return `${h}h ${m}m listened`
+  if (m > 0) return `${m}m listened`
+  return 'Less than a minute listened'
+}
+
+function getCalendarDay(date: Date): string {
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+}
+
+function groupByDate(items: HistoryItem[]): DateGroup[] {
+  const now = new Date()
+  const todayKey = getCalendarDay(now)
+
+  const yesterday = new Date(now)
+  yesterday.setDate(now.getDate() - 1)
+  const yesterdayKey = getCalendarDay(yesterday)
+
+  const sevenDaysAgo = new Date(now)
+  sevenDaysAgo.setDate(now.getDate() - 7)
+
+  const buckets: Record<string, HistoryItem[]> = {
+    Today: [],
+    Yesterday: [],
+    'This week': [],
+    Earlier: [],
+  }
+
+  for (const item of items) {
+    const d = new Date(item.updated_at)
+    const key = getCalendarDay(d)
+    if (key === todayKey) {
+      buckets['Today'].push(item)
+    } else if (key === yesterdayKey) {
+      buckets['Yesterday'].push(item)
+    } else if (d >= sevenDaysAgo) {
+      buckets['This week'].push(item)
+    } else {
+      buckets['Earlier'].push(item)
+    }
+  }
+
+  return (['Today', 'Yesterday', 'This week', 'Earlier'] as const)
+    .filter((label) => buckets[label].length > 0)
+    .map((label) => ({ label, items: buckets[label] }))
 }
 
 export default function HistoryPage() {
@@ -182,6 +237,68 @@ export default function HistoryPage() {
     })
   }
 
+  const totalSeconds = items.reduce((sum, item) => sum + (item.position_seconds || 0), 0)
+  const groups = groupByDate(items)
+
+  function renderEpisodeRow(item: HistoryItem) {
+    const isPlaying = nowPlaying?.guid === item.episode_guid
+    const posSeconds = isPlaying ? livePosition : item.position_seconds
+    const livePct = isPlaying && liveDuration > 0 ? Math.min(100, Math.round((livePosition / liveDuration) * 100)) : null
+    const pct = item.completed ? 100 : (livePct ?? item.position_pct ?? (isPlaying ? null : progressPct(posSeconds, item.episode?.duration ?? null, false)))
+    return (
+      <div key={item.episode_guid} className="group relative flex items-center gap-1">
+        <button
+          onClick={() => playItem(item)}
+          disabled={!item.episode}
+          className={`relative flex-1 flex items-center gap-3 text-left rounded-xl px-4 py-3 transition-colors disabled:opacity-50 overflow-hidden ${isPlaying ? 'bg-now-playing-surface hover:bg-now-playing-surface' : 'bg-surface-container-low hover:bg-surface-container'}`}
+        >
+          <EpisodeProgressOverlay pct={pct} isPlaying={isPlaying} />
+          {item.episode?.artwork_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={item.episode.artwork_url}
+              alt=""
+              className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-lg bg-surface-container-high flex-shrink-0" />
+          )}
+          <div className="flex-1 overflow-hidden">
+            <p className="text-sm font-medium text-on-surface truncate">
+              {item.episode?.title ?? item.episode_guid}
+            </p>
+            <div className="flex gap-2 mt-0.5">
+              {item.episode?.podcast_title && (
+                <span className="text-xs text-on-surface-variant truncate">{item.episode.podcast_title}</span>
+              )}
+              {item.episode?.duration && (
+                <span className="text-xs text-on-surface-dim">{formatDuration(item.episode.duration)}</span>
+              )}
+            </div>
+          </div>
+          <div className="flex-shrink-0 text-right">
+            {(item.completed || (pct !== null && pct >= COMPLETION_THRESHOLD_PCT)) ? (
+              <span className="text-xs text-playback-indicator">Done</span>
+            ) : (
+              <span className="text-xs text-on-surface-dim">
+                {pct !== null ? `${pct}%` : formatProgress(posSeconds, item.episode?.duration ?? null)}
+              </span>
+            )}
+            <p className="text-xs text-on-surface-dim mt-0.5">
+              {new Date(item.updated_at).toLocaleDateString()}
+            </p>
+          </div>
+        </button>
+        {!isGuest && userPlaylists.length > 0 && item.episode && (
+          <AddToPlaylistPopover
+            playlists={userPlaylists}
+            onSelect={(playlistId) => addToPlaylist(playlistId, item)}
+          />
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="p-4 md:p-8">
       <h1 className="text-2xl font-bold mb-6">{strings.history.heading}</h1>
@@ -199,66 +316,25 @@ export default function HistoryPage() {
           cta={{ label: strings.history.empty_cta, href: '/discover' }}
         />
       ) : (
-        <div className="space-y-2">
-          {items.map((item) => {
-            const isPlaying = nowPlaying?.guid === item.episode_guid
-            const posSeconds = isPlaying ? livePosition : item.position_seconds
-            const livePct = isPlaying && liveDuration > 0 ? Math.min(100, Math.round((livePosition / liveDuration) * 100)) : null
-            const pct = item.completed ? 100 : (livePct ?? item.position_pct ?? (isPlaying ? null : progressPct(posSeconds, item.episode?.duration ?? null, false)))
-            return (
-            <div key={item.episode_guid} className="group relative flex items-center gap-1">
-              <button
-                onClick={() => playItem(item)}
-                disabled={!item.episode}
-                className={`relative flex-1 flex items-center gap-3 text-left rounded-xl px-4 py-3 transition-colors disabled:opacity-50 overflow-hidden ${isPlaying ? 'bg-now-playing-surface hover:bg-now-playing-surface' : 'bg-surface-container-low hover:bg-surface-container'}`}
-              >
-                <EpisodeProgressOverlay pct={pct} isPlaying={isPlaying} />
-                {item.episode?.artwork_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={item.episode.artwork_url}
-                    alt=""
-                    className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-lg bg-surface-container-high flex-shrink-0" />
-                )}
-                <div className="flex-1 overflow-hidden">
-                  <p className="text-sm font-medium text-on-surface truncate">
-                    {item.episode?.title ?? item.episode_guid}
-                  </p>
-                  <div className="flex gap-2 mt-0.5">
-                    {item.episode?.podcast_title && (
-                      <span className="text-xs text-on-surface-variant truncate">{item.episode.podcast_title}</span>
-                    )}
-                    {item.episode?.duration && (
-                      <span className="text-xs text-on-surface-dim">{formatDuration(item.episode.duration)}</span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex-shrink-0 text-right">
-                  {(item.completed || (pct !== null && pct >= COMPLETION_THRESHOLD_PCT)) ? (
-                    <span className="text-xs text-playback-indicator">Done</span>
-                  ) : (
-                    <span className="text-xs text-on-surface-dim">
-                      {pct !== null ? `${pct}%` : formatProgress(posSeconds, item.episode?.duration ?? null)}
-                    </span>
-                  )}
-                  <p className="text-xs text-on-surface-dim mt-0.5">
-                    {new Date(item.updated_at).toLocaleDateString()}
-                  </p>
-                </div>
-              </button>
-              {!isGuest && userPlaylists.length > 0 && item.episode && (
-                <AddToPlaylistPopover
-                  playlists={userPlaylists}
-                  onSelect={(playlistId) => addToPlaylist(playlistId, item)}
-                />
-              )}
+        <>
+          <div className="bg-surface-container-low rounded-xl px-4 py-3 flex items-center gap-3 mb-6">
+            <Clock className="w-5 h-5 text-primary flex-shrink-0" />
+            <span className="text-on-surface font-medium">{formatTotalListened(totalSeconds)}</span>
+          </div>
+
+          {groups.map((group) => (
+            <div key={group.label}>
+              <div className="mt-6 mb-2">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant px-1">
+                  {group.label} · {group.items.length} {group.items.length === 1 ? 'episode' : 'episodes'}
+                </h2>
+              </div>
+              <div className="space-y-2">
+                {group.items.map((item) => renderEpisodeRow(item))}
+              </div>
             </div>
-            )
-          })}
-        </div>
+          ))}
+        </>
       )}
     </div>
   )
