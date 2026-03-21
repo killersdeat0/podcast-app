@@ -43,7 +43,7 @@ const navIcons = {
   profile:  <User className="w-4 h-4 flex-shrink-0" />,
 }
 
-function SortableSub({ sub, active }: { sub: Subscription; active: boolean }) {
+function SortableSub({ sub, active, isNowPlaying, playing }: { sub: Subscription; active: boolean; isNowPlaying: boolean; playing: boolean }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: sub.feed_url,
   })
@@ -67,16 +67,20 @@ function SortableSub({ sub, active }: { sub: Subscription; active: boolean }) {
       </div>
       <Link
         href={href}
-        className={`flex flex-1 items-center gap-2 px-2 py-2 rounded-lg text-sm transition-colors min-w-0 ${
-          active ? 'bg-brand text-on-surface' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+        className={`flex flex-1 items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors min-w-0 ${
+          isNowPlaying
+            ? 'bg-now-playing-surface border-l-[3px] border-primary text-on-surface pl-[9px]'
+            : active
+            ? 'bg-surface-container text-on-surface font-medium'
+            : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
         }`}
       >
-        <div className="relative w-6 h-6 flex-shrink-0">
+        <div className="relative w-8 h-8 flex-shrink-0">
           {sub.artwork_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={sub.artwork_url} alt="" className="w-6 h-6 rounded object-cover" />
+            <img src={sub.artwork_url} alt="" className="w-8 h-8 rounded-lg object-cover" />
           ) : (
-            <span className="w-6 h-6 rounded bg-surface-container-high block" />
+            <span className="w-8 h-8 rounded-lg bg-surface-container-high block" />
           )}
           {sub.new_episode_count > 0 && (
             <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-0.5 bg-brand rounded-full border border-surface flex items-center justify-center text-[9px] font-bold text-on-surface leading-none">
@@ -84,7 +88,14 @@ function SortableSub({ sub, active }: { sub: Subscription; active: boolean }) {
             </span>
           )}
         </div>
-        <span className="truncate">{sub.title}</span>
+        <span className="truncate flex-1">{sub.title}</span>
+        {isNowPlaying && (
+          <span className="flex items-end gap-px h-3 flex-shrink-0" aria-hidden>
+            <span className={`eq-bar${playing ? ' playing' : ''}`} style={{ animationDuration: '0.9s', animationDelay: '0s' }} />
+            <span className={`eq-bar${playing ? ' playing' : ''}`} style={{ animationDuration: '0.7s', animationDelay: '0.2s' }} />
+            <span className={`eq-bar${playing ? ' playing' : ''}`} style={{ animationDuration: '1.1s', animationDelay: '0.1s' }} />
+          </span>
+        )}
       </Link>
     </div>
   )
@@ -101,7 +112,7 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
   const sensors = useSensors(useSensor(PointerSensor))
   const strings = useStrings()
   const { isGuest, tier } = useUser()
-  const { clearNowPlaying, clearClientQueue } = usePlayer()
+  const { clearNowPlaying, clearClientQueue, nowPlaying, playing } = usePlayer()
 
   function openAuthPrompt(returnTo: string, title: string) {
     setAuthReturnTo(returnTo)
@@ -276,7 +287,8 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
                       const isActive =
                         pathname.includes(encodeURIComponent(sub.feed_url)) ||
                         (!!sub.collection_id && pathname.includes(sub.collection_id))
-                      return <SortableSub key={sub.feed_url} sub={sub} active={isActive} />
+                      const isNowPlaying = !!nowPlaying && nowPlaying.feedUrl === sub.feed_url
+                      return <SortableSub key={sub.feed_url} sub={sub} active={isActive} isNowPlaying={isNowPlaying} playing={playing} />
                     })}
                   </SortableContext>
                 </DndContext>
