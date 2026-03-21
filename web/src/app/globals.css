@@ -60,6 +60,8 @@
   /* ── Scrim ───────────────────────────────────────────────────────────────── */
   /* Semi-transparent backdrop behind modals */
   --md-scrim: rgba(0, 0, 0, 0.60);
+  /* Bare scrim color (no opacity baked in) — use with Tailwind opacity modifier, e.g. bg-scrim/40 */
+  --md-scrim-base: #000000;
 
   /* ── Warning (custom extension — not in standard M3) ─────────────────────── */
   /* Used for over-limit banners, destructive confirmations, etc. */
@@ -123,7 +125,7 @@
   --color-playback-active-fill: var(--md-playback-active-fill);
   --color-playback-indicator:   var(--md-playback-indicator);
 
-  --color-scrim: var(--md-scrim);
+  --color-scrim: var(--md-scrim-base);
 
   --color-warning:              var(--md-warning);
   --color-on-warning:           var(--md-on-warning);
