@@ -24,8 +24,9 @@ export async function GET(req: NextRequest) {
   if (!res.ok) return NextResponse.json({ error: 'Failed to parse feed' }, { status: 502 })
   const feed = await res.json()
 
+  const total = Array.isArray(feed.episodes) ? feed.episodes.length : 0
   if (limit && limit > 0 && Array.isArray(feed.episodes) && feed.episodes.length > limit) {
-    return NextResponse.json({ ...feed, episodes: feed.episodes.slice(0, limit), total: feed.episodes.length })
+    return NextResponse.json({ ...feed, episodes: feed.episodes.slice(0, limit), total })
   }
-  return NextResponse.json(feed)
+  return NextResponse.json({ ...feed, total })
 }

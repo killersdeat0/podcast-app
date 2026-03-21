@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { LIVE_POSITION_INTERVAL_MS } from '@/lib/player/constants'
 import {
   DndContext,
@@ -77,7 +77,7 @@ function SortableQueueItem({
   const livePct = isPlaying && liveDuration > 0 ? Math.min(100, Math.round((livePosition / liveDuration) * 100)) : null
   const storedPct = item.position_pct
   const durSeconds = item.episode?.duration ?? 0
-  const pct = livePct ?? storedPct ?? (posSeconds > 0 && durSeconds > 0 ? Math.min(100, Math.round((posSeconds / durSeconds) * 100)) : null)
+  const pct = livePct ?? storedPct ?? (isPlaying ? null : (posSeconds > 0 && durSeconds > 0 ? Math.min(100, Math.round((posSeconds / durSeconds) * 100)) : null))
 
   return (
     <div
@@ -142,7 +142,7 @@ function SortableQueueItem({
 export default function QueuePage() {
   const [items, setItems] = useState<QueueItem[]>([])
   const [loading, setLoading] = useState(true)
-  const { play, clientQueue, dequeueClient, nowPlaying, audioRef } = usePlayer()
+  const { play, clientQueue, dequeueClient, nowPlaying, playing, audioRef } = usePlayer()
   const [livePosition, setLivePosition] = useState(0)
   const [liveDuration, setLiveDuration] = useState(0)
   const { isGuest } = useUser()
@@ -150,8 +150,10 @@ export default function QueuePage() {
   const strings = useStrings()
 
   const sensors = useSensors(useSensor(PointerSensor))
+  const reorderInProgressRef = useRef(false)
 
   const fetchQueue = useCallback(() => {
+    if (reorderInProgressRef.current) return
     fetch('/api/queue')
       .then((r) => r.json())
       .then((data) => { if (Array.isArray(data)) setItems(data) })
@@ -172,13 +174,25 @@ export default function QueuePage() {
   useEffect(() => {
     if (isGuest) return
     window.addEventListener('queue-changed', fetchQueue)
-    return () => window.removeEventListener('queue-changed', fetchQueue)
+    window.addEventListener('progress-saved', fetchQueue)
+    return () => {
+      window.removeEventListener('queue-changed', fetchQueue)
+      window.removeEventListener('progress-saved', fetchQueue)
+    }
   }, [isGuest, fetchQueue])
 
+  useLayoutEffect(() => {
+    setLivePosition(0)
+    setLiveDuration(0)
+  }, [nowPlaying?.guid])
+
   useEffect(() => {
-    const item = items.find(i => i.episode_guid === nowPlaying?.guid)
-    setLivePosition(item?.position_seconds ?? 0)
-  }, [nowPlaying?.guid]) // eslint-disable-line react-hooks/exhaustive-deps
+    const audio = audioRef.current
+    if (!playing && audio && nowPlaying) {
+      setLivePosition(audio.currentTime)
+      setLiveDuration(audio.duration || 0)
+    }
+  }, [playing]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!nowPlaying) return
@@ -191,6 +205,17 @@ export default function QueuePage() {
     return () => clearInterval(id)
   }, [nowPlaying, audioRef])
 
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio || !nowPlaying) return
+    const onSeeked = () => {
+      setLivePosition(audio.currentTime)
+      setLiveDuration(audio.duration || 0)
+    }
+    audio.addEventListener('seeked', onSeeked)
+    return () => audio.removeEventListener('seeked', onSeeked)
+  }, [nowPlaying, audioRef])
+
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     if (!over || active.id === over.id) return
@@ -199,13 +224,19 @@ export default function QueuePage() {
       const oldIndex = prev.findIndex((i) => i.episode_guid === active.id)
       const newIndex = prev.findIndex((i) => i.episode_guid === over.id)
       const reordered = arrayMove(prev, oldIndex, newIndex)
+      reorderInProgressRef.current = true
       fetch('/api/queue', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderedGuids: reordered.map((i) => i.episode_guid) }),
       })
-        .then(() => window.dispatchEvent(new Event('queue-changed')))
-        .catch(() => {})
+        .then(() => {
+          // dispatchEvent is synchronous — fetchQueue runs and sees ref=true, skips the fetch.
+          // The Player's refreshDbQueue is a separate listener and still runs normally.
+          window.dispatchEvent(new Event('queue-changed'))
+          reorderInProgressRef.current = false
+        })
+        .catch(() => { reorderInProgressRef.current = false })
       return reordered
     })
   }

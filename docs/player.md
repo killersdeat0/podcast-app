@@ -83,11 +83,15 @@ Progress saves both `position_seconds` (used for seeking on resume) and `positio
 
 Episodes are considered complete when `(currentTime / duration) * 100 >= COMPLETION_THRESHOLD_PCT` (currently **98%**). This constant lives in `src/lib/player/constants.ts` and is shared with the history page's "Done" indicator.
 
-A `hasCompletedRef` (reset on every episode change) prevents double-completion if both the `onTime` 98% check and the `onEnded` fallback fire for the same episode.
+**At 98% (`onTime`):** saves `completed: true` to the DB and dispatches `progress-saved` so the "Done" indicator appears in history/queue/playlist — but playback continues uninterrupted. `hasCompletedRef` is set to `true` to stop the 10s interval save from overwriting the completion.
+
+**Seeking back below 98% (`onSeeked`):** if `hasCompletedRef` is true and the user scrubs below the threshold, `hasCompletedRef` resets to `false` and a `progress-saved` event fires with `completed: false` so the UI un-completes immediately. The next 10s interval save then persists `completed: false` to the DB.
+
+**At `ended`:** `completeAndAdvance` is called (only if `!hasCompletedRef.current` — i.e. the audio ended before the 98% threshold was ever detected, which can happen with very short trailing silence). This is the only place auto-advance fires.
 
 ### Episode completion flow (`completeAndAdvance`)
 
-Triggered at 98% via `onTime`, with `onEnded` as a fallback (only fires if `!hasCompletedRef.current`).
+Triggered only by the `ended` audio event (not the 98% threshold).
 
 **Authenticated users:**
 1. `POST /api/progress` with `completed: true` and `positionSeconds = audio.duration`

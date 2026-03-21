@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useState, useMemo, useRef } from 'react'
 import { useSearchParams, useParams, useRouter } from 'next/navigation'
 import { usePlayer } from '@/components/player/PlayerContext'
 import { SkeletonEpisodeRow } from '@/components/ui/Skeleton'
@@ -84,6 +84,7 @@ export default function PodcastPage() {
   const [artwork, setArtwork] = useState(paramArtwork)
 
   const [feed, setFeed] = useState<PodcastFeed | null>(null)
+  const [descExpanded, setDescExpanded] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [subscribed, setSubscribed] = useState(false)
@@ -253,13 +254,27 @@ export default function PodcastPage() {
 
   useEffect(() => {
     window.addEventListener('history-changed', refreshEpisodeProgress)
-    return () => window.removeEventListener('history-changed', refreshEpisodeProgress)
+    window.addEventListener('progress-saved', refreshEpisodeProgress)
+    return () => {
+      window.removeEventListener('history-changed', refreshEpisodeProgress)
+      window.removeEventListener('progress-saved', refreshEpisodeProgress)
+    }
   }, [refreshEpisodeProgress])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setLivePosition(0)
     setLiveDuration(0)
   }, [nowPlaying?.guid])
+
+  // Sync position immediately on pause so the bar snaps to the correct spot,
+  // not the stale interval value (which can lag up to 1s behind a seek).
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!playing && audio && nowPlaying?.feedUrl === feedUrl) {
+      setLivePosition(audio.currentTime)
+      setLiveDuration(audio.duration || 0)
+    }
+  }, [playing]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!nowPlaying || nowPlaying.feedUrl !== feedUrl) return
@@ -270,6 +285,17 @@ export default function PodcastPage() {
       }
     }, LIVE_POSITION_INTERVAL_MS)
     return () => clearInterval(id)
+  }, [nowPlaying, feedUrl, audioRef])
+
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio || !nowPlaying || nowPlaying.feedUrl !== feedUrl) return
+    const onSeeked = () => {
+      setLivePosition(audio.currentTime)
+      setLiveDuration(audio.duration || 0)
+    }
+    audio.addEventListener('seeked', onSeeked)
+    return () => audio.removeEventListener('seeked', onSeeked)
   }, [nowPlaying, feedUrl, audioRef])
 
   useEffect(() => { fetchSimilar() }, [fetchSimilar])
@@ -328,7 +354,8 @@ export default function PodcastPage() {
   const totalPages = Math.ceil((feed?.episodes.length ?? 0) / PAGE_SIZE)
   const pagedEpisodes = useMemo(() => {
     const all = feed?.episodes ?? []
-    return all.slice(episodePage * PAGE_SIZE, (episodePage + 1) * PAGE_SIZE)
+    const paged = all.slice(episodePage * PAGE_SIZE, (episodePage + 1) * PAGE_SIZE)
+    return paged
   }, [feed, episodePage])
 
   const searchTotalPages = Math.ceil(searchResults.length / PAGE_SIZE)
@@ -635,28 +662,42 @@ export default function PodcastPage() {
     const isCurrentlyPlaying = nowPlaying?.guid === ep.guid && playing
     const isLoaded = nowPlaying?.guid === ep.guid
     const livePct = isLoaded && liveDuration > 0 ? Math.min(100, Math.round((livePosition / liveDuration) * 100)) : null
+    // When the episode is loaded but livePct isn't ready yet (audio still seeking),
+    // show nothing rather than the stale DB positionPct to avoid a visual jump.
     const pct = isPlayed ? 100 : (livePct ?? prog?.positionPct ?? null)
     return (
-      <div key={ep.guid} className={`group relative flex items-center gap-3 px-4 py-3 rounded-lg transition-colors overflow-hidden ${isCurrentlyPlaying ? 'bg-now-playing-surface' : 'hover:bg-surface-container-high/30'}`}>
+      <div key={ep.guid} className={`group relative flex items-center gap-3 px-4 py-2 rounded-lg transition-all overflow-hidden ${isCurrentlyPlaying ? 'bg-now-playing-surface' : 'hover:bg-surface-container-high/30'} ${isPlayed && !isCurrentlyPlaying ? 'opacity-60 hover:opacity-100' : ''}`}>
         <EpisodeProgressOverlay pct={pct} isPlaying={isCurrentlyPlaying} />
         {/* New dot */}
         <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isNew ? 'bg-brand' : 'opacity-0'}`} />
 
-        {/* Play button — fades in on hover */}
-        <button
-          onClick={() => playEpisode(ep)}
-          title="Play"
-          className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all text-transparent bg-transparent group-hover:bg-brand group-hover:text-on-surface"
-        >
-          <Play className="w-3.5 h-3.5 ml-0.5" fill="currentColor" />
-        </button>
+        {/* Equalizer bars when loaded, play button otherwise */}
+        {isLoaded ? (
+          <button
+            onClick={() => playEpisode(ep)}
+            title={isCurrentlyPlaying ? 'Pause' : 'Play'}
+            className="flex-shrink-0 w-8 h-8 flex items-end justify-center gap-0.5 pb-1.5 rounded-full transition-all hover:bg-brand/20"
+          >
+            {[{ d: '0.6s', delay: '0ms' }, { d: '0.85s', delay: '160ms' }, { d: '0.7s', delay: '80ms' }, { d: '0.95s', delay: '240ms' }].map((bar, i) => (
+              <span key={i} className={`eq-bar${isCurrentlyPlaying ? ' playing' : ''}`} style={{ animationDuration: bar.d, animationDelay: bar.delay }} />
+            ))}
+          </button>
+        ) : (
+          <button
+            onClick={() => playEpisode(ep)}
+            title="Play"
+            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all text-on-surface-variant/30 bg-transparent group-hover:bg-brand group-hover:text-on-surface"
+          >
+            <Play className="w-3.5 h-3.5 ml-0.5" fill="currentColor" />
+          </button>
+        )}
 
         {/* Title + metadata */}
         <button onClick={() => playEpisode(ep)} className="flex-1 text-left min-w-0">
           <p className={`text-sm font-medium truncate ${isPlayed ? 'text-on-surface-variant' : 'text-on-surface'}`}>{ep.title}</p>
-          <div className="flex items-center gap-2 mt-0.5">
+          <div className="flex items-center gap-1 mt-0.5">
             <span className="text-xs text-on-surface-dim">{new Date(ep.pubDate).toLocaleDateString()}</span>
-            {ep.duration && <span className="text-xs text-on-surface-dim">{formatDuration(ep.duration)}</span>}
+            {ep.duration && <><span className="text-xs text-on-surface-dim">·</span><span className="text-xs text-on-surface-dim">{formatDuration(ep.duration)}</span></>}
             {isNew && <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">New</span>}
             {isPlayed && !isNew && <span className="text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant">✓ Played</span>}
           </div>
@@ -705,7 +746,16 @@ export default function PodcastPage() {
           )}
           <div className="min-w-0 pb-1">
             <h1 className="text-2xl md:text-3xl font-bold text-on-surface leading-tight mb-1">{title}</h1>
-            {feed && <p className="text-on-surface/80 text-sm line-clamp-2 mb-3 leading-relaxed">{feed.description}</p>}
+            {feed && (
+              <div className="mb-3">
+                <p className={`text-on-surface/80 text-sm leading-relaxed ${descExpanded ? '' : 'line-clamp-2'}`}>{feed.description}</p>
+                {feed.description && feed.description.length > 120 && (
+                  <button onClick={() => setDescExpanded((v) => !v)} className="text-xs text-on-surface-variant hover:text-on-surface mt-0.5 transition-colors">
+                    {descExpanded ? 'Show less' : 'Show more'}
+                  </button>
+                )}
+              </div>
+            )}
             <div className="flex items-center gap-3 flex-wrap">
               <button
                 onClick={toggleSubscribe}
@@ -1046,7 +1096,6 @@ export default function PodcastPage() {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-dim">All Episodes</span>
                     <div className="flex-1 h-px bg-outline-variant/60" />
-                    {totalPages > 1 && <span className="text-xs text-on-surface-dim">{episodePage + 1} / {totalPages}</span>}
                     <button
                       onClick={handleRefreshFeed}
                       disabled={loading}
@@ -1060,6 +1109,7 @@ export default function PodcastPage() {
                   {(totalPages > 1 || (feed?.total && feed.episodes.length < feed.total)) && (
                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-outline-variant/60">
                       <button onClick={() => setEpisodePage((p) => Math.max(0, p - 1))} disabled={episodePage === 0} className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><ChevronLeft size={16} /></button>
+                      <span className="text-xs text-on-surface-dim">{episodePage + 1} / {totalPages}</span>
                       <button
                         onClick={() => {
                           if (episodePage === totalPages - 1 && feed?.total && feed.episodes.length < feed.total) {

@@ -140,3 +140,31 @@ body {
 input[type=range]:hover {
   accent-color: var(--md-brand-dark);
 }
+
+/* ─── Progress bar shimmer ───────────────────────────────────────────────── */
+@keyframes progress-shimmer {
+  0%    { transform: translateX(-100%); opacity: 0; }
+  3%    { transform: translateX(-100%); opacity: 1; }
+  20%   { transform: translateX(400%);  opacity: 1; }
+  21%   { transform: translateX(400%);  opacity: 0; }
+  21.5% { transform: translateX(-100%); opacity: 0; }
+  100%  { transform: translateX(-100%); opacity: 0; }
+}
+
+/* ─── Equalizer bars animation ───────────────────────────────────────────── */
+@keyframes eq-bounce {
+  0%, 100% { transform: scaleY(0.2); }
+  50%       { transform: scaleY(1);   }
+}
+.eq-bar {
+  width: 3px;
+  border-radius: 2px;
+  height: 14px;
+  transform-origin: bottom;
+  background-color: var(--md-brand);
+  animation: eq-bounce linear infinite;
+  animation-play-state: paused;
+}
+.eq-bar.playing {
+  animation-play-state: running;
+}

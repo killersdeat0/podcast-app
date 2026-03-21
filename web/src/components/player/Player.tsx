@@ -155,15 +155,17 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
     // Save position of the episode we're switching away from (before src changes)
     const prev = prevNowPlayingRef.current
     if (!isGuest && prev && prev.guid !== nowPlaying.guid && audio.currentTime > 5 && !hasCompletedRef.current) {
-      const pct = audio.duration > 0 ? Math.min(100, Math.round((audio.currentTime / audio.duration) * 100)) : undefined
+      // Capture position now — audio.src changes below and currentTime resets
+      const savedSeconds = Math.floor(audio.currentTime)
+      const savedPct = audio.duration > 0 ? Math.min(100, Math.round((audio.currentTime / audio.duration) * 100)) : null
       fetch('/api/progress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           guid: prev.guid,
           feedUrl: prev.feedUrl,
-          positionSeconds: Math.floor(audio.currentTime),
-          positionPct: pct,
+          positionSeconds: savedSeconds,
+          positionPct: savedPct ?? undefined,
           completed: false,
           title: prev.title,
           audioUrl: prev.audioUrl,
@@ -171,7 +173,9 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
           artworkUrl: prev.artworkUrl,
           podcastTitle: prev.podcastTitle,
         }),
-      }).catch(() => {})
+      })
+        .then(() => window.dispatchEvent(new CustomEvent('progress-saved', { detail: { guid: prev.guid, positionSeconds: savedSeconds, positionPct: savedPct, completed: false } })))
+        .catch(() => {})
     }
     prevNowPlayingRef.current = nowPlaying
 
@@ -296,7 +300,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
         podcastTitle: np.podcastTitle,
       }),
     })
-      .then(() => window.dispatchEvent(new Event('progress-saved')))
+      .then(() => window.dispatchEvent(new CustomEvent('progress-saved', { detail: { guid: np.guid, positionPct: 100, completed: true } })))
       .catch(() => {})
 
     // TODO: play audio ad clip here for free tier before advancing
@@ -355,21 +359,43 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
       if (!isGuest && np && audio.duration > 0 && !hasCompletedRef.current) {
         const pct = (audio.currentTime / audio.duration) * 100
         if (pct >= COMPLETION_THRESHOLD_PCT) {
+          // Mark complete in DB so the "Done" indicator appears, but keep playing —
+          // auto-advance happens in onEnded when the audio actually finishes.
           hasCompletedRef.current = true
-          completeAndAdvance(np)
-          return
+          const savedSeconds = Math.floor(audio.currentTime)
+          fetch('/api/progress', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              guid: np.guid,
+              feedUrl: np.feedUrl,
+              positionSeconds: savedSeconds,
+              positionPct: 100,
+              completed: true,
+              title: np.title,
+              audioUrl: np.audioUrl,
+              duration: np.duration,
+              artworkUrl: np.artworkUrl,
+              podcastTitle: np.podcastTitle,
+            }),
+          })
+            .then(() => window.dispatchEvent(new CustomEvent('progress-saved', { detail: { guid: np.guid, positionPct: 100, completed: true } })))
+            .catch(() => {})
         }
       }
       if (!isGuest && np && audio.currentTime > 5 && now - lastSavedAt.current > 10000 && !hasCompletedRef.current) {
         lastSavedAt.current = now
+        // Capture position before the async fetch — currentTime advances while the request is in-flight
+        const savedSeconds = Math.floor(audio.currentTime)
+        const savedPct = audio.duration > 0 ? Math.min(100, Math.round((audio.currentTime / audio.duration) * 100)) : null
         fetch('/api/progress', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             guid: np.guid,
             feedUrl: np.feedUrl,
-            positionSeconds: Math.floor(audio.currentTime),
-            positionPct: audio.duration > 0 ? Math.min(100, Math.round((audio.currentTime / audio.duration) * 100)) : undefined,
+            positionSeconds: savedSeconds,
+            positionPct: savedPct ?? undefined,
             title: np.title,
             audioUrl: np.audioUrl,
             duration: np.duration,
@@ -377,7 +403,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
             podcastTitle: np.podcastTitle,
           }),
         })
-          .then(() => window.dispatchEvent(new Event('progress-saved')))
+          .then(() => window.dispatchEvent(new CustomEvent('progress-saved', { detail: { guid: np.guid, positionSeconds: savedSeconds, positionPct: savedPct, completed: false } })))
           .catch(() => {})
       }
     }
@@ -397,20 +423,34 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
         return
       }
 
-      // 98% threshold already handled in onTime; onEnded is a fallback
+      // completeAndAdvance is only called here — 98% threshold saves completed:true but doesn't advance
       if (!hasCompletedRef.current) {
         hasCompletedRef.current = true
         completeAndAdvance(np)
       }
     }
 
+    const onSeeked = () => {
+      const np = nowPlayingRef.current
+      if (!np || isGuest || !hasCompletedRef.current || !audio.duration) return
+      const pct = (audio.currentTime / audio.duration) * 100
+      if (pct < COMPLETION_THRESHOLD_PCT) {
+        // Reset so the next 10s interval save persists completed:false to DB
+        hasCompletedRef.current = false
+        const savedPct = Math.round(pct)
+        window.dispatchEvent(new CustomEvent('progress-saved', { detail: { guid: np.guid, positionSeconds: Math.floor(audio.currentTime), positionPct: savedPct, completed: false } }))
+      }
+    }
+
     audio.addEventListener('timeupdate', onTime)
     audio.addEventListener('durationchange', onDuration)
     audio.addEventListener('ended', onEnded)
+    audio.addEventListener('seeked', onSeeked)
     return () => {
       audio.removeEventListener('timeupdate', onTime)
       audio.removeEventListener('durationchange', onDuration)
       audio.removeEventListener('ended', onEnded)
+      audio.removeEventListener('seeked', onSeeked)
     }
   }, [audioRef, play, isGuest, dequeueClient])
 

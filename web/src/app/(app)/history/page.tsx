@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
 import { usePlayer } from '@/components/player/PlayerContext'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useStrings } from '@/lib/i18n/LocaleContext'
@@ -50,7 +50,7 @@ function progressPct(positionSeconds: number, duration: number | null, completed
 export default function HistoryPage() {
   const [items, setItems] = useState<HistoryItem[]>([])
   const [loading, setLoading] = useState(true)
-  const { play, nowPlaying, audioRef } = usePlayer()
+  const { play, nowPlaying, playing, audioRef } = usePlayer()
   const [livePosition, setLivePosition] = useState(0)
   const [liveDuration, setLiveDuration] = useState(0)
   const { isGuest } = useUser()
@@ -78,6 +78,29 @@ export default function HistoryPage() {
     })
   }, [])
 
+  // Update position in-place when progress is saved — avoids a full refetch that would
+  // overwrite optimistic ordering from handleHistoryChanged. Falls back to a full refetch
+  // only when the episode isn't in the list yet (first-time appearance in history).
+  const handleProgressSaved = useCallback((e: Event) => {
+    const detail = (e as CustomEvent<{ guid?: string; positionSeconds?: number; positionPct?: number | null; completed?: boolean }>).detail
+    if (!detail?.guid) { fetchHistory(); return }
+    const { guid, positionSeconds, positionPct, completed } = detail
+    setItems((prev) => {
+      const idx = prev.findIndex((i) => i.episode_guid === guid)
+      if (idx === -1) { fetchHistory(); return prev }
+      return prev.map((item) =>
+        item.episode_guid === guid
+          ? {
+              ...item,
+              ...(positionSeconds !== undefined ? { position_seconds: positionSeconds } : {}),
+              ...(positionPct !== undefined ? { position_pct: positionPct } : {}),
+              ...(completed !== undefined ? { completed } : {}),
+            }
+          : item
+      )
+    })
+  }, [fetchHistory])
+
   useEffect(() => {
     fetch('/api/history')
       .then((r) => r.json())
@@ -87,18 +110,25 @@ export default function HistoryPage() {
 
   useEffect(() => {
     window.addEventListener('history-changed', handleHistoryChanged)
-    window.addEventListener('progress-saved', fetchHistory)
+    window.addEventListener('progress-saved', handleProgressSaved)
     return () => {
       window.removeEventListener('history-changed', handleHistoryChanged)
-      window.removeEventListener('progress-saved', fetchHistory)
+      window.removeEventListener('progress-saved', handleProgressSaved)
     }
-  }, [handleHistoryChanged, fetchHistory])
+  }, [handleHistoryChanged, handleProgressSaved])
+
+  useLayoutEffect(() => {
+    setLivePosition(0)
+    setLiveDuration(0)
+  }, [nowPlaying?.guid])
 
   useEffect(() => {
-    const item = items.find(i => i.episode_guid === nowPlaying?.guid)
-    setLivePosition(item?.position_seconds ?? 0)
-    setLiveDuration(0)
-  }, [nowPlaying?.guid]) // eslint-disable-line react-hooks/exhaustive-deps
+    const audio = audioRef.current
+    if (!playing && audio && nowPlaying) {
+      setLivePosition(audio.currentTime)
+      setLiveDuration(audio.duration || 0)
+    }
+  }, [playing]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!nowPlaying) return
@@ -109,6 +139,17 @@ export default function HistoryPage() {
       }
     }, LIVE_POSITION_INTERVAL_MS)
     return () => clearInterval(id)
+  }, [nowPlaying, audioRef])
+
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio || !nowPlaying) return
+    const onSeeked = () => {
+      setLivePosition(audio.currentTime)
+      setLiveDuration(audio.duration || 0)
+    }
+    audio.addEventListener('seeked', onSeeked)
+    return () => audio.removeEventListener('seeked', onSeeked)
   }, [nowPlaying, audioRef])
 
   function playItem(item: HistoryItem) {
@@ -163,7 +204,7 @@ export default function HistoryPage() {
             const isPlaying = nowPlaying?.guid === item.episode_guid
             const posSeconds = isPlaying ? livePosition : item.position_seconds
             const livePct = isPlaying && liveDuration > 0 ? Math.min(100, Math.round((livePosition / liveDuration) * 100)) : null
-            const pct = item.completed ? 100 : (livePct ?? item.position_pct ?? progressPct(posSeconds, item.episode?.duration ?? null, false))
+            const pct = item.completed ? 100 : (livePct ?? item.position_pct ?? (isPlaying ? null : progressPct(posSeconds, item.episode?.duration ?? null, false)))
             return (
             <div key={item.episode_guid} className="group relative flex items-center gap-1">
               <button

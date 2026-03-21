@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { LIVE_POSITION_INTERVAL_MS } from '@/lib/player/constants'
 import { EpisodeProgressOverlay } from '@/components/ui/EpisodeProgressOverlay'
 import { useParams, usePathname, useRouter } from 'next/navigation'
@@ -94,7 +94,7 @@ function SortableEpisodeRow({
   const livePct = isPlaying && liveDuration > 0 ? Math.min(100, Math.round((livePosition / liveDuration) * 100)) : null
   const storedPct = item.position_pct
   const durSeconds = item.episode?.duration ?? 0
-  const pct = item.completed ? 100 : (livePct ?? storedPct ?? (posSeconds > 0 && durSeconds > 0 ? Math.min(100, Math.round((posSeconds / durSeconds) * 100)) : null))
+  const pct = item.completed ? 100 : (livePct ?? storedPct ?? (isPlaying ? null : (posSeconds > 0 && durSeconds > 0 ? Math.min(100, Math.round((posSeconds / durSeconds) * 100)) : null)))
 
   return (
     <div
@@ -164,7 +164,7 @@ export default function PlaylistDetailPage() {
   const pathname = usePathname()
   const strings = useStrings()
   const { isGuest, tier } = useUser()
-  const { play, playPlaylist, nowPlaying, audioRef } = usePlayer()
+  const { play, playPlaylist, nowPlaying, playing, audioRef } = usePlayer()
   const [livePosition, setLivePosition] = useState(0)
   const [liveDuration, setLiveDuration] = useState(0)
   const sensors = useSensors(useSensor(PointerSensor))
@@ -204,11 +204,18 @@ export default function PlaylistDetailPage() {
 
   useEffect(() => { fetchPlaylist() }, [fetchPlaylist])
 
-  useEffect(() => {
-    const item = episodes.find(i => i.episode_guid === nowPlaying?.guid)
-    setLivePosition(item?.position_seconds ?? 0)
+  useLayoutEffect(() => {
+    setLivePosition(0)
     setLiveDuration(0)
-  }, [nowPlaying?.guid]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [nowPlaying?.guid])
+
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!playing && audio && nowPlaying) {
+      setLivePosition(audio.currentTime)
+      setLiveDuration(audio.duration || 0)
+    }
+  }, [playing]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!nowPlaying) return
@@ -222,8 +229,23 @@ export default function PlaylistDetailPage() {
   }, [nowPlaying, audioRef])
 
   useEffect(() => {
+    const audio = audioRef.current
+    if (!audio || !nowPlaying) return
+    const onSeeked = () => {
+      setLivePosition(audio.currentTime)
+      setLiveDuration(audio.duration || 0)
+    }
+    audio.addEventListener('seeked', onSeeked)
+    return () => audio.removeEventListener('seeked', onSeeked)
+  }, [nowPlaying, audioRef])
+
+  useEffect(() => {
     window.addEventListener('history-changed', fetchPlaylist)
-    return () => window.removeEventListener('history-changed', fetchPlaylist)
+    window.addEventListener('progress-saved', fetchPlaylist)
+    return () => {
+      window.removeEventListener('history-changed', fetchPlaylist)
+      window.removeEventListener('progress-saved', fetchPlaylist)
+    }
   }, [fetchPlaylist])
 
   useEffect(() => {
