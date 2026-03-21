@@ -53,7 +53,7 @@ const es = {
   },
   discover: {
     heading: 'Explorar',
-    trending: 'Podcasts populares',
+    trending: '🔥 Tendencias',
     search_placeholder: 'Buscar podcasts...',
     search_button: 'Buscar',
     no_results_title: 'Sin resultados 🔎',
@@ -61,6 +61,8 @@ const es = {
     loading_suggestions: 'Cargando sugerencias...',
     no_suggestions: 'Sin sugerencias para',
     search_error: 'Algo salió mal. Por favor intenta de nuevo.',
+    results_for: 'Resultados para',
+    featured: 'Destacado',
   },
   genres: {
     0: 'Todo',

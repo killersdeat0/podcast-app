@@ -53,7 +53,7 @@ const en = {
   },
   discover: {
     heading: 'Discover',
-    trending: 'Trending Podcasts',
+    trending: '🔥 Trending',
     search_placeholder: 'Search podcasts...',
     search_button: 'Search',
     no_results_title: 'No results found 🔎',
@@ -61,6 +61,8 @@ const en = {
     loading_suggestions: 'Loading suggestions...',
     no_suggestions: 'No suggestions for',
     search_error: 'Something went wrong. Please try again.',
+    results_for: 'Results for',
+    featured: 'Featured',
   },
   genres: {
     0: 'All',
