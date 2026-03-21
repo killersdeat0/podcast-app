@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Headphones, CheckCircle, Flame, BookOpen, Sparkles } from 'lucide-react'
+import { Headphones, CheckCircle, Flame, Radio, Sparkles } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useStrings, useLocale, LOCALE_LABELS } from '@/lib/i18n/LocaleContext'
 import type { Locale } from '@/lib/i18n'
@@ -26,12 +26,14 @@ interface Subscription {
 }
 
 function formatHours(seconds: number): string {
+  if (seconds < 60) return '—'
   const hours = seconds / 3600
   if (hours < 1) return `${Math.round(seconds / 60)}m`
   return `${hours.toFixed(1)}`
 }
 
 function formatHoursLabel(seconds: number): string {
+  if (seconds < 60) return ''
   const hours = seconds / 3600
   if (hours < 1) return 'min'
   return 'hr'
@@ -39,7 +41,7 @@ function formatHoursLabel(seconds: number): string {
 
 /** Circular SVG ring around an icon. pct is 0–100. */
 function CircularRing({ pct, children }: { pct: number; children: React.ReactNode }) {
-  const size = 64
+  const size = 48
   const strokeWidth = 4
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
@@ -81,9 +83,8 @@ function CircularRing({ pct, children }: { pct: number; children: React.ReactNod
 
 /** 7 dots showing which days in the last 7 are within the current streak. */
 function StreakDots({ streakDays }: { streakDays: number }) {
-  // dot i=0 is 6 days ago, i=6 is today
-  // days within streak = last `streakDays` dots
-  const dots = Array.from({ length: 7 }, (_, i) => i >= 7 - streakDays)
+  // dot i=0 is day 1 of streak, fills left to right
+  const dots = Array.from({ length: 7 }, (_, i) => i < streakDays)
 
   return (
     <div className="flex gap-1.5 mt-2">
@@ -233,60 +234,59 @@ export default function ProfilePage() {
           <div className="grid grid-cols-2 gap-3">
 
             {/* Hours listened — with circular ring */}
-            <div className="bg-surface-container-low border border-outline-variant rounded-2xl p-5 flex flex-col gap-3">
+            <div className="bg-surface-container-low border border-outline-variant rounded-2xl p-4 flex items-center gap-3">
               <CircularRing pct={Math.min(100, (data.listeningSeconds / 3600 / 100) * 100)}>
-                <Headphones size={22} />
+                <Headphones size={18} />
               </CircularRing>
-              <div>
-                <p className="text-3xl font-bold text-on-surface leading-none">
+              <div className="min-w-0">
+                <p className="text-2xl font-bold text-on-surface leading-none">
                   {formatHours(data.listeningSeconds)}
-                  <span className="text-base font-normal text-on-surface-variant ml-1">{formatHoursLabel(data.listeningSeconds)}</span>
+                  <span className="text-sm font-normal text-on-surface-variant ml-1">{formatHoursLabel(data.listeningSeconds)}</span>
                 </p>
-                <p className="text-sm text-on-surface-variant mt-1">{strings.profile.listened}</p>
-                <p className="text-xs text-on-surface-dim mt-0.5">{strings.profile.listened_period}</p>
+                <p className="text-xs text-on-surface-variant mt-0.5">{strings.profile.listened}</p>
+                <p className="text-xs text-on-surface-dim">{strings.profile.listened_period}</p>
               </div>
             </div>
 
             {/* Subscriptions count */}
-            <div className="bg-surface-container-low border border-outline-variant rounded-2xl p-5 flex flex-col gap-3">
-              <div className="flex items-center justify-center w-16 h-16 text-primary">
-                <BookOpen size={22} />
+            <div className="bg-surface-container-low border border-outline-variant rounded-2xl p-4 flex items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 flex-shrink-0 text-primary">
+                <Radio size={18} />
               </div>
-              <div>
-                <p className="text-3xl font-bold text-on-surface leading-none">{subscriptions.length}</p>
-                <p className="text-sm text-on-surface-variant mt-1">{strings.profile.subscriptions_stat}</p>
+              <div className="min-w-0">
+                <p className="text-2xl font-bold text-on-surface leading-none">{subscriptions.length}</p>
+                <p className="text-xs text-on-surface-variant mt-0.5">{strings.profile.subscriptions_stat}</p>
               </div>
             </div>
 
-            {/* Completed this week */}
+            {/* Completed + Streak — single full-width row for paid users */}
             {data.tier === 'paid' && (
-              <div className="bg-surface-container-low border border-outline-variant rounded-2xl p-5 flex flex-col gap-3">
-                <div className="flex items-center justify-center w-16 h-16 text-playback-indicator">
-                  <CheckCircle size={22} />
+              <div className="col-span-2 bg-surface-container-low border border-outline-variant rounded-2xl p-4 flex items-center gap-6">
+                <div className="flex items-center gap-3 flex-1">
+                  <div className="flex items-center justify-center w-10 h-10 flex-shrink-0 text-playback-indicator">
+                    <CheckCircle size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-2xl font-bold text-on-surface leading-none">{data.completedThisWeek}</p>
+                    <p className="text-xs text-on-surface-variant mt-0.5">{strings.profile.completed_this_week}</p>
+                    <p className="text-xs text-on-surface-dim">{strings.profile.completed_period}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-3xl font-bold text-on-surface leading-none">{data.completedThisWeek}</p>
-                  <p className="text-sm text-on-surface-variant mt-1">{strings.profile.completed_this_week}</p>
-                  <p className="text-xs text-on-surface-dim mt-0.5">{strings.profile.completed_period}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Streak — with dot visualization */}
-            {data.tier === 'paid' && (
-              <div className="bg-surface-container-low border border-outline-variant rounded-2xl p-5 flex flex-col gap-3">
-                <div className="flex items-center justify-center w-16 h-16 text-warning">
-                  <Flame size={22} />
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-on-surface leading-none">{data.streakDays}</p>
-                  <p className="text-sm text-on-surface-variant mt-1">{strings.profile.streak}</p>
-                  {data.streakDays > 0 && (
-                    <>
-                      <StreakDots streakDays={Math.min(7, data.streakDays)} />
-                      <p className="text-xs text-on-surface-dim mt-1">{strings.profile.streak_week_label}</p>
-                    </>
-                  )}
+                <div className="w-px self-stretch bg-outline-variant" />
+                <div className="flex items-center gap-3 flex-1">
+                  <div className="flex items-center justify-center w-10 h-10 flex-shrink-0 text-warning">
+                    <Flame size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-2xl font-bold text-on-surface leading-none">{data.streakDays}</p>
+                    <p className="text-xs text-on-surface-variant mt-0.5">{strings.profile.streak}</p>
+                    {data.streakDays > 0 && (
+                      <>
+                        <StreakDots streakDays={Math.min(7, data.streakDays)} />
+                        <p className="text-xs text-on-surface-dim mt-0.5">{strings.profile.streak_week_label}</p>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

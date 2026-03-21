@@ -23,6 +23,9 @@ export default function DiscoverPage() {
   const [showDropdown, setShowDropdown] = useState(false)
   const [loadingSuggestions, setLoadingSuggestions] = useState(false)
   const dropdownRef = useRef<HTMLFormElement>(null)
+  const genreScrollRef = useRef<HTMLDivElement>(null)
+  const [genreAtStart, setGenreAtStart] = useState(true)
+  const [genreAtEnd, setGenreAtEnd] = useState(false)
 
   // Trending state
   const [trendingResults, setTrendingResults] = useState<ItunesResult[]>([])
@@ -97,6 +100,20 @@ export default function DiscoverPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    const el = genreScrollRef.current
+    if (!el) return
+    const update = () => {
+      setGenreAtStart(el.scrollLeft <= 0)
+      setGenreAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 1)
+    }
+    update()
+    // Re-check after layout settles (pills may not be rendered yet on first run)
+    const t = setTimeout(update, 100)
+    el.addEventListener('scroll', update)
+    return () => { el.removeEventListener('scroll', update); clearTimeout(t) }
+  }, [])
 
   const showTrending = !searched
   const displayResults = showTrending ? trendingResults : results
@@ -195,7 +212,13 @@ export default function DiscoverPage() {
           <h2 className="text-lg font-semibold text-on-surface mb-3">{strings.discover.trending}</h2>
           {/* Scroll container with fade edges */}
           <div className="relative mb-6">
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide [mask-image:linear-gradient(to_right,transparent,black_12px,black_calc(100%-12px),transparent)]">
+            <div
+              ref={genreScrollRef}
+              className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide"
+              style={{
+                maskImage: `linear-gradient(to right, ${genreAtStart ? 'black' : 'transparent'} 0px, black 32px, black calc(100% - 32px), ${genreAtEnd ? 'black' : 'transparent'} 100%)`,
+              }}
+            >
               {PODCAST_GENRES.map((genre) => (
                 <button
                   key={genre.id}
