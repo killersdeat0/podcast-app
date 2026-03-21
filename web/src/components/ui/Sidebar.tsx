@@ -108,6 +108,7 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
   const router = useRouter()
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [open, setOpen] = useState(defaultOpen)
+  const [filter, setFilter] = useState('')
   const [authPromptOpen, setAuthPromptOpen] = useState(false)
   const [authPromptTitle, setAuthPromptTitle] = useState<string | undefined>()
   const [authReturnTo, setAuthReturnTo] = useState<string | undefined>()
@@ -134,6 +135,7 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
   function toggleSidebar() {
     const next = !open
     setOpen(next)
+    if (!next) setFilter('')
     localStorage.setItem('sidebar-open', String(next))
     document.cookie = `sidebar-open=${next};path=/;max-age=31536000`
   }
@@ -283,17 +285,51 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
                   </Link>
                 </div>
               ) : (
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} ><div className="-mx-3">
-                  <SortableContext items={subscriptions.map((s) => s.feed_url)} strategy={verticalListSortingStrategy}>
-                    {subscriptions.map((sub) => {
-                      const isActive =
-                        pathname.includes(encodeURIComponent(sub.feed_url)) ||
-                        (!!sub.collection_id && pathname.includes(sub.collection_id))
-                      const isNowPlaying = !!nowPlaying && nowPlaying.feedUrl === sub.feed_url
-                      return <SortableSub key={sub.feed_url} sub={sub} active={isActive} isNowPlaying={isNowPlaying} playing={playing} />
-                    })}
-                  </SortableContext>
-                </div></DndContext>
+                <>
+                  {subscriptions.length >= 5 && (
+                    <div className="relative px-3 mb-1">
+                      <input
+                        type="text"
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
+                        placeholder="Filter podcasts..."
+                        className="w-full text-xs px-3 py-1.5 rounded-lg bg-surface-container border border-outline-variant text-on-surface placeholder:text-on-surface-dim focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                      {filter && (
+                        <button
+                          onClick={() => setFilter('')}
+                          className="absolute right-5 top-1/2 -translate-y-1/2 text-on-surface-dim hover:text-on-surface text-xs cursor-pointer"
+                          aria-label="Clear filter"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {(() => {
+                    const visibleSubs = filter.trim()
+                      ? subscriptions.filter((s) => s.title.toLowerCase().includes(filter.toLowerCase()))
+                      : subscriptions
+                    if (visibleSubs.length === 0) {
+                      return (
+                        <p className="text-xs text-on-surface-variant px-3 py-2">No podcasts match &ldquo;{filter}&rdquo;</p>
+                      )
+                    }
+                    return (
+                      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}><div className="-mx-3">
+                        <SortableContext items={subscriptions.map((s) => s.feed_url)} strategy={verticalListSortingStrategy}>
+                          {visibleSubs.map((sub) => {
+                            const isActive =
+                              pathname.includes(encodeURIComponent(sub.feed_url)) ||
+                              (!!sub.collection_id && pathname.includes(sub.collection_id))
+                            const isNowPlaying = !!nowPlaying && nowPlaying.feedUrl === sub.feed_url
+                            return <SortableSub key={sub.feed_url} sub={sub} active={isActive} isNowPlaying={isNowPlaying} playing={playing} />
+                          })}
+                        </SortableContext>
+                      </div></DndContext>
+                    )
+                  })()}
+                </>
               )}
             </>
           </nav>
