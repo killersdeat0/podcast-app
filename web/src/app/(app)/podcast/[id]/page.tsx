@@ -732,8 +732,19 @@ export default function PodcastPage() {
     <div>
       {/* Hero header — full-bleed blurred artwork backdrop */}
       <div className="relative overflow-hidden mb-6 min-h-[220px] md:min-h-[260px]">
+        {loading && !title && (
+          <div className="relative z-10 flex gap-5 md:gap-7 items-end px-4 md:px-8 pt-8 pb-12">
+            <div className="w-32 h-32 md:w-40 md:h-40 rounded-2xl bg-surface-container-high animate-pulse flex-shrink-0" />
+            <div className="min-w-0 pb-1 flex-1">
+              <div className="h-8 w-2/3 bg-surface-container-high rounded-lg animate-pulse mb-3" />
+              <div className="h-4 w-full bg-surface-container-high rounded animate-pulse mb-1" />
+              <div className="h-4 w-4/5 bg-surface-container-high rounded animate-pulse mb-4" />
+              <div className="h-9 w-28 bg-surface-container-high rounded-full animate-pulse" />
+            </div>
+          </div>
+        )}
         {/* Blurred ambient background */}
-        {artwork && (
+        {!loading && artwork && (
           <div
             className="absolute inset-0 opacity-30"
             style={{
@@ -746,9 +757,9 @@ export default function PodcastPage() {
           />
         )}
         {/* Gradient fade into page background at bottom */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background" />
+        {!loading && <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background" />}
         {/* Content */}
-        <div className="relative z-10 flex gap-5 md:gap-7 items-end px-4 md:px-8 pt-8 pb-12">
+        {!(loading && !title) && <div className="relative z-10 flex gap-5 md:gap-7 items-end px-4 md:px-8 pt-8 pb-12">
           {artwork && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -788,7 +799,7 @@ export default function PodcastPage() {
               )}
             </div>
           </div>
-        </div>
+        </div>}
       </div>
 
       {/* Content */}
