@@ -730,27 +730,40 @@ export default function PodcastPage() {
 
   return (
     <div>
-      {/* Hero header — blurred artwork backdrop */}
-      <div className="relative overflow-hidden mb-6">
+      {/* Hero header — full-bleed blurred artwork backdrop */}
+      <div className="relative overflow-hidden mb-6 min-h-[220px] md:min-h-[260px]">
+        {/* Blurred ambient background */}
         {artwork && (
           <div
-            className="absolute inset-0 scale-110 blur-2xl opacity-60"
-            style={{ backgroundImage: `url(${artwork})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+            className="absolute inset-0 opacity-30"
+            style={{
+              backgroundImage: `url(${artwork})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              transform: 'scale(1.1)',
+              filter: 'blur(60px)',
+            }}
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/85" />
-        <div className="relative flex gap-4 md:gap-5 items-end px-4 md:px-8 pt-8 md:pt-10 pb-6">
+        {/* Gradient fade into page background at bottom */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background" />
+        {/* Content */}
+        <div className="relative z-10 flex gap-5 md:gap-7 items-end px-4 md:px-8 pt-8 pb-12">
           {artwork && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={artwork} alt={title} className="w-24 h-24 md:w-36 md:h-36 rounded-xl md:rounded-2xl object-cover flex-shrink-0 shadow-2xl ring-1 ring-outline-variant" />
+            <img
+              src={artwork}
+              alt={title}
+              className="w-32 h-32 md:w-40 md:h-40 rounded-2xl object-cover flex-shrink-0 shadow-2xl ring-1 ring-outline-variant"
+            />
           )}
           <div className="min-w-0 pb-1">
-            <h1 className="text-2xl md:text-3xl font-bold text-on-surface leading-tight mb-1">{title}</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-on-surface leading-tight mb-1">{title}</h1>
             {feed && (
-              <div className="mb-3">
-                <p className={`text-on-surface/80 text-sm leading-relaxed ${descExpanded ? '' : 'line-clamp-2'}`}>{feed.description}</p>
+              <div className="mb-4">
+                <p className={`text-on-surface-variant text-sm leading-relaxed ${descExpanded ? '' : 'line-clamp-2'}`}>{feed.description}</p>
                 {feed.description && feed.description.length > 120 && (
-                  <button onClick={() => setDescExpanded((v) => !v)} className="text-xs text-on-surface-variant hover:text-on-surface mt-0.5 transition-colors">
+                  <button onClick={() => setDescExpanded((v) => !v)} className="text-xs text-on-surface-dim hover:text-on-surface-variant mt-0.5 transition-colors">
                     {descExpanded ? 'Show less' : 'Show more'}
                   </button>
                 )}
@@ -760,10 +773,10 @@ export default function PodcastPage() {
               <button
                 onClick={toggleSubscribe}
                 disabled={subscribing}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors disabled:opacity-50 ${
+                className={`px-6 py-2 rounded-full text-sm font-semibold transition-colors disabled:opacity-50 ${
                   subscribed
                     ? 'bg-surface-container-high hover:bg-surface-container-highest text-on-surface ring-1 ring-outline-variant'
-                    : 'bg-brand hover:bg-brand text-on-surface'
+                    : 'bg-primary hover:bg-primary text-on-primary'
                 }`}
               >
                 {subscribing ? '...' : subscribed ? s.podcast_page.subscribed : s.podcast_page.subscribe}
