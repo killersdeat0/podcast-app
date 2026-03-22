@@ -22,6 +22,7 @@ data class SearchState(
     val results: List<PodcastSummary> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
+    val hasSearched: Boolean = false,
 )
 
 // ── Events ────────────────────────────────────────────────────────────────────
@@ -125,8 +126,8 @@ class SearchFeature(
         previous: SearchState,
         result: SearchResult,
     ): SearchState = when (result) {
-        is SearchResult.QueryUpdated -> previous.copy(query = result.query)
-        is SearchResult.ResultsLoaded -> previous.copy(results = result.podcasts)
+        is SearchResult.QueryUpdated -> previous.copy(query = result.query, hasSearched = false)
+        is SearchResult.ResultsLoaded -> previous.copy(results = result.podcasts, hasSearched = true)
         is SearchResult.SetLoading -> previous.copy(isLoading = result.loading)
         is SearchResult.SetError -> previous.copy(error = result.message)
     }
