@@ -1,5 +1,11 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
+
+val localProperties = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) load(f.inputStream())
+}
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -48,17 +54,21 @@ kotlin {
             implementation(libs.supabase.realtime)
             implementation(libs.ktor.client.core)
             implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor)
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.navigation.compose)
+            implementation(compose.materialIconsExtended)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.turbine)
+            implementation(libs.kotlinx.coroutines.test)
         }
     }
 }
@@ -73,8 +83,8 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
-        buildConfigField("String", "SUPABASE_URL", "\"${project.findProperty("SYNCPODS_SUPABASE_URL") ?: ""}\"")
-        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${project.findProperty("SYNCPODS_SUPABASE_ANON_KEY") ?: ""}\"")
+        buildConfigField("String", "SUPABASE_URL", "\"${localProperties["SYNCPODS_SUPABASE_URL"] ?: project.findProperty("SYNCPODS_SUPABASE_URL") ?: ""}\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProperties["SYNCPODS_SUPABASE_ANON_KEY"] ?: project.findProperty("SYNCPODS_SUPABASE_ANON_KEY") ?: ""}\"")
     }
     buildFeatures {
         buildConfig = true

@@ -81,11 +81,27 @@ The `arch` library (`io.github.reid-mcpherson:arch:1.0.2`) is declared in `commo
 commonMain/kotlin/com/trilium/syncpods/
 ├── <feature>/
 │   ├── <Feature>Feature.kt        ← STATE, EVENT, ACTION, RESULT, EFFECT + StandardFeature subclass
-│   └── <Feature>Screen.kt         ← @Composable UI, collects state, sends events
+│   ├── <Feature>Screen.kt         ← @Composable UI, collects state, sends events
+│   └── PodcastRepository.kt       ← data layer interfaces
+├── components/                    ← reusable composables (PodcastCard, etc.)
+├── navigation/AppRoutes.kt        ← sealed class route definitions
+├── shell/AppShell.kt              ← Scaffold + NavigationBar + NavHost
+├── player/MiniPlayerBar.kt        ← persistent player bar (stub)
+├── auth/LoginPromptSheet.kt       ← guest auth prompt
+└── di/
+    ├── AppModule.kt               ← Koin module (common dependencies)
+    └── PlatformModule.kt          ← expect declarations (HttpClient, supabaseUrl, supabaseAnonKey)
 androidMain/kotlin/com/trilium/syncpods/
-└── <feature>/
-    └── <Feature>ViewModel.kt      ← ViewModel wrapper that owns a CoroutineScope for the Feature
+├── <feature>/
+│   └── <Feature>ViewModel.kt      ← ViewModel wrapper that owns a CoroutineScope for the Feature
+└── di/
+    └── PlatformModule.android.kt  ← actual Android implementations
+iosMain/kotlin/com/trilium/syncpods/
+└── di/
+    └── PlatformModule.ios.kt      ← actual iOS implementations
 ```
+
+**Note on DiscoverScreen/AppShell composables**: these accept a `DiscoverFeature` parameter created in the NavHost composable using `remember { DiscoverFeature(rememberCoroutineScope(), repository) }`. The `DiscoverViewModel` in androidMain exists for config-change survival on Android but is not currently wired into the NavHost.
 
 ### Class Design Rules
 
@@ -108,23 +124,44 @@ The ViewModel is a thin lifecycle owner — no logic lives here.
 
 ### Testing Standards
 
-- **kotlin.test** — base assertions (`assertEquals`, `assertTrue`)
-- **Turbine** — test `StateFlow` / `Flow` emissions from `StandardFeature`
-- **MockK** — mock repositories and dependencies
-- **Truth** (optional, for readability) — `assertThat(x).isEqualTo(y)`
+- **kotlin.test** — base assertions (`assertEquals`, `assertTrue`, `assertIs`)
+- **Turbine** (`app.cash.turbine:turbine`) — test `StateFlow` / `Flow` emissions from `StandardFeature`
+- **kotlinx-coroutines-test** — `runTest`, virtual time, `backgroundScope`
+- Test doubles (fake classes) instead of MockK for repository mocking in commonTest
 
-Test pattern:
+**Always use `backgroundScope` for the feature in tests** to prevent `UncompletedCoroutinesError` (the feature's event-processing pipeline runs indefinitely):
 
 ```kotlin
 @Test
-fun loadsUsers() = runTest {
-    val feature = LoginFeature(this)
+fun `loads trending on ScreenVisible`() = runTest {
+    val repo = FakeRepository(result = listOf(item))
+    val feature = DiscoverFeature(backgroundScope, repo) // ← backgroundScope, not this
+
     feature.state.test {
-        assertThat(awaitItem()).isEqualTo(LoginState.Idle)
-        feature.process(LoginEvent.Load)
-        advanceUntilIdle()
-        assertThat(awaitItem()).isEqualTo(LoginState.Loaded(...))
+        awaitItem() // consume initial state
+        feature.process(DiscoverEvent.ScreenVisible)
+        var latest = awaitItem()
+        while (latest.isLoading || latest.trendingPodcasts.isEmpty()) latest = awaitItem()
+        assertEquals(listOf(item), latest.trendingPodcasts)
+        cancelAndIgnoreRemainingEvents()
     }
-    cancel()
 }
 ```
+
+### Effects Pattern
+
+`StandardFeature` does NOT have an `emitEffect()` method. Effects are managed with a private `MutableSharedFlow` inside the Feature subclass:
+
+```kotlin
+class MyFeature(...) : StandardFeature<...>(...) {
+    private val _effects = MutableSharedFlow<MyEffect>(extraBufferCapacity = 8)
+    override val effects: SharedFlow<MyEffect> get() = _effects
+
+    // Emit effects directly from actionToResult (not handleResult):
+    is MyAction.Navigate -> flow<MyResult> {
+        _effects.emit(MyEffect.NavigateTo(destination))
+    }
+}
+```
+
+`handleResult` only updates and returns `STATE` — it cannot emit effects.
