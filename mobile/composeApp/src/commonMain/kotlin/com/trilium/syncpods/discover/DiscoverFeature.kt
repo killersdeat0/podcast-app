@@ -2,6 +2,7 @@ package com.trilium.syncpods.discover
 
 import com.composure.arch.Interactor
 import com.composure.arch.StandardFeature
+import com.trilium.syncpods.podcastdetail.PodcastSummaryCache
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -73,6 +74,7 @@ sealed class DiscoverEffect {
 class DiscoverFeature(
     scope: CoroutineScope,
     private val repository: PodcastRepository,
+    private val cache: PodcastSummaryCache,
 ) : StandardFeature<DiscoverState, DiscoverEvent, DiscoverAction, DiscoverResult, DiscoverEffect>(scope) {
 
     private val _effects = MutableSharedFlow<DiscoverEffect>(extraBufferCapacity = 8)
@@ -128,6 +130,7 @@ class DiscoverFeature(
                 }
 
                 is DiscoverAction.NavigateToPodcast -> flow<DiscoverResult> {
+                    cache.put(action.podcast.feedUrl, action.podcast)
                     _effects.emit(DiscoverEffect.NavigateToPodcastDetail(action.podcast.feedUrl))
                 }
 

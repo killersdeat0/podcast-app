@@ -4,6 +4,7 @@ import com.composure.arch.Interactor
 import com.composure.arch.StandardFeature
 import com.trilium.syncpods.discover.PodcastRepository
 import com.trilium.syncpods.discover.PodcastSummary
+import com.trilium.syncpods.podcastdetail.PodcastSummaryCache
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -74,6 +75,7 @@ sealed class SearchEffect {
 class SearchFeature(
     scope: CoroutineScope,
     private val repository: PodcastRepository,
+    private val cache: PodcastSummaryCache,
     private val initialQuery: String = "",
 ) : StandardFeature<SearchState, SearchEvent, SearchAction, SearchResult, SearchEffect>(scope) {
 
@@ -141,6 +143,7 @@ class SearchFeature(
                 }
 
                 is SearchAction.NavigateToPodcast -> flow<SearchResult> {
+                    cache.put(action.podcast.feedUrl, action.podcast)
                     _effects.emit(SearchEffect.NavigateToPodcastDetail(action.podcast.feedUrl))
                 }
 

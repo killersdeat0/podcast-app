@@ -34,9 +34,9 @@ import com.trilium.syncpods.navigation.AppRoutes
 import com.trilium.syncpods.player.MiniPlayerBar
 import com.trilium.syncpods.player.NowPlayingStub
 import com.trilium.syncpods.podcastdetail.PodcastDetailScreen
+import com.trilium.syncpods.podcastdetail.PodcastDetailViewModel
 import com.trilium.syncpods.search.SearchScreen
 import com.trilium.syncpods.search.SearchViewModel
-import io.ktor.http.decodeURLPart
 import io.ktor.http.encodeURLPathPart
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -157,12 +157,13 @@ fun AppShell() {
                 }
             }
 
-            composable(AppRoutes.PodcastDetail.ROUTE) { backStackEntry ->
-                val encodedFeedUrl = backStackEntry.savedStateHandle.get<String>("feedUrl") ?: ""
-                val feedUrl = encodedFeedUrl.decodeURLPart()
+            composable(AppRoutes.PodcastDetail.ROUTE) {
+                val viewModel = koinViewModel<PodcastDetailViewModel>()
                 PodcastDetailScreen(
-                    feedUrl = feedUrl,
+                    feature = viewModel.feature,
                     onBack = { navController.popBackStack() },
+                    onNavigateToSignIn = { /* stub: sign-in screen not yet implemented */ },
+                    onNavigateToCreateAccount = { /* stub: create-account screen not yet implemented */ },
                 )
             }
         }

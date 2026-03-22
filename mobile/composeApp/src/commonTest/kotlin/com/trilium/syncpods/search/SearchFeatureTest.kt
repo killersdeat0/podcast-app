@@ -24,7 +24,7 @@ class SearchFeatureTest {
     @Test
     fun `QueryChanged after debounce loads suggestions`() = runTest {
         val repo = FakeSearchRepository(searchResult = listOf(samplePodcast))
-        val feature = SearchFeature(backgroundScope, repo)
+        val feature = SearchFeature(backgroundScope, repo, com.trilium.syncpods.podcastdetail.PodcastSummaryCache())
 
         feature.state.test {
             awaitItem() // initial
@@ -39,7 +39,7 @@ class SearchFeatureTest {
     @Test
     fun `blank QueryChanged clears suggestions`() = runTest {
         val repo = FakeSearchRepository(searchResult = listOf(samplePodcast))
-        val feature = SearchFeature(backgroundScope, repo)
+        val feature = SearchFeature(backgroundScope, repo, com.trilium.syncpods.podcastdetail.PodcastSummaryCache())
 
         feature.state.test {
             awaitItem() // initial
@@ -58,7 +58,7 @@ class SearchFeatureTest {
     @Test
     fun `SuggestionTapped emits NavigateToPodcastDetail effect`() = runTest {
         val repo = FakeSearchRepository()
-        val feature = SearchFeature(backgroundScope, repo)
+        val feature = SearchFeature(backgroundScope, repo, com.trilium.syncpods.podcastdetail.PodcastSummaryCache())
 
         feature.effects.test {
             feature.process(SearchEvent.SuggestionTapped(samplePodcast))

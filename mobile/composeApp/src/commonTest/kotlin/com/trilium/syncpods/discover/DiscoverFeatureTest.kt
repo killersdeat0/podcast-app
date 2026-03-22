@@ -24,7 +24,7 @@ class DiscoverFeatureTest {
     @Test
     fun `loads trending on ScreenVisible`() = runTest {
         val repo = FakePodcastRepository(trendingResult = listOf(samplePodcast))
-        val feature = DiscoverFeature(backgroundScope, repo)
+        val feature = DiscoverFeature(backgroundScope, repo, com.trilium.syncpods.podcastdetail.PodcastSummaryCache())
 
         feature.state.test {
             awaitItem() // initial DiscoverState()
@@ -50,7 +50,7 @@ class DiscoverFeatureTest {
     @Test
     fun `genre filter loads trending for selected genre`() = runTest {
         val repo = FakePodcastRepository(trendingResult = listOf(samplePodcast))
-        val feature = DiscoverFeature(backgroundScope, repo)
+        val feature = DiscoverFeature(backgroundScope, repo, com.trilium.syncpods.podcastdetail.PodcastSummaryCache())
 
         feature.state.test {
             awaitItem() // initial
@@ -73,7 +73,7 @@ class DiscoverFeatureTest {
     @Test
     fun `SearchSubmitted emits NavigateToSearch effect`() = runTest {
         val repo = FakePodcastRepository()
-        val feature = DiscoverFeature(backgroundScope, repo)
+        val feature = DiscoverFeature(backgroundScope, repo, com.trilium.syncpods.podcastdetail.PodcastSummaryCache())
 
         feature.effects.test {
             feature.process(DiscoverEvent.SearchSubmitted("kotlin"))
@@ -89,7 +89,7 @@ class DiscoverFeatureTest {
     @Test
     fun `blank SearchSubmitted is ignored — no effect emitted`() = runTest {
         val repo = FakePodcastRepository()
-        val feature = DiscoverFeature(backgroundScope, repo)
+        val feature = DiscoverFeature(backgroundScope, repo, com.trilium.syncpods.podcastdetail.PodcastSummaryCache())
 
         feature.effects.test {
             feature.process(DiscoverEvent.SearchSubmitted(""))
@@ -105,7 +105,7 @@ class DiscoverFeatureTest {
     @Test
     fun `SearchQueryChanged after debounce loads suggestions`() = runTest {
         val repo = FakePodcastRepository(searchResult = listOf(samplePodcast))
-        val feature = DiscoverFeature(backgroundScope, repo)
+        val feature = DiscoverFeature(backgroundScope, repo, com.trilium.syncpods.podcastdetail.PodcastSummaryCache())
 
         feature.state.test {
             awaitItem() // initial
@@ -121,7 +121,7 @@ class DiscoverFeatureTest {
     @Test
     fun `blank SearchQueryChanged clears suggestions`() = runTest {
         val repo = FakePodcastRepository(searchResult = listOf(samplePodcast))
-        val feature = DiscoverFeature(backgroundScope, repo)
+        val feature = DiscoverFeature(backgroundScope, repo, com.trilium.syncpods.podcastdetail.PodcastSummaryCache())
 
         feature.state.test {
             awaitItem() // initial
@@ -143,7 +143,7 @@ class DiscoverFeatureTest {
             trendingResult = listOf(samplePodcast),
             searchResult = listOf(samplePodcast),
         )
-        val feature = DiscoverFeature(backgroundScope, repo)
+        val feature = DiscoverFeature(backgroundScope, repo, com.trilium.syncpods.podcastdetail.PodcastSummaryCache())
 
         feature.state.test {
             awaitItem() // initial
@@ -163,7 +163,7 @@ class DiscoverFeatureTest {
     @Test
     fun `SuggestionTapped emits NavigateToPodcastDetail effect`() = runTest {
         val repo = FakePodcastRepository()
-        val feature = DiscoverFeature(backgroundScope, repo)
+        val feature = DiscoverFeature(backgroundScope, repo, com.trilium.syncpods.podcastdetail.PodcastSummaryCache())
 
         feature.effects.test {
             feature.process(DiscoverEvent.SuggestionTapped(samplePodcast))
@@ -177,7 +177,7 @@ class DiscoverFeatureTest {
     @Test
     fun `PodcastTapped emits NavigateToPodcastDetail effect`() = runTest {
         val repo = FakePodcastRepository()
-        val feature = DiscoverFeature(backgroundScope, repo)
+        val feature = DiscoverFeature(backgroundScope, repo, com.trilium.syncpods.podcastdetail.PodcastSummaryCache())
 
         feature.effects.test {
             feature.process(DiscoverEvent.PodcastTapped(samplePodcast))
