@@ -4,5 +4,9 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>SUPABASE_URL</key>
+	<string>https://nuvadoybccdqipyhdhns.supabase.co</string>
+	<key>SUPABASE_ANON_KEY</key>
+	<string>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51dmFkb3liY2NkcWlweWhkaG5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MjE2MzEsImV4cCI6MjA4ODQ5NzYzMX0.ESzA7Zf2UNrAKleTjlscx94KOZHtJ4PWfsaR4FdSQjk</string>
 </dict>
 </plist>
