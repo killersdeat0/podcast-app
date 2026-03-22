@@ -85,6 +85,9 @@ fun SearchScreen(
                 suggestions = state.suggestions,
                 isSuggestionsLoading = state.isSuggestionsLoading,
                 onSuggestionClick = { feature.process(SearchEvent.SuggestionTapped(it)) },
+                onFocusGained = {
+                    if (localQuery.isNotBlank()) feature.process(SearchEvent.QueryChanged(localQuery))
+                },
             )
 
             when {

@@ -82,6 +82,9 @@ fun DiscoverScreen(
             suggestions = state.suggestions,
             isSuggestionsLoading = state.isSuggestionsLoading,
             onSuggestionClick = { feature.process(DiscoverEvent.SuggestionTapped(it)) },
+            onFocusGained = {
+                if (localQuery.isNotBlank()) feature.process(DiscoverEvent.SearchQueryChanged(localQuery))
+            },
         )
 
         Row(

@@ -138,7 +138,7 @@ class DiscoverFeatureTest {
     }
 
     @Test
-    fun `suggestions cleared when ScreenVisible is processed`() = runTest {
+    fun `suggestions preserved when ScreenVisible fires`() = runTest {
         val repo = FakePodcastRepository(
             trendingResult = listOf(samplePodcast),
             searchResult = listOf(samplePodcast),
@@ -153,8 +153,9 @@ class DiscoverFeatureTest {
             assertTrue(latest.suggestions.isNotEmpty())
 
             feature.process(DiscoverEvent.ScreenVisible)
-            while (latest.suggestions.isNotEmpty()) latest = awaitItem()
-            assertTrue(latest.suggestions.isEmpty())
+            var settled = awaitItem()
+            while (settled.isLoading) settled = awaitItem()
+            assertTrue(settled.suggestions.isNotEmpty())
             cancelAndIgnoreRemainingEvents()
         }
     }
