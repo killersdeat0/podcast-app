@@ -158,7 +158,7 @@ fun AppShell() {
             }
 
             composable(AppRoutes.PodcastDetail.ROUTE) { backStackEntry ->
-                val encodedFeedUrl = backStackEntry.arguments?.getString("feedUrl") ?: ""
+                val encodedFeedUrl = backStackEntry.savedStateHandle.get<String>("feedUrl") ?: ""
                 val feedUrl = encodedFeedUrl.decodeURLPart()
                 PodcastDetailScreen(
                     feedUrl = feedUrl,

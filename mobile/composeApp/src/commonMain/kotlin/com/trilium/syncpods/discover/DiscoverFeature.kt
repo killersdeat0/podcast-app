@@ -107,6 +107,7 @@ class DiscoverFeature(
         actions.flatMapLatest { action ->
             when (action) {
                 is DiscoverAction.LoadTrending -> flow {
+                    emit(DiscoverResult.SuggestionsCleared)
                     emit(DiscoverResult.GenreUpdated(action.genreId))
                     emit(DiscoverResult.SetLoading(true))
                     try {

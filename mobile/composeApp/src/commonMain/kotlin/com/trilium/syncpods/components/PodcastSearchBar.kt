@@ -1,5 +1,10 @@
 package com.trilium.syncpods.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -95,11 +100,17 @@ fun PodcastSearchBar(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        if (isSuggestionsLoading || suggestions.isNotEmpty()) {
-            val widthDp = with(density) { boxWidthPx.toDp() }
-            Popup(
-                alignment = Alignment.TopStart,
-                offset = IntOffset(0, boxHeightPx),
+        val widthDp = with(density) { boxWidthPx.toDp() }
+        val showDropdown = isSuggestionsLoading || suggestions.isNotEmpty()
+
+        Popup(
+            alignment = Alignment.TopStart,
+            offset = IntOffset(0, boxHeightPx),
+        ) {
+            AnimatedVisibility(
+                visible = showDropdown,
+                enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+                exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top),
             ) {
                 Surface(
                     modifier = Modifier.width(widthDp),

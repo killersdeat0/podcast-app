@@ -6,6 +6,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class DiscoverFeatureTest {
@@ -102,6 +103,77 @@ class DiscoverFeatureTest {
     }
 
     @Test
+    fun `SearchQueryChanged after debounce loads suggestions`() = runTest {
+        val repo = FakePodcastRepository(searchResult = listOf(samplePodcast))
+        val feature = DiscoverFeature(backgroundScope, repo)
+
+        feature.state.test {
+            awaitItem() // initial
+            feature.process(DiscoverEvent.SearchQueryChanged("daily"))
+            var latest = awaitItem()
+            while (latest.isSuggestionsLoading || latest.suggestions.isEmpty()) latest = awaitItem()
+            assertEquals(listOf(samplePodcast), latest.suggestions)
+            assertEquals("daily", repo.lastSearchQuery)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `blank SearchQueryChanged clears suggestions`() = runTest {
+        val repo = FakePodcastRepository(searchResult = listOf(samplePodcast))
+        val feature = DiscoverFeature(backgroundScope, repo)
+
+        feature.state.test {
+            awaitItem() // initial
+            feature.process(DiscoverEvent.SearchQueryChanged("daily"))
+            var latest = awaitItem()
+            while (latest.suggestions.isEmpty()) latest = awaitItem()
+            assertTrue(latest.suggestions.isNotEmpty())
+
+            feature.process(DiscoverEvent.SearchQueryChanged(""))
+            while (latest.suggestions.isNotEmpty()) latest = awaitItem()
+            assertTrue(latest.suggestions.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `suggestions cleared when ScreenVisible is processed`() = runTest {
+        val repo = FakePodcastRepository(
+            trendingResult = listOf(samplePodcast),
+            searchResult = listOf(samplePodcast),
+        )
+        val feature = DiscoverFeature(backgroundScope, repo)
+
+        feature.state.test {
+            awaitItem() // initial
+            feature.process(DiscoverEvent.SearchQueryChanged("daily"))
+            var latest = awaitItem()
+            while (latest.suggestions.isEmpty()) latest = awaitItem()
+            assertTrue(latest.suggestions.isNotEmpty())
+
+            feature.process(DiscoverEvent.ScreenVisible)
+            while (latest.suggestions.isNotEmpty()) latest = awaitItem()
+            assertTrue(latest.suggestions.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `SuggestionTapped emits NavigateToPodcastDetail effect`() = runTest {
+        val repo = FakePodcastRepository()
+        val feature = DiscoverFeature(backgroundScope, repo)
+
+        feature.effects.test {
+            feature.process(DiscoverEvent.SuggestionTapped(samplePodcast))
+            val effect = awaitItem()
+            assertIs<DiscoverEffect.NavigateToPodcastDetail>(effect)
+            assertEquals(samplePodcast.feedUrl, effect.feedUrl)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `PodcastTapped emits NavigateToPodcastDetail effect`() = runTest {
         val repo = FakePodcastRepository()
         val feature = DiscoverFeature(backgroundScope, repo)
@@ -126,8 +198,10 @@ private class FakePodcastRepository(
 ) : PodcastRepository {
 
     var lastTrendingGenreId: Int? = null
+    var lastSearchQuery: String? = null
 
     override suspend fun searchPodcasts(query: String, genreId: Int?): List<PodcastSummary> {
+        lastSearchQuery = query
         return searchResult
     }
 

@@ -29,7 +29,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,7 +48,7 @@ fun DiscoverScreen(
     bottomContentPadding: Dp = 0.dp,
 ) {
     val state by feature.state.collectAsState()
-    var localQuery by remember { mutableStateOf("") }
+    var localQuery by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         feature.process(DiscoverEvent.ScreenVisible)
