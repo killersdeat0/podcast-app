@@ -27,6 +27,7 @@ data class SearchState(
     val hasSearched: Boolean = false,
     val suggestions: List<PodcastSummary> = emptyList(),
     val isSuggestionsLoading: Boolean = false,
+    val suggestionsQuery: String = "",
 )
 
 // ── Events ────────────────────────────────────────────────────────────────────
@@ -56,7 +57,7 @@ sealed class SearchResult {
     data class ResultsLoaded(val podcasts: List<PodcastSummary>) : SearchResult()
     data class SetLoading(val loading: Boolean) : SearchResult()
     data class SetError(val message: String?) : SearchResult()
-    data class SuggestionsLoaded(val podcasts: List<PodcastSummary>) : SearchResult()
+    data class SuggestionsLoaded(val podcasts: List<PodcastSummary>, val query: String) : SearchResult()
     data class SetSuggestionsLoading(val loading: Boolean) : SearchResult()
     data object SuggestionsCleared : SearchResult()
 }
@@ -105,6 +106,8 @@ class SearchFeature(
                     if (event.query.isBlank()) flowOf<SearchAction>(SearchAction.ClearSuggestions)
                     else flow<SearchAction> {
                         delay(300)
+                        val s = state.value
+                        if (s.suggestions.isNotEmpty() && s.suggestionsQuery == event.query) return@flow
                         emit(SearchAction.FetchSuggestions(event.query))
                     }
                 },
@@ -145,9 +148,9 @@ class SearchFeature(
                     emit(SearchResult.SetSuggestionsLoading(true))
                     try {
                         val results = repository.searchPodcasts(action.query)
-                        emit(SearchResult.SuggestionsLoaded(results.take(5)))
+                        emit(SearchResult.SuggestionsLoaded(results.take(5), action.query))
                     } catch (e: Exception) {
-                        emit(SearchResult.SuggestionsLoaded(emptyList()))
+                        emit(SearchResult.SuggestionsLoaded(emptyList(), action.query))
                     } finally {
                         emit(SearchResult.SetSuggestionsLoading(false))
                     }
@@ -168,7 +171,7 @@ class SearchFeature(
         is SearchResult.ResultsLoaded -> previous.copy(results = result.podcasts, hasSearched = true)
         is SearchResult.SetLoading -> previous.copy(isLoading = result.loading)
         is SearchResult.SetError -> previous.copy(error = result.message)
-        is SearchResult.SuggestionsLoaded -> previous.copy(suggestions = result.podcasts)
+        is SearchResult.SuggestionsLoaded -> previous.copy(suggestions = result.podcasts, suggestionsQuery = result.query)
         is SearchResult.SetSuggestionsLoading -> previous.copy(isSuggestionsLoading = result.loading)
         is SearchResult.SuggestionsCleared -> previous.copy(suggestions = emptyList(), isSuggestionsLoading = false)
     }

@@ -24,6 +24,7 @@ data class DiscoverState(
     val error: String? = null,
     val suggestions: List<PodcastSummary> = emptyList(),
     val isSuggestionsLoading: Boolean = false,
+    val suggestionsQuery: String = "",
 )
 
 // ── Events ────────────────────────────────────────────────────────────────────
@@ -54,7 +55,7 @@ sealed class DiscoverResult {
     data class SetLoading(val loading: Boolean) : DiscoverResult()
     data class SetError(val message: String?) : DiscoverResult()
     data class GenreUpdated(val genreId: Int) : DiscoverResult()
-    data class SuggestionsLoaded(val podcasts: List<PodcastSummary>) : DiscoverResult()
+    data class SuggestionsLoaded(val podcasts: List<PodcastSummary>, val query: String) : DiscoverResult()
     data class SetSuggestionsLoading(val loading: Boolean) : DiscoverResult()
     data object SuggestionsCleared : DiscoverResult()
 }
@@ -95,6 +96,8 @@ class DiscoverFeature(
                     if (event.query.isBlank()) flowOf<DiscoverAction>(DiscoverAction.ClearSuggestions)
                     else flow<DiscoverAction> {
                         delay(300)
+                        val s = state.value
+                        if (s.suggestions.isNotEmpty() && s.suggestionsQuery == event.query) return@flow
                         emit(DiscoverAction.FetchSuggestions(event.query))
                     }
                 },
@@ -132,9 +135,9 @@ class DiscoverFeature(
                     emit(DiscoverResult.SetSuggestionsLoading(true))
                     try {
                         val results = repository.searchPodcasts(action.query)
-                        emit(DiscoverResult.SuggestionsLoaded(results.take(5)))
+                        emit(DiscoverResult.SuggestionsLoaded(results.take(5), action.query))
                     } catch (e: Exception) {
-                        emit(DiscoverResult.SuggestionsLoaded(emptyList()))
+                        emit(DiscoverResult.SuggestionsLoaded(emptyList(), action.query))
                     } finally {
                         emit(DiscoverResult.SetSuggestionsLoading(false))
                     }
@@ -164,7 +167,7 @@ class DiscoverFeature(
             previous.copy(selectedGenreId = result.genreId)
 
         is DiscoverResult.SuggestionsLoaded ->
-            previous.copy(suggestions = result.podcasts)
+            previous.copy(suggestions = result.podcasts, suggestionsQuery = result.query)
 
         is DiscoverResult.SetSuggestionsLoading ->
             previous.copy(isSuggestionsLoading = result.loading)
