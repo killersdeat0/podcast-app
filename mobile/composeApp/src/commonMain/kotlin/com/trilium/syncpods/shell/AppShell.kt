@@ -18,7 +18,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -26,14 +25,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.trilium.syncpods.discover.DiscoverEvent
-import com.trilium.syncpods.discover.DiscoverFeature
 import com.trilium.syncpods.discover.DiscoverScreen
-import com.trilium.syncpods.discover.PodcastRepository
+import com.trilium.syncpods.discover.DiscoverViewModel
 import com.trilium.syncpods.navigation.AppRoutes
 import com.trilium.syncpods.player.MiniPlayerBar
 import com.trilium.syncpods.player.NowPlayingStub
-import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 
 private data class TabItem(
     val route: String,
@@ -102,11 +99,9 @@ fun AppShell() {
                 .padding(innerPadding),
         ) {
             composable(AppRoutes.Discover.route) {
-                val repository: PodcastRepository = koinInject()
-                val scope = rememberCoroutineScope()
-                val feature = remember(scope) { DiscoverFeature(scope, repository) }
+                val viewModel = koinViewModel<DiscoverViewModel>()
                 DiscoverScreen(
-                    feature = feature,
+                    feature = viewModel.feature,
                     onNavigateToPodcast = { feedUrl ->
                         navController.navigate("podcast/$feedUrl")
                     },
