@@ -1,5 +1,7 @@
 package com.trilium.syncpods.discover
 
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +35,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.trilium.syncpods.components.PodcastCard
@@ -49,6 +53,7 @@ fun DiscoverScreen(
 ) {
     val state by feature.state.collectAsState()
     var localQuery by rememberSaveable { mutableStateOf("") }
+    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(Unit) {
         feature.process(DiscoverEvent.ScreenVisible)
@@ -63,6 +68,12 @@ fun DiscoverScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    focusManager.clearFocus()
+                }
+            }
             .padding(horizontal = 16.dp),
     ) {
         Text(
