@@ -82,6 +82,9 @@ fun SearchScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 12.dp),
+                suggestions = state.suggestions,
+                isSuggestionsLoading = state.isSuggestionsLoading,
+                onSuggestionClick = { feature.process(SearchEvent.SuggestionTapped(it)) },
             )
 
             when {

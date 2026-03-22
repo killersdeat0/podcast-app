@@ -6,12 +6,14 @@ import com.trilium.syncpods.discover.PodcastRepository
 import com.trilium.syncpods.discover.PodcastSummary
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 
@@ -23,6 +25,8 @@ data class SearchState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val hasSearched: Boolean = false,
+    val suggestions: List<PodcastSummary> = emptyList(),
+    val isSuggestionsLoading: Boolean = false,
 )
 
 // ── Events ────────────────────────────────────────────────────────────────────
@@ -32,6 +36,7 @@ sealed class SearchEvent {
     data class QueryChanged(val query: String) : SearchEvent()
     data object SearchSubmitted : SearchEvent()
     data class PodcastTapped(val podcast: PodcastSummary) : SearchEvent()
+    data class SuggestionTapped(val podcast: PodcastSummary) : SearchEvent()
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────
@@ -40,6 +45,8 @@ sealed class SearchAction {
     data class UpdateQuery(val query: String) : SearchAction()
     data class Search(val query: String) : SearchAction()
     data class NavigateToPodcast(val podcast: PodcastSummary) : SearchAction()
+    data class FetchSuggestions(val query: String) : SearchAction()
+    data object ClearSuggestions : SearchAction()
 }
 
 // ── Results ───────────────────────────────────────────────────────────────────
@@ -49,6 +56,9 @@ sealed class SearchResult {
     data class ResultsLoaded(val podcasts: List<PodcastSummary>) : SearchResult()
     data class SetLoading(val loading: Boolean) : SearchResult()
     data class SetError(val message: String?) : SearchResult()
+    data class SuggestionsLoaded(val podcasts: List<PodcastSummary>) : SearchResult()
+    data class SetSuggestionsLoading(val loading: Boolean) : SearchResult()
+    data object SuggestionsCleared : SearchResult()
 }
 
 // ── Effects ───────────────────────────────────────────────────────────────────
@@ -89,6 +99,18 @@ class SearchFeature(
 
             events.filterIsInstance<SearchEvent.PodcastTapped>()
                 .map { SearchAction.NavigateToPodcast(it.podcast) },
+
+            events.filterIsInstance<SearchEvent.QueryChanged>()
+                .flatMapLatest { event ->
+                    if (event.query.isBlank()) flowOf<SearchAction>(SearchAction.ClearSuggestions)
+                    else flow<SearchAction> {
+                        delay(300)
+                        emit(SearchAction.FetchSuggestions(event.query))
+                    }
+                },
+
+            events.filterIsInstance<SearchEvent.SuggestionTapped>()
+                .map { SearchAction.NavigateToPodcast(it.podcast) },
         )
     }
 
@@ -118,6 +140,22 @@ class SearchFeature(
                 is SearchAction.NavigateToPodcast -> flow<SearchResult> {
                     _effects.emit(SearchEffect.NavigateToPodcastDetail(action.podcast.feedUrl))
                 }
+
+                is SearchAction.FetchSuggestions -> flow {
+                    emit(SearchResult.SetSuggestionsLoading(true))
+                    try {
+                        val results = repository.searchPodcasts(action.query)
+                        emit(SearchResult.SuggestionsLoaded(results.take(5)))
+                    } catch (e: Exception) {
+                        emit(SearchResult.SuggestionsLoaded(emptyList()))
+                    } finally {
+                        emit(SearchResult.SetSuggestionsLoading(false))
+                    }
+                }
+
+                is SearchAction.ClearSuggestions -> flow {
+                    emit(SearchResult.SuggestionsCleared)
+                }
             }
         }
     }
@@ -130,5 +168,8 @@ class SearchFeature(
         is SearchResult.ResultsLoaded -> previous.copy(results = result.podcasts, hasSearched = true)
         is SearchResult.SetLoading -> previous.copy(isLoading = result.loading)
         is SearchResult.SetError -> previous.copy(error = result.message)
+        is SearchResult.SuggestionsLoaded -> previous.copy(suggestions = result.podcasts)
+        is SearchResult.SetSuggestionsLoading -> previous.copy(isSuggestionsLoading = result.loading)
+        is SearchResult.SuggestionsCleared -> previous.copy(suggestions = emptyList(), isSuggestionsLoading = false)
     }
 }

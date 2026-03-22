@@ -33,8 +33,11 @@ import com.trilium.syncpods.discover.DiscoverViewModel
 import com.trilium.syncpods.navigation.AppRoutes
 import com.trilium.syncpods.player.MiniPlayerBar
 import com.trilium.syncpods.player.NowPlayingStub
+import com.trilium.syncpods.podcastdetail.PodcastDetailScreen
 import com.trilium.syncpods.search.SearchScreen
 import com.trilium.syncpods.search.SearchViewModel
+import io.ktor.http.decodeURLPart
+import io.ktor.http.encodeURLPathPart
 import org.koin.compose.viewmodel.koinViewModel
 
 private data class TabItem(
@@ -49,7 +52,8 @@ fun AppShell() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    val isSearchRoute = currentDestination?.route == AppRoutes.Search.ROUTE
+    val isFullScreenRoute = currentDestination?.route == AppRoutes.Search.ROUTE
+        || currentDestination?.route == AppRoutes.PodcastDetail.ROUTE
 
     val tabs = listOf(
         TabItem(AppRoutes.Discover.route, "Discover") {
@@ -72,7 +76,7 @@ fun AppShell() {
     Scaffold(
         bottomBar = {
             AnimatedVisibility(
-                visible = !isSearchRoute,
+                visible = !isFullScreenRoute,
                 enter = slideInVertically { it },
                 exit = slideOutVertically { it },
             ) {
@@ -114,7 +118,7 @@ fun AppShell() {
                 DiscoverScreen(
                     feature = viewModel.feature,
                     onNavigateToPodcast = { feedUrl ->
-                        navController.navigate("podcast/$feedUrl")
+                        navController.navigate("podcast/${feedUrl.encodeURLPathPart()}")
                     },
                     onNavigateToSearch = { query ->
                         navController.navigate("search/$query")
@@ -130,7 +134,7 @@ fun AppShell() {
                     feature = viewModel.feature,
                     onBack = { navController.popBackStack() },
                     onNavigateToPodcast = { feedUrl ->
-                        navController.navigate("podcast/$feedUrl")
+                        navController.navigate("podcast/${feedUrl.encodeURLPathPart()}")
                     },
                 )
             }
@@ -153,10 +157,13 @@ fun AppShell() {
                 }
             }
 
-            composable(AppRoutes.PodcastDetail.ROUTE) {
-                Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-                    Text("Podcast Detail — coming soon")
-                }
+            composable(AppRoutes.PodcastDetail.ROUTE) { backStackEntry ->
+                val encodedFeedUrl = backStackEntry.arguments?.getString("feedUrl") ?: ""
+                val feedUrl = encodedFeedUrl.decodeURLPart()
+                PodcastDetailScreen(
+                    feedUrl = feedUrl,
+                    onBack = { navController.popBackStack() },
+                )
             }
         }
     }

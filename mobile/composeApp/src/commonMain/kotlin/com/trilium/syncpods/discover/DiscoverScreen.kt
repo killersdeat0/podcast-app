@@ -73,9 +73,15 @@ fun DiscoverScreen(
 
         PodcastSearchBar(
             value = localQuery,
-            onValueChange = { localQuery = it },
+            onValueChange = {
+                localQuery = it
+                feature.process(DiscoverEvent.SearchQueryChanged(it))
+            },
             onSearch = { feature.process(DiscoverEvent.SearchSubmitted(localQuery)) },
             modifier = Modifier.fillMaxWidth(),
+            suggestions = state.suggestions,
+            isSuggestionsLoading = state.isSuggestionsLoading,
+            onSuggestionClick = { feature.process(DiscoverEvent.SuggestionTapped(it)) },
         )
 
         Row(
