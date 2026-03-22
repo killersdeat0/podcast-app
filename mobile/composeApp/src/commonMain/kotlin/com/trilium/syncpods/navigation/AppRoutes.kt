@@ -10,4 +10,9 @@ sealed class AppRoutes(val route: String) {
             const val ROUTE = "podcast/{feedUrl}"
         }
     }
+    data class Search(val query: String) : AppRoutes("search/{query}") {
+        companion object {
+            const val ROUTE = "search/{query}"
+        }
+    }
 }

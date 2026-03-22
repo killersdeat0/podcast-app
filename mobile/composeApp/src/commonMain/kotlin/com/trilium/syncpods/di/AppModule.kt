@@ -3,7 +3,9 @@ package com.trilium.syncpods.di
 import com.trilium.syncpods.discover.DiscoverViewModel
 import com.trilium.syncpods.discover.PodcastRepository
 import com.trilium.syncpods.discover.PodcastRepositoryImpl
+import com.trilium.syncpods.search.SearchViewModel
 import org.koin.core.module.dsl.viewModel
+import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 val appModule = module {
@@ -16,4 +18,5 @@ val appModule = module {
         )
     }
     viewModel { DiscoverViewModel(get()) }
+    viewModelOf(::SearchViewModel)
 }

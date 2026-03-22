@@ -1,7 +1,6 @@
 package com.trilium.syncpods.discover
 
 import app.cash.turbine.test
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -24,7 +23,6 @@ class DiscoverFeatureTest {
     @Test
     fun `loads trending on ScreenVisible`() = runTest {
         val repo = FakePodcastRepository(trendingResult = listOf(samplePodcast))
-        // backgroundScope prevents UncompletedCoroutinesError from the feature's pipeline
         val feature = DiscoverFeature(backgroundScope, repo)
 
         feature.state.test {
@@ -49,36 +47,7 @@ class DiscoverFeatureTest {
     }
 
     @Test
-    fun `search is debounced — rapid QueryChanged fires one search`() = runTest {
-        val repo = FakePodcastRepository(searchResult = listOf(samplePodcast))
-        val feature = DiscoverFeature(backgroundScope, repo)
-
-        feature.state.test {
-            awaitItem() // initial
-
-            feature.process(DiscoverEvent.QueryChanged("k"))
-            feature.process(DiscoverEvent.QueryChanged("ko"))
-            feature.process(DiscoverEvent.QueryChanged("kot"))
-
-            // Advance virtual time past the 300ms debounce window
-            delay(400L)
-
-            // Drain until search results are populated
-            var latest = awaitItem()
-            while (latest.searchResults.isEmpty()) {
-                latest = awaitItem()
-            }
-
-            assertEquals("kot", latest.query)
-            assertEquals(listOf(samplePodcast), latest.searchResults)
-            assertEquals(1, repo.searchCallCount)
-
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `genre filter changes trending query`() = runTest {
+    fun `genre filter loads trending for selected genre`() = runTest {
         val repo = FakePodcastRepository(trendingResult = listOf(samplePodcast))
         val feature = DiscoverFeature(backgroundScope, repo)
 
@@ -95,6 +64,38 @@ class DiscoverFeatureTest {
             assertEquals(1303, latest.selectedGenreId)
             assertEquals(listOf(samplePodcast), latest.trendingPodcasts)
             assertEquals(1303, repo.lastTrendingGenreId)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `SearchSubmitted emits NavigateToSearch effect`() = runTest {
+        val repo = FakePodcastRepository()
+        val feature = DiscoverFeature(backgroundScope, repo)
+
+        feature.effects.test {
+            feature.process(DiscoverEvent.SearchSubmitted("kotlin"))
+
+            val effect = awaitItem()
+            assertIs<DiscoverEffect.NavigateToSearch>(effect)
+            assertEquals("kotlin", effect.query)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `blank SearchSubmitted is ignored — no effect emitted`() = runTest {
+        val repo = FakePodcastRepository()
+        val feature = DiscoverFeature(backgroundScope, repo)
+
+        feature.effects.test {
+            feature.process(DiscoverEvent.SearchSubmitted(""))
+            feature.process(DiscoverEvent.SearchSubmitted("   "))
+
+            // No effects should be emitted for blank queries
+            expectNoEvents()
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -124,11 +125,9 @@ private class FakePodcastRepository(
     private val searchResult: List<PodcastSummary> = emptyList(),
 ) : PodcastRepository {
 
-    var searchCallCount = 0
     var lastTrendingGenreId: Int? = null
 
     override suspend fun searchPodcasts(query: String, genreId: Int?): List<PodcastSummary> {
-        searchCallCount++
         return searchResult
     }
 

@@ -9,6 +9,9 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -30,6 +33,8 @@ import com.trilium.syncpods.discover.DiscoverViewModel
 import com.trilium.syncpods.navigation.AppRoutes
 import com.trilium.syncpods.player.MiniPlayerBar
 import com.trilium.syncpods.player.NowPlayingStub
+import com.trilium.syncpods.search.SearchScreen
+import com.trilium.syncpods.search.SearchViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
 private data class TabItem(
@@ -43,6 +48,8 @@ fun AppShell() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+
+    val isSearchRoute = currentDestination?.route == AppRoutes.Search.ROUTE
 
     val tabs = listOf(
         TabItem(AppRoutes.Discover.route, "Discover") {
@@ -64,28 +71,34 @@ fun AppShell() {
 
     Scaffold(
         bottomBar = {
-            Column {
-                MiniPlayerBar(
-                    nowPlaying = nowPlaying.value,
-                    onPlayPauseClick = { /* stub */ },
-                    onBarClick = { /* stub: navigate to full player */ },
-                )
-                NavigationBar {
-                    tabs.forEach { tab ->
-                        NavigationBarItem(
-                            selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true,
-                            onClick = {
-                                navController.navigate(tab.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
+            AnimatedVisibility(
+                visible = !isSearchRoute,
+                enter = slideInVertically { it },
+                exit = slideOutVertically { it },
+            ) {
+                Column {
+                    MiniPlayerBar(
+                        nowPlaying = nowPlaying.value,
+                        onPlayPauseClick = { /* stub */ },
+                        onBarClick = { /* stub: navigate to full player */ },
+                    )
+                    NavigationBar {
+                        tabs.forEach { tab ->
+                            NavigationBarItem(
+                                selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true,
+                                onClick = {
+                                    navController.navigate(tab.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = tab.icon,
-                            label = { Text(tab.label) },
-                        )
+                                },
+                                icon = tab.icon,
+                                label = { Text(tab.label) },
+                            )
+                        }
                     }
                 }
             }
@@ -94,9 +107,7 @@ fun AppShell() {
         NavHost(
             navController = navController,
             startDestination = AppRoutes.Discover.route,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
+            modifier = Modifier.fillMaxSize(),
         ) {
             composable(AppRoutes.Discover.route) {
                 val viewModel = koinViewModel<DiscoverViewModel>()
@@ -105,29 +116,45 @@ fun AppShell() {
                     onNavigateToPodcast = { feedUrl ->
                         navController.navigate("podcast/$feedUrl")
                     },
+                    onNavigateToSearch = { query ->
+                        navController.navigate("search/$query")
+                    },
+                    modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
+                    bottomContentPadding = innerPadding.calculateBottomPadding(),
+                )
+            }
+
+            composable(AppRoutes.Search.ROUTE) {
+                val viewModel = koinViewModel<SearchViewModel>()
+                SearchScreen(
+                    feature = viewModel.feature,
+                    onBack = { navController.popBackStack() },
+                    onNavigateToPodcast = { feedUrl ->
+                        navController.navigate("podcast/$feedUrl")
+                    },
                 )
             }
 
             composable(AppRoutes.Library.route) {
-                Box(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
                     Text("Library — coming soon")
                 }
             }
 
             composable(AppRoutes.Queue.route) {
-                Box(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
                     Text("Queue — coming soon")
                 }
             }
 
             composable(AppRoutes.Profile.route) {
-                Box(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
                     Text("Profile — coming soon")
                 }
             }
 
             composable(AppRoutes.PodcastDetail.ROUTE) {
-                Box(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
                     Text("Podcast Detail — coming soon")
                 }
             }

@@ -1,5 +1,6 @@
 package com.trilium.syncpods.discover
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,17 +24,24 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import com.trilium.syncpods.components.PodcastCard
 
@@ -42,15 +50,19 @@ import com.trilium.syncpods.components.PodcastCard
 fun DiscoverScreen(
     feature: DiscoverFeature,
     onNavigateToPodcast: (String) -> Unit,
+    onNavigateToSearch: (String) -> Unit,
     modifier: Modifier = Modifier,
+    bottomContentPadding: Dp = 0.dp,
 ) {
     val state by feature.state.collectAsState()
+    var localQuery by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         feature.process(DiscoverEvent.ScreenVisible)
         feature.effects.collect { effect ->
             when (effect) {
                 is DiscoverEffect.NavigateToPodcastDetail -> onNavigateToPodcast(effect.feedUrl)
+                is DiscoverEffect.NavigateToSearch -> onNavigateToSearch(effect.query)
             }
         }
     }
@@ -66,37 +78,69 @@ fun DiscoverScreen(
             modifier = Modifier.padding(top = 16.dp, bottom = 12.dp),
         )
 
-        TextField(
-            value = state.query,
-            onValueChange = { feature.process(DiscoverEvent.QueryChanged(it)) },
-            placeholder = { Text("Search podcasts, episodes…") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+        OutlinedTextField(
+            value = localQuery,
+            onValueChange = { localQuery = it },
+            placeholder = { Text("Search podcasts...") },
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            trailingIcon = {
+                IconButton(
+                    onClick = { feature.process(DiscoverEvent.SearchSubmitted(localQuery)) },
+                    modifier = Modifier
+                        .padding(end = 4.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = MaterialTheme.shapes.small,
+                        ),
+                ) {
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = "Search",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+            },
             singleLine = true,
-            shape = MaterialTheme.shapes.extraLarge,
-            colors = TextFieldDefaults.colors(
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
+            shape = MaterialTheme.shapes.medium,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(
+                onSearch = { feature.process(DiscoverEvent.SearchSubmitted(localQuery)) },
+            ),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
             ),
             modifier = Modifier.fillMaxWidth(),
         )
 
-        if (state.query.isBlank()) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Whatshot,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp),
-                )
-                Spacer(Modifier.width(4.dp))
-                Text(
-                    text = "Trending",
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Whatshot,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = "Trending",
+                style = MaterialTheme.typography.titleMedium,
+            )
         }
 
         LazyRow(
@@ -125,15 +169,13 @@ fun DiscoverScreen(
                 )
             }
         } else {
-            val podcasts = if (state.query.isBlank()) state.trendingPodcasts else state.searchResults
-
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(bottom = 16.dp),
+                contentPadding = PaddingValues(bottom = 16.dp + bottomContentPadding),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(podcasts) { podcast ->
+                items(state.trendingPodcasts) { podcast ->
                     PodcastCard(
                         podcast = podcast,
                         onClick = { feature.process(DiscoverEvent.PodcastTapped(podcast)) },
