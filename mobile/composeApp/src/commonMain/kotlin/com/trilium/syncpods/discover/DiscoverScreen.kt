@@ -75,8 +75,16 @@ fun DiscoverScreen(
             modifier = Modifier.fillMaxWidth(),
         )
 
+        if (state.query.isBlank()) {
+            Text(
+                text = "🔥 Trending",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
+            )
+        }
+
         LazyRow(
-            contentPadding = PaddingValues(vertical = 12.dp),
+            contentPadding = PaddingValues(vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(PODCAST_GENRES) { genre ->
@@ -102,14 +110,6 @@ fun DiscoverScreen(
             }
         } else {
             val podcasts = if (state.query.isBlank()) state.trendingPodcasts else state.searchResults
-
-            if (state.query.isBlank()) {
-                Text(
-                    text = "Trending",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(bottom = 8.dp),
-                )
-            }
 
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),

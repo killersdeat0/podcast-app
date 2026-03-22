@@ -27,12 +27,29 @@ async function fetchTopPodcasts(limit = 25): Promise<unknown[]> {
 }
 
 async function fetchPodcastsByGenre(genreId: number, limit = 25): Promise<unknown[]> {
-  const res = await fetch(
-    `https://itunes.apple.com/search?media=podcast&term=podcast&genreId=${genreId}&limit=${limit}`
+  const chartRes = await fetch(
+    `https://itunes.apple.com/us/rss/toppodcasts/limit=${limit}/genre=${genreId}/json`
   )
-  if (!res.ok) return []
-  const data = await res.json()
-  return data.results ?? []
+  if (!chartRes.ok) return []
+
+  const chart = await chartRes.json()
+  type RssEntry = { id?: { attributes?: { 'im:id'?: string } } }
+  const entries: RssEntry[] = chart?.feed?.entry ?? []
+  const ids = entries
+    .map((r) => r.id?.attributes?.['im:id'])
+    .filter((id): id is string => Boolean(id))
+    .join(',')
+  if (!ids) return []
+
+  const lookupRes = await fetch(
+    `https://itunes.apple.com/lookup?id=${ids}&entity=podcast`
+  )
+  if (!lookupRes.ok) return []
+
+  const lookupData = await lookupRes.json()
+  return (lookupData.results ?? []).filter(
+    (r: Record<string, unknown>) => r.feedUrl && r.collectionName
+  )
 }
 
 serve(async (req) => {
