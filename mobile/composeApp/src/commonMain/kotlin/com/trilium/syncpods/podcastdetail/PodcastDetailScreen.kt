@@ -1,6 +1,7 @@
 package com.trilium.syncpods.podcastdetail
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,16 +18,22 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -247,10 +254,20 @@ fun PodcastDetailScreen(
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.weight(1f),
                         )
-                        TextButton(onClick = { feature.process(PodcastDetailEvent.SortToggled) }) {
+                        Row(
+                            modifier = Modifier.clickable { feature.process(PodcastDetailEvent.SortToggled) },
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
                             Text(
-                                text = if (state.sortNewestFirst) "Newest" else "Oldest",
+                                text = "Sort",
                                 style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Sort options",
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -272,13 +289,9 @@ fun PodcastDetailScreen(
 
                 // Episode rows
                 items(sortedEpisodes, key = { it.guid }) { episode ->
-                    EpisodeRow(
+                    EpisodeCard(
                         episode = episode,
                         onPlayTapped = { feature.process(PodcastDetailEvent.EpisodePlayTapped(episode)) },
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
                     )
                 }
             }
@@ -311,27 +324,29 @@ fun PodcastDetailScreen(
 }
 
 @Composable
-private fun EpisodeRow(
+private fun EpisodeCard(
     episode: Episode,
     onPlayTapped: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.Top,
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = episode.title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             if (episode.description.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = episode.description,
                     style = MaterialTheme.typography.bodySmall,
@@ -340,76 +355,109 @@ private fun EpisodeRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = buildEpisodeMeta(episode),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Spacer(modifier = Modifier.width(8.dp))
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            IconButton(
-                onClick = onPlayTapped,
-                modifier = Modifier.size(40.dp),
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
             ) {
+                // Date
                 Icon(
-                    imageVector = Icons.Default.PlayCircle,
-                    contentDescription = "Play episode",
+                    imageVector = Icons.Default.CalendarToday,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = formatPubDate(episode.pubDate),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                // Duration
+                episode.duration?.let {
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Icon(
+                        imageVector = Icons.Default.AccessTime,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = formatDuration(it),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                // Share
+                IconButton(
+                    onClick = { /* stub: share */ },
                     modifier = Modifier.size(32.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-            IconButton(
-                onClick = { /* stub: share */ },
-                modifier = Modifier.size(32.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Share,
-                    contentDescription = "Share",
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            IconButton(
-                onClick = { /* stub: download */ },
-                modifier = Modifier.size(32.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Download,
-                    contentDescription = "Download",
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = "Share",
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                // Download
+                IconButton(
+                    onClick = { /* stub: download */ },
+                    modifier = Modifier.size(32.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Download,
+                        contentDescription = "Download",
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                // Circular play button
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.onSurface)
+                        .clickable { onPlayTapped() },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "Play episode",
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.surface,
+                    )
+                }
             }
         }
+        // Progress bar at bottom of card
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(3.dp)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+        )
     }
 }
 
-private fun buildEpisodeMeta(episode: Episode): String {
-    val date = formatPubDate(episode.pubDate)
-    val duration = episode.duration?.let { formatDuration(it) }
-    return listOfNotNull(date, duration).joinToString(" · ")
-}
-
-/** Extract a readable date from RFC 2822 pubDate strings like "Mon, 01 Jan 2024 00:00:00 +0000" */
+/** Extract "Mon Day" from RFC 2822 pubDate strings like "Mon, 01 Jan 2024 00:00:00 +0000" */
 private fun formatPubDate(pubDate: String): String {
     if (pubDate.isBlank()) return ""
     val parts = pubDate.trim().split(" ")
-    return if (parts.size >= 4) "${parts[1]} ${parts[2]} ${parts[3]}" else pubDate
+    // parts: ["Mon,", "01", "Jan", "2024", ...]
+    return if (parts.size >= 3) "${parts[2]} ${parts[1].trimStart('0').ifEmpty { "0" }}" else pubDate
 }
 
-/** Format seconds as H:MM:SS or M:SS */
+/** Format seconds as "1h 15m" or "45m" */
 private fun formatDuration(seconds: Int): String {
     val h = seconds / 3600
     val m = (seconds % 3600) / 60
-    val s = seconds % 60
-    return if (h > 0) {
-        "$h:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}"
-    } else {
-        "$m:${s.toString().padStart(2, '0')}"
+    return when {
+        h > 0 && m > 0 -> "${h}h ${m}m"
+        h > 0 -> "${h}h"
+        else -> "${m}m"
     }
 }
