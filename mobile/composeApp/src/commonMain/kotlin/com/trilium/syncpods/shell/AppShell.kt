@@ -35,6 +35,8 @@ import com.trilium.syncpods.player.MiniPlayerBar
 import com.trilium.syncpods.player.NowPlayingStub
 import com.trilium.syncpods.podcastdetail.PodcastDetailScreen
 import com.trilium.syncpods.podcastdetail.PodcastDetailViewModel
+import com.trilium.syncpods.queue.QueueScreen
+import com.trilium.syncpods.queue.QueueViewModel
 import com.trilium.syncpods.search.SearchScreen
 import com.trilium.syncpods.search.SearchViewModel
 import io.ktor.http.encodeURLPathPart
@@ -146,9 +148,12 @@ fun AppShell() {
             }
 
             composable(AppRoutes.Queue.route) {
-                Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-                    Text("Queue — coming soon")
-                }
+                val viewModel = koinViewModel<QueueViewModel>()
+                QueueScreen(
+                    feature = viewModel.feature,
+                    modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
+                    bottomContentPadding = innerPadding.calculateBottomPadding(),
+                )
             }
 
             composable(AppRoutes.Profile.route) {
