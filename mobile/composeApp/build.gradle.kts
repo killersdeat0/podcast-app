@@ -61,6 +61,7 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.navigation.compose)
             implementation(compose.materialIconsExtended)
+            implementation(libs.sh.calvin.reorderable)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
