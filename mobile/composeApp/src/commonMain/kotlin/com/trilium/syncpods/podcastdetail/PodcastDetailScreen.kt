@@ -15,15 +15,19 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Download
@@ -49,6 +53,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -69,6 +75,7 @@ fun PodcastDetailScreen(
     modifier: Modifier = Modifier,
 ) {
     val state by feature.state.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         feature.process(PodcastDetailEvent.ScreenVisible)
@@ -287,12 +294,76 @@ fun PodcastDetailScreen(
                     }
                 }
 
-                // Episode rows
-                items(sortedEpisodes, key = { it.guid }) { episode ->
-                    EpisodeCard(
-                        episode = episode,
-                        onPlayTapped = { feature.process(PodcastDetailEvent.EpisodePlayTapped(episode)) },
-                    )
+                // Paged episode list
+                if (sortedEpisodes.isNotEmpty()) {
+                    item {
+                        val pages = sortedEpisodes.chunked(10)
+                        val pagerState = rememberPagerState(
+                            initialPage = state.currentPage,
+                            pageCount = { pages.size },
+                        )
+                        LaunchedEffect(pagerState.currentPage) {
+                            if (pagerState.currentPage != state.currentPage) {
+                                feature.process(PodcastDetailEvent.PageChanged(pagerState.currentPage))
+                            }
+                        }
+                        Column {
+                            HorizontalPager(
+                                state = pagerState,
+                                modifier = Modifier.wrapContentHeight(align = Alignment.Top),
+                                verticalAlignment = Alignment.Top,
+                            ) { pageIndex ->
+                                Column {
+                                    pages.getOrElse(pageIndex) { emptyList() }.forEach { episode ->
+                                        EpisodeCard(
+                                            episode = episode,
+                                            onPlayTapped = { feature.process(PodcastDetailEvent.EpisodePlayTapped(episode)) },
+                                        )
+                                    }
+                                }
+                            }
+                            // Page indicator
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                IconButton(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            pagerState.animateScrollToPage(pagerState.currentPage - 1)
+                                        }
+                                    },
+                                    enabled = pagerState.currentPage > 0,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Previous page",
+                                    )
+                                }
+                                Text(
+                                    text = "Page ${pagerState.currentPage + 1} / ${pages.size}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    modifier = Modifier.padding(horizontal = 8.dp),
+                                )
+                                IconButton(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                                        }
+                                    },
+                                    enabled = pagerState.currentPage < pages.size - 1,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                        contentDescription = "Next page",
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
