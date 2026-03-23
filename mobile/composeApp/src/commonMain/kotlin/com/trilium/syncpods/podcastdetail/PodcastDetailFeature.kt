@@ -29,6 +29,7 @@ data class PodcastDetailState(
     val isFollowing: Boolean = false,
     val isFollowLoading: Boolean = false,
     val showLoginPrompt: Boolean = false,
+    val currentPage: Int = 0,
 )
 
 // ── Events ────────────────────────────────────────────────────────────────────
@@ -44,6 +45,7 @@ sealed class PodcastDetailEvent {
     data object LoginPromptSignInTapped : PodcastDetailEvent()
     data object LoginPromptCreateAccountTapped : PodcastDetailEvent()
     data object RetryTapped : PodcastDetailEvent()
+    data class PageChanged(val page: Int) : PodcastDetailEvent()
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────
@@ -60,6 +62,7 @@ sealed class PodcastDetailAction {
     data object PlayLatest : PodcastDetailAction()
     data object NavigateToSignIn : PodcastDetailAction()
     data object NavigateToCreateAccount : PodcastDetailAction()
+    data class ChangePage(val page: Int) : PodcastDetailAction()
 }
 
 // ── Results ───────────────────────────────────────────────────────────────────
@@ -83,6 +86,7 @@ sealed class PodcastDetailResult {
     data class SetShowLoginPrompt(val show: Boolean) : PodcastDetailResult()
     data object SortToggled : PodcastDetailResult()
     data object DescriptionToggled : PodcastDetailResult()
+    data class PageChanged(val page: Int) : PodcastDetailResult()
 }
 
 // ── Effects ───────────────────────────────────────────────────────────────────
@@ -149,6 +153,9 @@ class PodcastDetailFeature(
 
             events.filterIsInstance<PodcastDetailEvent.RetryTapped>()
                 .map { PodcastDetailAction.LoadScreen },
+
+            events.filterIsInstance<PodcastDetailEvent.PageChanged>()
+                .map { PodcastDetailAction.ChangePage(it.page) },
         )
     }
 
@@ -226,6 +233,9 @@ class PodcastDetailFeature(
                 is PodcastDetailAction.ToggleDescription ->
                     flowOf(PodcastDetailResult.DescriptionToggled)
 
+                is PodcastDetailAction.ChangePage ->
+                    flowOf(PodcastDetailResult.PageChanged(action.page))
+
                 is PodcastDetailAction.PlayEpisode -> flow<PodcastDetailResult> {
                     _effects.emit(PodcastDetailEffect.PlayEpisode(action.episode))
                 }
@@ -270,5 +280,6 @@ class PodcastDetailFeature(
         is PodcastDetailResult.SetShowLoginPrompt -> previous.copy(showLoginPrompt = result.show)
         is PodcastDetailResult.SortToggled -> previous.copy(sortNewestFirst = !previous.sortNewestFirst)
         is PodcastDetailResult.DescriptionToggled -> previous.copy(isDescriptionExpanded = !previous.isDescriptionExpanded)
+        is PodcastDetailResult.PageChanged -> previous.copy(currentPage = result.page)
     }
 }
