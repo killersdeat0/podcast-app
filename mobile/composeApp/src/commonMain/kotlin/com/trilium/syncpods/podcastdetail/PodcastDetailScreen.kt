@@ -34,8 +34,11 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
+import androidx.compose.material.icons.filled.PlaylistRemove
 import androidx.compose.material3.Button
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -53,6 +56,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
@@ -81,11 +85,16 @@ fun PodcastDetailScreen(
 ) {
     val state by feature.state.collectAsState()
     val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
         feature.process(PodcastDetailEvent.ScreenVisible)
         feature.effects.collect { effect ->
             when (effect) {
+                is PodcastDetailEffect.EpisodeQueuedAdded ->
+                    coroutineScope.launch { snackbarHostState.showSnackbar("Added to queue") }
+                is PodcastDetailEffect.EpisodeQueuedRemoved ->
+                    coroutineScope.launch { snackbarHostState.showSnackbar("Removed from queue") }
                 is PodcastDetailEffect.NavigateBack -> onBack()
                 is PodcastDetailEffect.NavigateToSignIn -> onNavigateToSignIn()
                 is PodcastDetailEffect.NavigateToCreateAccount -> onNavigateToCreateAccount()
@@ -344,7 +353,9 @@ fun PodcastDetailScreen(
                                     pages.getOrElse(pageIndex) { emptyList() }.forEach { episode ->
                                         EpisodeCard(
                                             episode = episode,
+                                            isQueued = episode.guid in state.queuedGuids,
                                             onPlayTapped = { feature.process(PodcastDetailEvent.EpisodePlayTapped(episode)) },
+                                            onQueueToggleTapped = { feature.process(PodcastDetailEvent.EpisodeQueueToggleTapped(episode)) },
                                         )
                                     }
                                 }
@@ -395,6 +406,11 @@ fun PodcastDetailScreen(
             }
         }
 
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = bottomContentPadding),
+        )
+
         // Overlay back button
         IconButton(
             onClick = onBack,
@@ -424,7 +440,9 @@ fun PodcastDetailScreen(
 @Composable
 private fun EpisodeCard(
     episode: Episode,
+    isQueued: Boolean,
     onPlayTapped: () -> Unit,
+    onQueueToggleTapped: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -487,16 +505,16 @@ private fun EpisodeCard(
                     )
                 }
                 Spacer(modifier = Modifier.weight(1f))
-                // Share
+                // Add/remove from queue
                 IconButton(
-                    onClick = { /* stub: share */ },
+                    onClick = onQueueToggleTapped,
                     modifier = Modifier.size(32.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Share,
-                        contentDescription = "Share",
+                        imageVector = if (isQueued) Icons.Default.PlaylistRemove else Icons.AutoMirrored.Filled.PlaylistAdd,
+                        contentDescription = if (isQueued) "Remove from queue" else "Add to queue",
                         modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = if (isQueued) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Spacer(modifier = Modifier.width(4.dp))

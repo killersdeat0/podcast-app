@@ -331,14 +331,17 @@ private class FakeQueueRepository(
     private val guest: Boolean = false,
     var removeCalledWith: String? = null,
     var reorderCalledWith: List<String>? = null,
+    var addCalledWith: String? = null,
     var shouldThrowOnGet: Boolean = false,
     var shouldThrowOnRemove: Boolean = false,
     var shouldThrowOnReorder: Boolean = false,
+    var shouldThrowOnAdd: Boolean = false,
 ) : QueueRepository {
     override suspend fun getQueue(): List<QueueItem> {
         if (shouldThrowOnGet) throw Exception("Network error")
         return queueItems
     }
+    override suspend fun getQueuedGuids(): Set<String> = queueItems.map { it.guid }.toSet()
     override suspend fun getUserTier(): String = tier
     override suspend fun removeEpisode(guid: String) {
         removeCalledWith = guid
@@ -347,6 +350,19 @@ private class FakeQueueRepository(
     override suspend fun reorderQueue(orderedGuids: List<String>) {
         reorderCalledWith = orderedGuids
         if (shouldThrowOnReorder) throw Exception("Reorder failed")
+    }
+    override suspend fun addEpisode(
+        guid: String,
+        feedUrl: String,
+        title: String,
+        audioUrl: String,
+        durationSeconds: Int?,
+        pubDate: String?,
+        podcastTitle: String,
+        artworkUrl: String?,
+    ) {
+        addCalledWith = guid
+        if (shouldThrowOnAdd) throw Exception("Add failed")
     }
     override fun isGuest(): Boolean = guest
 }
