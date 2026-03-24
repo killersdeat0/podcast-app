@@ -3,7 +3,7 @@ package com.trilium.syncpods.player
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,17 +23,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-
-data class NowPlayingStub(
-    val episodeTitle: String,
-    val podcastName: String,
-    val artworkUrl: String,
-    val isPlaying: Boolean,
-)
+import coil3.compose.AsyncImage
 
 @Composable
 fun MiniPlayerBar(
-    nowPlaying: NowPlayingStub?,
+    nowPlaying: NowPlaying?,
+    isPlaying: Boolean,
     onPlayPauseClick: () -> Unit,
     onBarClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -49,19 +45,21 @@ fun MiniPlayerBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(
+        AsyncImage(
+            model = nowPlaying.artworkUrl,
+            contentDescription = null,
             modifier = Modifier
                 .size(40.dp)
                 .clip(RoundedCornerShape(6.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
         )
 
-        androidx.compose.foundation.layout.Column(
+        Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = nowPlaying.episodeTitle.ifBlank { "Nothing playing" },
+                text = nowPlaying.title,
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -77,8 +75,8 @@ fun MiniPlayerBar(
 
         IconButton(onClick = onPlayPauseClick) {
             Icon(
-                imageVector = Icons.Default.PlayArrow,
-                contentDescription = if (nowPlaying.isPlaying) "Pause" else "Play",
+                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                contentDescription = if (isPlaying) "Pause" else "Play",
             )
         }
     }

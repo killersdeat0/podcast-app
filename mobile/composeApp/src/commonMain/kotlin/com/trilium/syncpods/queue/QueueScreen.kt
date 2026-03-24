@@ -50,12 +50,14 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.trilium.syncpods.auth.LoginPromptReason
 import com.trilium.syncpods.auth.LoginPromptSheet
+import com.trilium.syncpods.player.NowPlaying
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @Composable
 fun QueueScreen(
     feature: QueueFeature,
+    onPlayEpisode: (NowPlaying) -> Unit,
     modifier: Modifier = Modifier,
     bottomContentPadding: Dp = 0.dp,
 ) {
@@ -66,7 +68,15 @@ fun QueueScreen(
         feature.process(QueueEvent.ScreenVisible)
         feature.effects.collect { effect ->
             when (effect) {
-                is QueueEffect.PlayEpisode -> println("Play: ${effect.item.title}")
+                is QueueEffect.PlayEpisode -> onPlayEpisode(
+                    NowPlaying(
+                        guid = effect.item.guid,
+                        title = effect.item.title,
+                        podcastName = effect.item.podcastTitle,
+                        artworkUrl = effect.item.artworkUrl.orEmpty(),
+                        audioUrl = effect.item.audioUrl,
+                    )
+                )
                 is QueueEffect.NavigateToUpgrade -> showUpgradeSheet = true
                 is QueueEffect.ShowLoginPrompt -> { /* state.showLoginPrompt handles this */ }
             }

@@ -64,12 +64,14 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.trilium.syncpods.auth.LoginPromptReason
 import com.trilium.syncpods.auth.LoginPromptSheet
+import com.trilium.syncpods.player.NowPlaying
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PodcastDetailScreen(
     feature: PodcastDetailFeature,
     onBack: () -> Unit,
+    onPlayEpisode: (NowPlaying) -> Unit,
     onNavigateToSignIn: () -> Unit,
     onNavigateToCreateAccount: () -> Unit,
     modifier: Modifier = Modifier,
@@ -84,8 +86,30 @@ fun PodcastDetailScreen(
                 is PodcastDetailEffect.NavigateBack -> onBack()
                 is PodcastDetailEffect.NavigateToSignIn -> onNavigateToSignIn()
                 is PodcastDetailEffect.NavigateToCreateAccount -> onNavigateToCreateAccount()
-                is PodcastDetailEffect.PlayEpisode -> { /* stub: playback not yet implemented */ }
-                is PodcastDetailEffect.PlayLatest -> { /* stub: playback not yet implemented */ }
+                is PodcastDetailEffect.PlayEpisode -> onPlayEpisode(
+                    NowPlaying(
+                        guid = effect.episode.guid,
+                        title = effect.episode.title,
+                        podcastName = feature.state.value.podcastTitle,
+                        artworkUrl = feature.state.value.artworkUrl,
+                        audioUrl = effect.episode.audioUrl,
+                    )
+                )
+                is PodcastDetailEffect.PlayLatest -> {
+                    val s = feature.state.value
+                    val episode = if (s.sortNewestFirst) s.episodes.firstOrNull() else s.episodes.lastOrNull()
+                    if (episode != null) {
+                        onPlayEpisode(
+                            NowPlaying(
+                                guid = episode.guid,
+                                title = episode.title,
+                                podcastName = s.podcastTitle,
+                                artworkUrl = s.artworkUrl,
+                                audioUrl = episode.audioUrl,
+                            )
+                        )
+                    }
+                }
             }
         }
     }

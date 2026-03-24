@@ -10,6 +10,8 @@ import com.trilium.syncpods.podcastdetail.PodcastDetailViewModel
 import com.trilium.syncpods.podcastdetail.PodcastSummaryCache
 import com.trilium.syncpods.podcastdetail.SubscriptionRepository
 import com.trilium.syncpods.podcastdetail.SubscriptionRepositoryImpl
+import com.trilium.syncpods.player.AudioPlayer
+import com.trilium.syncpods.player.PlayerViewModel
 import com.trilium.syncpods.queue.QueueRepository
 import com.trilium.syncpods.queue.QueueRepositoryImpl
 import com.trilium.syncpods.queue.QueueViewModel
@@ -19,6 +21,7 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 val appModule = module {
+    includes(audioPlayerModule())
     single { createPlatformHttpClient() }
     single { createSupabaseClient() }
     single { PodcastSummaryCache() }
@@ -44,4 +47,5 @@ val appModule = module {
     viewModelOf(::SearchViewModel)
     viewModelOf(::PodcastDetailViewModel)
     viewModelOf(::QueueViewModel)
+    viewModel { PlayerViewModel(get<AudioPlayer>()) }
 }

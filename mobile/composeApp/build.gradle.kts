@@ -38,6 +38,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.android)
             implementation(libs.koin.android)
+            implementation(libs.androidx.media3.exoplayer)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)

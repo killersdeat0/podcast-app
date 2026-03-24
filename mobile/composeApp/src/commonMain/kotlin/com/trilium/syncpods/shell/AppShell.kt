@@ -1,5 +1,8 @@
 package com.trilium.syncpods.shell
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,18 +12,14 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -32,7 +31,8 @@ import com.trilium.syncpods.discover.DiscoverScreen
 import com.trilium.syncpods.discover.DiscoverViewModel
 import com.trilium.syncpods.navigation.AppRoutes
 import com.trilium.syncpods.player.MiniPlayerBar
-import com.trilium.syncpods.player.NowPlayingStub
+import com.trilium.syncpods.player.PlayerEvent
+import com.trilium.syncpods.player.PlayerViewModel
 import com.trilium.syncpods.podcastdetail.PodcastDetailScreen
 import com.trilium.syncpods.podcastdetail.PodcastDetailViewModel
 import com.trilium.syncpods.queue.QueueScreen
@@ -72,8 +72,12 @@ fun AppShell() {
         },
     )
 
-    // Stub now-playing state — replaced when PlayerFeature is implemented
-    val nowPlaying = remember { mutableStateOf<NowPlayingStub?>(null) }
+    val playerViewModel = koinViewModel<PlayerViewModel>()
+    val playerState by playerViewModel.feature.state.collectAsState()
+
+    val onPlayEpisode = { nowPlaying: com.trilium.syncpods.player.NowPlaying ->
+        playerViewModel.feature.process(PlayerEvent.Play(nowPlaying))
+    }
 
     Scaffold(
         bottomBar = {
@@ -84,9 +88,10 @@ fun AppShell() {
             ) {
                 Column {
                     MiniPlayerBar(
-                        nowPlaying = nowPlaying.value,
-                        onPlayPauseClick = { /* stub */ },
-                        onBarClick = { /* stub: navigate to full player */ },
+                        nowPlaying = playerState.nowPlaying,
+                        isPlaying = playerState.isPlaying,
+                        onPlayPauseClick = { playerViewModel.feature.process(PlayerEvent.PauseToggled) },
+                        onBarClick = { /* full-screen player: future phase */ },
                     )
                     NavigationBar {
                         tabs.forEach { tab ->
@@ -151,6 +156,7 @@ fun AppShell() {
                 val viewModel = koinViewModel<QueueViewModel>()
                 QueueScreen(
                     feature = viewModel.feature,
+                    onPlayEpisode = onPlayEpisode,
                     modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
                     bottomContentPadding = innerPadding.calculateBottomPadding(),
                 )
@@ -167,6 +173,7 @@ fun AppShell() {
                 PodcastDetailScreen(
                     feature = viewModel.feature,
                     onBack = { navController.popBackStack() },
+                    onPlayEpisode = onPlayEpisode,
                     onNavigateToSignIn = { /* stub: sign-in screen not yet implemented */ },
                     onNavigateToCreateAccount = { /* stub: create-account screen not yet implemented */ },
                 )
