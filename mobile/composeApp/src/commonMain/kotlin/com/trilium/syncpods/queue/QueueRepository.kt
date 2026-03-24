@@ -266,6 +266,7 @@ class SupabaseQueueRepository(
     }
 
     override suspend fun getQueuedGuids(): Set<String> {
+        if (isGuest()) return guestQueueGuids.toSet()
         val rows = supabaseClient.from("queue").select(Columns.list("episode_guid"))
             .decodeList<QueueGuidRow>()
         return rows.map { it.episodeGuid }.toSet()
@@ -281,7 +282,11 @@ class SupabaseQueueRepository(
         podcastTitle: String,
         artworkUrl: String?,
     ) {
-        val userId = supabaseClient.auth.currentUserOrNull()?.id ?: return
+        val userId = supabaseClient.auth.currentUserOrNull()?.id
+        if (userId == null) {
+            guestQueueGuids.add(guid)
+            return
+        }
         supabaseClient.from("episodes").upsert(
             EpisodeUpsertRow(
                 guid = guid,
@@ -312,6 +317,10 @@ class SupabaseQueueRepository(
     }
 
     override suspend fun removeEpisode(guid: String) {
+        if (isGuest()) {
+            guestQueueGuids.remove(guid)
+            return
+        }
         supabaseClient.from("queue").delete {
             filter { eq("episode_guid", guid) }
         }
