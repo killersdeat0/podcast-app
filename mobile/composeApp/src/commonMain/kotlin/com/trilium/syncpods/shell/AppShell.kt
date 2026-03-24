@@ -177,6 +177,7 @@ fun AppShell() {
                     onPlayEpisode = onPlayEpisode,
                     onNavigateToSignIn = { /* stub: sign-in screen not yet implemented */ },
                     onNavigateToCreateAccount = { /* stub: create-account screen not yet implemented */ },
+                    topContentPadding = innerPadding.calculateTopPadding(),
                     bottomContentPadding = innerPadding.calculateBottomPadding(),
                 )
             }

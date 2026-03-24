@@ -76,6 +76,7 @@ fun PodcastDetailScreen(
     onNavigateToSignIn: () -> Unit,
     onNavigateToCreateAccount: () -> Unit,
     modifier: Modifier = Modifier,
+    topContentPadding: Dp = 0.dp,
     bottomContentPadding: Dp = 0.dp,
 ) {
     val state by feature.state.collectAsState()
@@ -399,7 +400,7 @@ fun PodcastDetailScreen(
             onClick = onBack,
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(4.dp),
+                .padding(top = topContentPadding + 4.dp, start = 4.dp),
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
