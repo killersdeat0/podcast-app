@@ -92,6 +92,7 @@ class DiscoverFeature(
             events.filterIsInstance<DiscoverEvent.PodcastTapped>()
                 .map { DiscoverAction.NavigateToPodcast(it.podcast) },
             events.filterIsInstance<DiscoverEvent.ScreenVisible>()
+                .filter { state.value.trendingPodcasts.isEmpty() }
                 .map { DiscoverAction.LoadTrending(state.value.selectedGenreId) },
             events.filterIsInstance<DiscoverEvent.SearchQueryChanged>()
                 .flatMapLatest { event ->
