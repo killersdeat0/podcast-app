@@ -265,6 +265,52 @@ class SupabaseQueueRepository(
         }
     }
 
+    override suspend fun getQueuedGuids(): Set<String> {
+        val rows = supabaseClient.from("queue").select(Columns.list("episode_guid"))
+            .decodeList<QueueGuidRow>()
+        return rows.map { it.episodeGuid }.toSet()
+    }
+
+    override suspend fun addEpisode(
+        guid: String,
+        feedUrl: String,
+        title: String,
+        audioUrl: String,
+        durationSeconds: Int?,
+        pubDate: String?,
+        podcastTitle: String,
+        artworkUrl: String?,
+    ) {
+        val userId = supabaseClient.auth.currentUserOrNull()?.id ?: return
+        supabaseClient.from("episodes").upsert(
+            EpisodeUpsertRow(
+                guid = guid,
+                feedUrl = feedUrl,
+                title = title,
+                audioUrl = audioUrl,
+                duration = durationSeconds,
+                pubDate = pubDate,
+                podcastTitle = podcastTitle,
+                artworkUrl = artworkUrl,
+            )
+        ) {
+            onConflict = "feed_url,guid"
+        }
+        val positions = supabaseClient.from("queue").select(Columns.list("position"))
+            .decodeList<QueuePositionRow>()
+        val nextPosition = (positions.maxOfOrNull { it.position } ?: 0) + 1
+        supabaseClient.from("queue").upsert(
+            QueueInsertRow(
+                episodeGuid = guid,
+                feedUrl = feedUrl,
+                position = nextPosition,
+                userId = userId,
+            )
+        ) {
+            onConflict = "user_id,episode_guid"
+        }
+    }
+
     override suspend fun removeEpisode(guid: String) {
         supabaseClient.from("queue").delete {
             filter { eq("episode_guid", guid) }

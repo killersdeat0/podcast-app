@@ -303,7 +303,7 @@ class PodcastDetailFeatureTest {
     }
 
     @Test
-    fun `EpisodeQueueToggleTapped when guest has 10 or more queued items shows login prompt`() = runTest {
+    fun `EpisodeQueueToggleTapped when free user has 10 or more queued items shows login prompt`() = runTest {
         val tenGuids = (1..10).map { "other-guid-$it" }.toSet()
         val feature = PodcastDetailFeature(
             scope = backgroundScope,
@@ -491,6 +491,7 @@ private class FakeQueueRepository(
     var shouldThrowOnAdd: Boolean = false,
 ) : QueueRepository {
     override fun isGuest(): Boolean = guest
+    override suspend fun getUserTier(): String = tier
     override suspend fun getQueuedGuids(): Set<String> = initialQueuedGuids
     override suspend fun addEpisode(
         guid: String,
