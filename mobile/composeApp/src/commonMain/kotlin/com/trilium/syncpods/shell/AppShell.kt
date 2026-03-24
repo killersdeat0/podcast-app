@@ -1,12 +1,13 @@
 package com.trilium.syncpods.shell
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Person
@@ -81,18 +82,18 @@ fun AppShell() {
 
     Scaffold(
         bottomBar = {
-            AnimatedVisibility(
-                visible = !isFullScreenRoute,
-                enter = slideInVertically { it },
-                exit = slideOutVertically { it },
-            ) {
-                Column {
-                    MiniPlayerBar(
-                        nowPlaying = playerState.nowPlaying,
-                        isPlaying = playerState.isPlaying,
-                        onPlayPauseClick = { playerViewModel.feature.process(PlayerEvent.PauseToggled) },
-                        onBarClick = { /* full-screen player: future phase */ },
-                    )
+            Column {
+                MiniPlayerBar(
+                    nowPlaying = playerState.nowPlaying,
+                    isPlaying = playerState.isPlaying,
+                    onPlayPauseClick = { playerViewModel.feature.process(PlayerEvent.PauseToggled) },
+                    onBarClick = { /* full-screen player: future phase */ },
+                )
+                AnimatedVisibility(
+                    visible = !isFullScreenRoute,
+                    enter = expandVertically(),
+                    exit = shrinkVertically(),
+                ) {
                     NavigationBar {
                         tabs.forEach { tab ->
                             NavigationBarItem(
@@ -176,6 +177,7 @@ fun AppShell() {
                     onPlayEpisode = onPlayEpisode,
                     onNavigateToSignIn = { /* stub: sign-in screen not yet implemented */ },
                     onNavigateToCreateAccount = { /* stub: create-account screen not yet implemented */ },
+                    bottomContentPadding = innerPadding.calculateBottomPadding(),
                 )
             }
         }

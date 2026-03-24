@@ -57,6 +57,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -75,6 +76,7 @@ fun PodcastDetailScreen(
     onNavigateToSignIn: () -> Unit,
     onNavigateToCreateAccount: () -> Unit,
     modifier: Modifier = Modifier,
+    bottomContentPadding: Dp = 0.dp,
 ) {
     val state by feature.state.collectAsState()
     val coroutineScope = rememberCoroutineScope()
@@ -137,7 +139,7 @@ fun PodcastDetailScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 24.dp),
+                contentPadding = PaddingValues(bottom = 24.dp + bottomContentPadding),
             ) {
                 // Hero artwork
                 item {
