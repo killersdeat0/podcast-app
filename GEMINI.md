@@ -13,6 +13,7 @@ You MUST always pause and ask the user for explicit permission before executing 
 - `supabase db push` 
 - `supabase db reset`
 - `supabase functions deploy`
+- Any command that modifies remote Vercel environments or pushes configuration (e.g., `vercel env add`, `vercel env rm`, `vercel link`)
 - Any deployment scripts (e.g., `npm run deploy`, `vercel deploy`)
 - Any database migration execution commands
 - Commands that perform `git push` or mutate the remote Git repository
