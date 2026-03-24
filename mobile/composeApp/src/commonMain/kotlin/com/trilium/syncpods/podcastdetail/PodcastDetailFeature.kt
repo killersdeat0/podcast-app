@@ -34,6 +34,7 @@ data class PodcastDetailState(
     val showLoginPrompt: Boolean = false,
     val currentPage: Int = 0,
     val queuedGuids: Set<String> = emptySet(),
+    val userTier: String = "free",
 )
 
 // ── Events ────────────────────────────────────────────────────────────────────
@@ -99,6 +100,7 @@ sealed class PodcastDetailResult {
     data class QueuedGuidsLoaded(val guids: Set<String>) : PodcastDetailResult()
     data class EpisodeAddedToQueue(val guid: String) : PodcastDetailResult()
     data class EpisodeRemovedFromQueue(val guid: String) : PodcastDetailResult()
+    data class UserTierLoaded(val tier: String) : PodcastDetailResult()
 }
 
 // ── Effects ───────────────────────────────────────────────────────────────────
@@ -158,7 +160,7 @@ class PodcastDetailFeature(
             events.filterIsInstance<PodcastDetailEvent.EpisodeQueueToggleTapped>()
                 .map {
                     when {
-                        queueRepository.isGuest() && state.value.queuedGuids.size >= 10 -> PodcastDetailAction.ShowLoginPrompt
+                        state.value.userTier != "paid" && state.value.queuedGuids.size >= 10 -> PodcastDetailAction.ShowLoginPrompt
                         it.episode.guid in state.value.queuedGuids -> PodcastDetailAction.RemoveEpisodeFromQueue(
                             it.episode
                         )
@@ -212,6 +214,11 @@ class PodcastDetailFeature(
                         } catch (_: Exception) {
                             emptySet()
                         }
+                        val tier = try {
+                            queueRepository.getUserTier()
+                        } catch (_: Exception) {
+                            "free"
+                        }
                         emit(
                             PodcastDetailResult.FeedLoaded(
                                 description = feed.description,
@@ -221,6 +228,7 @@ class PodcastDetailFeature(
                         )
                         emit(PodcastDetailResult.SetFollowing(following))
                         emit(PodcastDetailResult.QueuedGuidsLoaded(queuedGuids))
+                        emit(PodcastDetailResult.UserTierLoaded(tier))
                         emit(PodcastDetailResult.SetError(null))
                     } catch (e: Exception) {
                         emit(PodcastDetailResult.SetError(e.message ?: "Failed to load podcast"))
@@ -354,5 +362,6 @@ class PodcastDetailFeature(
         is PodcastDetailResult.QueuedGuidsLoaded -> previous.copy(queuedGuids = result.guids)
         is PodcastDetailResult.EpisodeAddedToQueue -> previous.copy(queuedGuids = previous.queuedGuids + result.guid)
         is PodcastDetailResult.EpisodeRemovedFromQueue -> previous.copy(queuedGuids = previous.queuedGuids - result.guid)
+        is PodcastDetailResult.UserTierLoaded -> previous.copy(userTier = result.tier)
     }
 }

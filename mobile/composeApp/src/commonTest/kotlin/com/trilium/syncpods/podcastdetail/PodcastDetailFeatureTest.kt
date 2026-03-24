@@ -289,7 +289,7 @@ class PodcastDetailFeatureTest {
     }
 
     @Test
-    fun `EpisodeQueueToggleTapped when guest has 10 or more queued items shows login prompt`() = runTest {
+    fun `EpisodeQueueToggleTapped when free user has 10 or more queued items shows login prompt`() = runTest {
         val tenGuids = (1..10).map { "other-guid-$it" }.toSet()
         val feature = PodcastDetailFeature(
             scope = backgroundScope,
@@ -297,13 +297,13 @@ class PodcastDetailFeatureTest {
             feedRepository = FakeFeedRepository(sampleFeed),
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = PodcastSummaryCache(),
-            queueRepository = FakeQueueRepository(guest = true, initialQueuedGuids = tenGuids),
+            queueRepository = FakeQueueRepository(tier = "free", initialQueuedGuids = tenGuids),
         )
 
         feature.state.test {
             awaitItem() // initial
 
-            // Load screen to populate queuedGuids in state
+            // Load screen to populate queuedGuids and userTier in state
             feature.process(PodcastDetailEvent.ScreenVisible)
             var latest = awaitItem()
             while (latest.queuedGuids.size < 10) latest = awaitItem()
@@ -312,6 +312,37 @@ class PodcastDetailFeatureTest {
 
             while (!latest.showLoginPrompt) latest = awaitItem()
             assertTrue(latest.showLoginPrompt)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `EpisodeQueueToggleTapped when paid user has 10 or more queued items adds to queue`() = runTest {
+        val tenGuids = (1..10).map { "other-guid-$it" }.toSet()
+        val queueRepo = FakeQueueRepository(tier = "paid", initialQueuedGuids = tenGuids)
+        val feature = PodcastDetailFeature(
+            scope = backgroundScope,
+            feedUrl = feedUrl,
+            feedRepository = FakeFeedRepository(sampleFeed),
+            subscriptionRepository = FakeSubscriptionRepository(),
+            summaryCache = PodcastSummaryCache(),
+            queueRepository = queueRepo,
+        )
+
+        feature.state.test {
+            awaitItem() // initial
+
+            feature.process(PodcastDetailEvent.ScreenVisible)
+            var latest = awaitItem()
+            while (latest.userTier != "paid") latest = awaitItem()
+
+            feature.process(PodcastDetailEvent.EpisodeQueueToggleTapped(sampleEpisodes[0]))
+
+            while (sampleEpisodes[0].guid !in latest.queuedGuids) latest = awaitItem()
+            assertTrue(sampleEpisodes[0].guid in latest.queuedGuids)
+            assertFalse(latest.showLoginPrompt)
+            assertEquals(sampleEpisodes[0].guid, queueRepo.addCalledWith)
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -377,11 +408,13 @@ class PodcastDetailFeatureTest {
 private class FakeQueueRepository(
     private val initialQueuedGuids: Set<String> = emptySet(),
     private val guest: Boolean = false,
+    private val tier: String = "free",
     var addCalledWith: String? = null,
     var removeCalledWith: String? = null,
     var shouldThrowOnAdd: Boolean = false,
 ) : QueueRepository {
     override fun isGuest(): Boolean = guest
+    override suspend fun getUserTier(): String = tier
     override suspend fun getQueuedGuids(): Set<String> = initialQueuedGuids
     override suspend fun addEpisode(
         guid: String,
@@ -397,7 +430,6 @@ private class FakeQueueRepository(
         if (shouldThrowOnAdd) throw Exception("Add failed")
     }
     override suspend fun getQueue(): List<QueueItem> = emptyList()
-    override suspend fun getUserTier(): String = "free"
     override suspend fun removeEpisode(guid: String) { removeCalledWith = guid }
     override suspend fun reorderQueue(orderedGuids: List<String>) {}
 }
