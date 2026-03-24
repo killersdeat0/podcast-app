@@ -4,6 +4,9 @@ import { NextResponse, type NextRequest } from 'next/server'
 const PUBLIC_PATHS = [
     '/login',
     '/signup',
+    '/forgot-password',
+    '/reset-password',
+    '/verify-email',
     '/auth/callback',
     '/api/stripe/webhook',
     '/discover',

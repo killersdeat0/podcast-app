@@ -155,6 +155,35 @@ const en = {
     or_divider: 'or',
     google_button: 'Continue with Google',
     guest_browse: 'Continue browsing as guest →',
+
+    // Forgot password
+    forgot_password_link: 'Forgot password?',
+    forgot_heading: 'Reset your password 🔑',
+    forgot_description: "Enter your email and we'll send you a reset link.",
+    forgot_email_placeholder: 'Email',
+    forgot_submit: 'Send reset link',
+    forgot_success: 'Check your inbox 📬 — a reset link is on its way.',
+    forgot_back_to_login: '← Back to log in',
+
+    // Reset password
+    reset_heading: 'Set new password 🔒',
+    reset_description: 'Choose a strong password for your account.',
+    reset_password_placeholder: 'New password',
+    reset_confirm_placeholder: 'Confirm new password',
+    reset_submit: 'Update password',
+    reset_success: 'Password updated! Redirecting you...',
+    reset_mismatch: 'Passwords do not match.',
+    reset_error: 'Something went wrong. Please request a new reset link.',
+
+    // Verify email
+    verify_heading: 'Check your inbox 📬',
+    verify_description: 'We sent a confirmation link to',
+    verify_spam_hint: "Don't see it? Check your spam folder.",
+    verify_resend: 'Resend email',
+    verify_resending: 'Sending...',
+    verify_resent: 'Email resent! ✓',
+    verify_resend_error: 'Failed to resend. Please try again.',
+    verify_back_to_login: '← Back to log in',
   },
   upgrade: {
     heading: 'Upgrade to Pro',

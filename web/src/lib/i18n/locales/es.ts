@@ -155,6 +155,35 @@ const es = {
     or_divider: 'o',
     google_button: 'Continuar con Google',
     guest_browse: 'Continuar como invitado →',
+
+    // Forgot password
+    forgot_password_link: '¿Olvidaste tu contraseña?',
+    forgot_heading: 'Restablecer contraseña 🔑',
+    forgot_description: 'Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.',
+    forgot_email_placeholder: 'Correo electrónico',
+    forgot_submit: 'Enviar enlace',
+    forgot_success: 'Revisa tu bandeja 📬 — el enlace está en camino.',
+    forgot_back_to_login: '← Volver al inicio de sesión',
+
+    // Reset password
+    reset_heading: 'Nueva contraseña 🔒',
+    reset_description: 'Elige una contraseña segura para tu cuenta.',
+    reset_password_placeholder: 'Nueva contraseña',
+    reset_confirm_placeholder: 'Confirmar nueva contraseña',
+    reset_submit: 'Actualizar contraseña',
+    reset_success: '¡Contraseña actualizada! Redirigiendo...',
+    reset_mismatch: 'Las contraseñas no coinciden.',
+    reset_error: 'Algo salió mal. Por favor solicita un nuevo enlace.',
+
+    // Verify email
+    verify_heading: 'Revisa tu bandeja 📬',
+    verify_description: 'Enviamos un enlace de confirmación a',
+    verify_spam_hint: '¿No lo ves? Revisa tu carpeta de spam.',
+    verify_resend: 'Reenviar correo',
+    verify_resending: 'Enviando...',
+    verify_resent: '¡Correo reenviado! ✓',
+    verify_resend_error: 'Error al reenviar. Por favor intenta de nuevo.',
+    verify_back_to_login: '← Volver al inicio de sesión',
   },
   upgrade: {
     heading: 'Mejora a Pro',
