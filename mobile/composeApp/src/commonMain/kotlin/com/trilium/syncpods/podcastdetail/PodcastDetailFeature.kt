@@ -158,7 +158,7 @@ class PodcastDetailFeature(
             events.filterIsInstance<PodcastDetailEvent.EpisodeQueueToggleTapped>()
                 .map {
                     when {
-                        queueRepository.isGuest() -> PodcastDetailAction.ShowLoginPrompt
+                        queueRepository.isGuest() && state.value.queuedGuids.size >= 10 -> PodcastDetailAction.ShowLoginPrompt
                         it.episode.guid in state.value.queuedGuids -> PodcastDetailAction.RemoveEpisodeFromQueue(
                             it.episode
                         )

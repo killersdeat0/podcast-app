@@ -263,14 +263,15 @@ class PodcastDetailFeatureTest {
     }
 
     @Test
-    fun `EpisodeQueueToggleTapped when guest shows login prompt`() = runTest {
+    fun `EpisodeQueueToggleTapped when guest has fewer than 10 queued items adds to queue`() = runTest {
+        val queueRepo = FakeQueueRepository(guest = true)
         val feature = PodcastDetailFeature(
             scope = backgroundScope,
             feedUrl = feedUrl,
             feedRepository = FakeFeedRepository(sampleFeed),
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = PodcastSummaryCache(),
-            queueRepository = FakeQueueRepository(guest = true),
+            queueRepository = queueRepo,
         )
 
         feature.state.test {
@@ -279,6 +280,36 @@ class PodcastDetailFeatureTest {
             feature.process(PodcastDetailEvent.EpisodeQueueToggleTapped(sampleEpisodes[0]))
 
             var latest = awaitItem()
+            while (sampleEpisodes[0].guid !in latest.queuedGuids) latest = awaitItem()
+            assertTrue(sampleEpisodes[0].guid in latest.queuedGuids)
+            assertFalse(latest.showLoginPrompt)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `EpisodeQueueToggleTapped when guest has 10 or more queued items shows login prompt`() = runTest {
+        val tenGuids = (1..10).map { "other-guid-$it" }.toSet()
+        val feature = PodcastDetailFeature(
+            scope = backgroundScope,
+            feedUrl = feedUrl,
+            feedRepository = FakeFeedRepository(sampleFeed),
+            subscriptionRepository = FakeSubscriptionRepository(),
+            summaryCache = PodcastSummaryCache(),
+            queueRepository = FakeQueueRepository(guest = true, initialQueuedGuids = tenGuids),
+        )
+
+        feature.state.test {
+            awaitItem() // initial
+
+            // Load screen to populate queuedGuids in state
+            feature.process(PodcastDetailEvent.ScreenVisible)
+            var latest = awaitItem()
+            while (latest.queuedGuids.size < 10) latest = awaitItem()
+
+            feature.process(PodcastDetailEvent.EpisodeQueueToggleTapped(sampleEpisodes[0]))
+
             while (!latest.showLoginPrompt) latest = awaitItem()
             assertTrue(latest.showLoginPrompt)
 
