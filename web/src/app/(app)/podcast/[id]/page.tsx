@@ -711,7 +711,7 @@ export default function PodcastPage() {
           className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all ${
             inQueue
               ? 'text-primary hover:text-error bg-primary/10'
-              : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high opacity-0 group-hover:opacity-100'
+              : `text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high ${togglingQueueGuid === ep.guid ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`
           }`}
         >
           {togglingQueueGuid === ep.guid

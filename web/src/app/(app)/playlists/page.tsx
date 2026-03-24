@@ -150,7 +150,7 @@ export default function PlaylistsPage() {
               <button
                 onClick={() => handleDelete(pl.id)}
                 disabled={deletingId === pl.id}
-                className="absolute top-3 right-3 p-1.5 text-on-surface-dim hover:text-error transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                className={`absolute top-3 right-3 p-1.5 text-on-surface-dim hover:text-error transition-colors disabled:opacity-50 ${deletingId === pl.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                 title={strings.playlists.delete}
               >
                 {deletingId === pl.id
