@@ -1,8 +1,8 @@
 package com.trilium.syncpods.player
 
 interface AudioPlayer {
-    fun play(url: String)
-    fun pause()
-    fun resume()
-    fun stop()
+    suspend fun play(url: String)
+    suspend fun pause()
+    suspend fun resume()
+    suspend fun stop()
 }

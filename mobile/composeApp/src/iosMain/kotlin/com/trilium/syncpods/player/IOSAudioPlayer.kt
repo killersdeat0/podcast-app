@@ -1,29 +1,34 @@
 package com.trilium.syncpods.player
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import platform.AVFoundation.AVPlayer
-import platform.AVFoundation.play
 import platform.AVFoundation.pause
+import platform.AVFoundation.play
 import platform.Foundation.NSURL
 
 class IOSAudioPlayer : AudioPlayer {
 
     private var player: AVPlayer? = null
 
-    override fun play(url: String) {
-        val nsUrl = NSURL.URLWithString(url) ?: return
+    override suspend fun play(url: String) = withContext(Dispatchers.Main) {
+        val nsUrl = NSURL.URLWithString(url) ?: return@withContext
         player = AVPlayer(uRL = nsUrl)
         player?.play()
+        Unit
     }
 
-    override fun pause() {
+    override suspend fun pause() = withContext(Dispatchers.Main) {
         player?.pause()
+        Unit
     }
 
-    override fun resume() {
+    override suspend fun resume() = withContext(Dispatchers.Main) {
         player?.play()
+        Unit
     }
 
-    override fun stop() {
+    override suspend fun stop() = withContext(Dispatchers.Main) {
         player?.pause()
         player = null
     }
