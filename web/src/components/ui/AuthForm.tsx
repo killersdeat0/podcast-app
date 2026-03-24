@@ -1,47 +1,76 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useStrings } from '@/lib/i18n/LocaleContext'
+import { Turnstile } from '@marsidev/react-turnstile'
 
 type Mode = 'login' | 'signup'
 
-export default function AuthForm({ mode }: { mode: Mode }) {
+function sanitizeNext(raw: string | null): string | null {
+  if (!raw) return null
+  if (!raw.startsWith('/')) return null
+  if (raw.startsWith('//')) return null
+  if (/^\/[a-z][a-z0-9+.-]*:/i.test(raw)) return null
+  return raw
+}
+
+function AuthFormInner({ mode }: { mode: Mode }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const returnTo = sanitizeNext(searchParams.get('returnTo')) ?? '/discover'
   const supabase = createClient()
   const s = useStrings()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
-    const { error } =
-      mode === 'signup'
-        ? await supabase.auth.signUp({ email, password })
-        : await supabase.auth.signInWithPassword({ email, password })
+    if (mode === 'signup') {
+      const { data, error } = await supabase.auth.signUp({ email, password, options: { captchaToken: captchaToken ?? undefined } })
 
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-      return
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+        return
+      }
+
+      if (!data.session) {
+        router.push('/verify-email?email=' + encodeURIComponent(email))
+        return
+      }
+
+      localStorage.removeItem('guestQueue')
+      localStorage.removeItem('guestToastShown')
+      router.push(returnTo)
+      router.refresh()
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken: captchaToken ?? undefined } })
+
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+        return
+      }
+
+      localStorage.removeItem('guestQueue')
+      localStorage.removeItem('guestToastShown')
+      router.push(returnTo)
+      router.refresh()
     }
-
-    localStorage.removeItem('guestQueue')
-    localStorage.removeItem('guestToastShown')
-    router.push('/discover')
-    router.refresh()
   }
 
   async function handleGoogle() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin}/auth/callback` },
+      options: { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin}/auth/callback?next=${encodeURIComponent(returnTo)}` },
     })
   }
 
@@ -77,10 +106,25 @@ export default function AuthForm({ mode }: { mode: Mode }) {
           required
           className="w-full bg-surface-container text-on-surface rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary"
         />
+        {mode === 'login' && (
+          <div className="flex justify-end -mt-2">
+            <a href="/forgot-password" className="text-xs text-primary hover:opacity-80">
+              {s.auth.forgot_password_link}
+            </a>
+          </div>
+        )}
         {error && <p className="text-error text-sm">{error}</p>}
+        {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+          <Turnstile
+            siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+            onSuccess={(token) => setCaptchaToken(token)}
+            onExpire={() => setCaptchaToken(null)}
+            options={{ theme: 'dark' }}
+          />
+        )}
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !captchaToken)}
           className="w-full bg-brand hover:bg-brand disabled:opacity-50 text-on-surface rounded-lg px-4 py-3 text-sm font-medium transition-colors"
         >
           {loading ? s.auth.loading : mode === 'login' ? s.auth.login_button : s.auth.signup_button}
@@ -115,5 +159,13 @@ export default function AuthForm({ mode }: { mode: Mode }) {
         </a>
       </p>
     </div>
+  )
+}
+
+export default function AuthForm({ mode }: { mode: Mode }) {
+  return (
+    <Suspense fallback={null}>
+      <AuthFormInner mode={mode} />
+    </Suspense>
   )
 }
