@@ -2,11 +2,15 @@ package com.trilium.syncpods.podcastdetail
 
 import app.cash.turbine.test
 import com.trilium.syncpods.discover.PodcastSummary
+import com.trilium.syncpods.queue.QueueItem
+import com.trilium.syncpods.queue.QueueRepository
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class PodcastDetailFeatureTest {
@@ -53,14 +57,14 @@ class PodcastDetailFeatureTest {
         feedRepository: EpisodeFeedRepository = FakeFeedRepository(sampleFeed),
         subscriptionRepository: SubscriptionRepository = FakeSubscriptionRepository(),
         summaryCache: PodcastSummaryCache = PodcastSummaryCache(),
-        isGuest: Boolean = false,
+        queueRepository: QueueRepository = FakeQueueRepository(),
     ) = PodcastDetailFeature(
         scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default),
         feedUrl = feedUrl,
         feedRepository = feedRepository,
         subscriptionRepository = subscriptionRepository,
         summaryCache = summaryCache,
-        isGuest = isGuest,
+        queueRepository = queueRepository,
     )
 
     @Test
@@ -72,6 +76,7 @@ class PodcastDetailFeatureTest {
             feedRepository = FakeFeedRepository(sampleFeed),
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = cache,
+            queueRepository = FakeQueueRepository(),
         )
 
         feature.state.test {
@@ -104,6 +109,7 @@ class PodcastDetailFeatureTest {
             feedRepository = FakeFeedRepository(sampleFeed),
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = PodcastSummaryCache(), // empty cache
+            queueRepository = FakeQueueRepository(),
         )
 
         feature.state.test {
@@ -130,7 +136,7 @@ class PodcastDetailFeatureTest {
             feedRepository = FakeFeedRepository(sampleFeed),
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = PodcastSummaryCache(),
-            isGuest = true,
+            queueRepository = FakeQueueRepository(guest = true),
         )
 
         feature.state.test {
@@ -155,6 +161,7 @@ class PodcastDetailFeatureTest {
             feedRepository = FakeFeedRepository(sampleFeed),
             subscriptionRepository = subRepo,
             summaryCache = PodcastSummaryCache(),
+            queueRepository = FakeQueueRepository(),
         )
 
         feature.state.test {
@@ -180,6 +187,7 @@ class PodcastDetailFeatureTest {
             feedRepository = FakeFeedRepository(sampleFeed),
             subscriptionRepository = subRepo,
             summaryCache = PodcastSummaryCache(),
+            queueRepository = FakeQueueRepository(),
         )
 
         // Load screen first to set isFollowing = true from repo
@@ -199,6 +207,86 @@ class PodcastDetailFeatureTest {
     }
 
     @Test
+    fun `EpisodeQueueToggleTapped when not queued adds to queue and updates queuedGuids`() = runTest {
+        val queueRepo = FakeQueueRepository()
+        val feature = PodcastDetailFeature(
+            scope = backgroundScope,
+            feedUrl = feedUrl,
+            feedRepository = FakeFeedRepository(sampleFeed),
+            subscriptionRepository = FakeSubscriptionRepository(),
+            summaryCache = PodcastSummaryCache(),
+            queueRepository = queueRepo,
+        )
+
+        feature.state.test {
+            awaitItem() // initial
+
+            feature.process(PodcastDetailEvent.EpisodeQueueToggleTapped(sampleEpisodes[0]))
+
+            var latest = awaitItem()
+            while (sampleEpisodes[0].guid !in latest.queuedGuids) latest = awaitItem()
+            assertTrue(sampleEpisodes[0].guid in latest.queuedGuids)
+            assertEquals(sampleEpisodes[0].guid, queueRepo.addCalledWith)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `EpisodeQueueToggleTapped when queued removes from queue and updates queuedGuids`() = runTest {
+        val queueRepo = FakeQueueRepository(initialQueuedGuids = setOf(sampleEpisodes[0].guid))
+        val feature = PodcastDetailFeature(
+            scope = backgroundScope,
+            feedUrl = feedUrl,
+            feedRepository = FakeFeedRepository(sampleFeed),
+            subscriptionRepository = FakeSubscriptionRepository(),
+            summaryCache = PodcastSummaryCache(),
+            queueRepository = queueRepo,
+        )
+
+        feature.state.test {
+            awaitItem() // initial (queuedGuids is empty until ScreenVisible loads them)
+
+            // Seed queuedGuids via ScreenVisible so the toggle can detect the episode is queued
+            feature.process(PodcastDetailEvent.ScreenVisible)
+            var latest = awaitItem()
+            while (sampleEpisodes[0].guid !in latest.queuedGuids) latest = awaitItem()
+
+            feature.process(PodcastDetailEvent.EpisodeQueueToggleTapped(sampleEpisodes[0]))
+
+            while (sampleEpisodes[0].guid in latest.queuedGuids) latest = awaitItem()
+            assertFalse(sampleEpisodes[0].guid in latest.queuedGuids)
+            assertEquals(sampleEpisodes[0].guid, queueRepo.removeCalledWith)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `EpisodeQueueToggleTapped when guest shows login prompt`() = runTest {
+        val feature = PodcastDetailFeature(
+            scope = backgroundScope,
+            feedUrl = feedUrl,
+            feedRepository = FakeFeedRepository(sampleFeed),
+            subscriptionRepository = FakeSubscriptionRepository(),
+            summaryCache = PodcastSummaryCache(),
+            queueRepository = FakeQueueRepository(guest = true),
+        )
+
+        feature.state.test {
+            awaitItem() // initial
+
+            feature.process(PodcastDetailEvent.EpisodeQueueToggleTapped(sampleEpisodes[0]))
+
+            var latest = awaitItem()
+            while (!latest.showLoginPrompt) latest = awaitItem()
+            assertTrue(latest.showLoginPrompt)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `SortToggled flips sortNewestFirst`() = runTest {
         val feature = PodcastDetailFeature(
             scope = backgroundScope,
@@ -206,6 +294,7 @@ class PodcastDetailFeatureTest {
             feedRepository = FakeFeedRepository(sampleFeed),
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = PodcastSummaryCache(),
+            queueRepository = FakeQueueRepository(),
         )
 
         feature.state.test {
@@ -232,6 +321,7 @@ class PodcastDetailFeatureTest {
             feedRepository = FakeFeedRepository(sampleFeed),
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = PodcastSummaryCache(),
+            queueRepository = FakeQueueRepository(),
         )
 
         feature.state.test {
@@ -252,6 +342,34 @@ class PodcastDetailFeatureTest {
 }
 
 // ── Test doubles ──────────────────────────────────────────────────────────────
+
+private class FakeQueueRepository(
+    private val initialQueuedGuids: Set<String> = emptySet(),
+    private val guest: Boolean = false,
+    var addCalledWith: String? = null,
+    var removeCalledWith: String? = null,
+    var shouldThrowOnAdd: Boolean = false,
+) : QueueRepository {
+    override fun isGuest(): Boolean = guest
+    override suspend fun getQueuedGuids(): Set<String> = initialQueuedGuids
+    override suspend fun addEpisode(
+        guid: String,
+        feedUrl: String,
+        title: String,
+        audioUrl: String,
+        durationSeconds: Int?,
+        pubDate: String?,
+        podcastTitle: String,
+        artworkUrl: String?,
+    ) {
+        addCalledWith = guid
+        if (shouldThrowOnAdd) throw Exception("Add failed")
+    }
+    override suspend fun getQueue(): List<QueueItem> = emptyList()
+    override suspend fun getUserTier(): String = "free"
+    override suspend fun removeEpisode(guid: String) { removeCalledWith = guid }
+    override suspend fun reorderQueue(orderedGuids: List<String>) {}
+}
 
 private class FakeFeedRepository(
     private val feed: PodcastFeedResponse,

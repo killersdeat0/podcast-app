@@ -2,8 +2,11 @@ package com.trilium.syncpods.podcastdetail
 
 import com.composure.arch.Interactor
 import com.composure.arch.StandardFeature
+import com.trilium.syncpods.queue.QueueRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.filterIsInstance
@@ -30,6 +33,7 @@ data class PodcastDetailState(
     val isFollowLoading: Boolean = false,
     val showLoginPrompt: Boolean = false,
     val currentPage: Int = 0,
+    val queuedGuids: Set<String> = emptySet(),
 )
 
 // ── Events ────────────────────────────────────────────────────────────────────
@@ -41,6 +45,7 @@ sealed class PodcastDetailEvent {
     data object SortToggled : PodcastDetailEvent()
     data object ExpandDescriptionTapped : PodcastDetailEvent()
     data class EpisodePlayTapped(val episode: Episode) : PodcastDetailEvent()
+    data class EpisodeQueueToggleTapped(val episode: Episode) : PodcastDetailEvent()
     data object LoginPromptDismissed : PodcastDetailEvent()
     data object LoginPromptSignInTapped : PodcastDetailEvent()
     data object LoginPromptCreateAccountTapped : PodcastDetailEvent()
@@ -60,6 +65,8 @@ sealed class PodcastDetailAction {
     data object ToggleDescription : PodcastDetailAction()
     data class PlayEpisode(val episode: Episode) : PodcastDetailAction()
     data object PlayLatest : PodcastDetailAction()
+    data class AddEpisodeToQueue(val episode: Episode) : PodcastDetailAction()
+    data class RemoveEpisodeFromQueue(val episode: Episode) : PodcastDetailAction()
     data object NavigateToSignIn : PodcastDetailAction()
     data object NavigateToCreateAccount : PodcastDetailAction()
     data class ChangePage(val page: Int) : PodcastDetailAction()
@@ -74,11 +81,13 @@ sealed class PodcastDetailResult {
         val artworkUrl: String,
         val genres: List<String>,
     ) : PodcastDetailResult()
+
     data class FeedLoaded(
         val description: String,
         val episodes: List<Episode>,
         val artworkUrl: String,
     ) : PodcastDetailResult()
+
     data class SetLoading(val loading: Boolean) : PodcastDetailResult()
     data class SetError(val message: String?) : PodcastDetailResult()
     data class SetFollowing(val following: Boolean) : PodcastDetailResult()
@@ -87,6 +96,9 @@ sealed class PodcastDetailResult {
     data object SortToggled : PodcastDetailResult()
     data object DescriptionToggled : PodcastDetailResult()
     data class PageChanged(val page: Int) : PodcastDetailResult()
+    data class QueuedGuidsLoaded(val guids: Set<String>) : PodcastDetailResult()
+    data class EpisodeAddedToQueue(val guid: String) : PodcastDetailResult()
+    data class EpisodeRemovedFromQueue(val guid: String) : PodcastDetailResult()
 }
 
 // ── Effects ───────────────────────────────────────────────────────────────────
@@ -97,6 +109,8 @@ sealed class PodcastDetailEffect {
     data object NavigateToCreateAccount : PodcastDetailEffect()
     data class PlayEpisode(val episode: Episode) : PodcastDetailEffect()
     data object PlayLatest : PodcastDetailEffect()
+    data object EpisodeQueuedAdded : PodcastDetailEffect()
+    data object EpisodeQueuedRemoved : PodcastDetailEffect()
 }
 
 // ── Feature ───────────────────────────────────────────────────────────────────
@@ -108,8 +122,10 @@ class PodcastDetailFeature(
     private val feedRepository: EpisodeFeedRepository,
     private val subscriptionRepository: SubscriptionRepository,
     private val summaryCache: PodcastSummaryCache,
-    private val isGuest: Boolean = false,
-) : StandardFeature<PodcastDetailState, PodcastDetailEvent, PodcastDetailAction, PodcastDetailResult, PodcastDetailEffect>(scope) {
+    private val queueRepository: QueueRepository,
+) : StandardFeature<PodcastDetailState, PodcastDetailEvent, PodcastDetailAction, PodcastDetailResult, PodcastDetailEffect>(
+    scope
+) {
 
     private val _effects = MutableSharedFlow<PodcastDetailEffect>(extraBufferCapacity = 8)
     override val effects: SharedFlow<PodcastDetailEffect> get() = _effects
@@ -124,7 +140,7 @@ class PodcastDetailFeature(
             events.filterIsInstance<PodcastDetailEvent.FollowTapped>()
                 .map {
                     when {
-                        isGuest -> PodcastDetailAction.ShowLoginPrompt
+                        queueRepository.isGuest() -> PodcastDetailAction.ShowLoginPrompt
                         state.value.isFollowing -> PodcastDetailAction.Unfollow
                         else -> PodcastDetailAction.Follow
                     }
@@ -138,6 +154,18 @@ class PodcastDetailFeature(
 
             events.filterIsInstance<PodcastDetailEvent.EpisodePlayTapped>()
                 .map { PodcastDetailAction.PlayEpisode(it.episode) },
+
+            events.filterIsInstance<PodcastDetailEvent.EpisodeQueueToggleTapped>()
+                .map {
+                    when {
+                        queueRepository.isGuest() -> PodcastDetailAction.ShowLoginPrompt
+                        it.episode.guid in state.value.queuedGuids -> PodcastDetailAction.RemoveEpisodeFromQueue(
+                            it.episode
+                        )
+
+                        else -> PodcastDetailAction.AddEpisodeToQueue(it.episode)
+                    }
+                },
 
             events.filterIsInstance<PodcastDetailEvent.PlayLatestTapped>()
                 .map { PodcastDetailAction.PlayLatest },
@@ -166,23 +194,33 @@ class PodcastDetailFeature(
                     // Hydrate header from cache immediately (zero latency)
                     val cached = summaryCache.get(feedUrl)
                     if (cached != null) {
-                        emit(PodcastDetailResult.HeaderLoaded(
-                            title = cached.title,
-                            artistName = cached.artistName,
-                            artworkUrl = cached.artworkUrl,
-                            genres = cached.genres,
-                        ))
+                        emit(
+                            PodcastDetailResult.HeaderLoaded(
+                                title = cached.title,
+                                artistName = cached.artistName,
+                                artworkUrl = cached.artworkUrl,
+                                genres = cached.genres,
+                            )
+                        )
                     }
                     emit(PodcastDetailResult.SetLoading(true))
                     try {
                         val feed = feedRepository.fetchFeed(feedUrl)
                         val following = subscriptionRepository.isFollowing(feedUrl)
-                        emit(PodcastDetailResult.FeedLoaded(
-                            description = feed.description,
-                            episodes = feed.episodes,
-                            artworkUrl = feed.artworkUrl,
-                        ))
+                        val queuedGuids = try {
+                            queueRepository.getQueuedGuids()
+                        } catch (_: Exception) {
+                            emptySet()
+                        }
+                        emit(
+                            PodcastDetailResult.FeedLoaded(
+                                description = feed.description,
+                                episodes = feed.episodes,
+                                artworkUrl = feed.artworkUrl,
+                            )
+                        )
                         emit(PodcastDetailResult.SetFollowing(following))
+                        emit(PodcastDetailResult.QueuedGuidsLoaded(queuedGuids))
                         emit(PodcastDetailResult.SetError(null))
                     } catch (e: Exception) {
                         emit(PodcastDetailResult.SetError(e.message ?: "Failed to load podcast"))
@@ -253,6 +291,36 @@ class PodcastDetailFeature(
                     emit(PodcastDetailResult.SetShowLoginPrompt(false))
                     _effects.emit(PodcastDetailEffect.NavigateToCreateAccount)
                 }
+
+                is PodcastDetailAction.AddEpisodeToQueue -> flow {
+                    emit(PodcastDetailResult.EpisodeAddedToQueue(action.episode.guid))
+                    try {
+                        val s = state.value
+                        queueRepository.addEpisode(
+                            guid = action.episode.guid,
+                            feedUrl = feedUrl,
+                            title = action.episode.title,
+                            audioUrl = action.episode.audioUrl,
+                            durationSeconds = action.episode.duration,
+                            pubDate = action.episode.pubDate.ifBlank { null },
+                            podcastTitle = s.podcastTitle,
+                            artworkUrl = s.artworkUrl.ifBlank { null },
+                        )
+                        _effects.emit(PodcastDetailEffect.EpisodeQueuedAdded)
+                    } catch (_: Exception) {
+                        emit(PodcastDetailResult.EpisodeRemovedFromQueue(action.episode.guid))
+                    }
+                }
+
+                is PodcastDetailAction.RemoveEpisodeFromQueue -> flow {
+                    emit(PodcastDetailResult.EpisodeRemovedFromQueue(action.episode.guid))
+                    try {
+                        queueRepository.removeEpisode(action.episode.guid)
+                        _effects.emit(PodcastDetailEffect.EpisodeQueuedRemoved)
+                    } catch (_: Exception) {
+                        emit(PodcastDetailResult.EpisodeAddedToQueue(action.episode.guid))
+                    }
+                }
             }
         }
     }
@@ -267,12 +335,14 @@ class PodcastDetailFeature(
             artworkUrl = result.artworkUrl,
             genres = result.genres,
         )
+
         is PodcastDetailResult.FeedLoaded -> previous.copy(
             description = result.description,
             episodes = result.episodes,
             // Only overwrite artworkUrl from feed if not already set from cache (iTunes CDN preferred)
             artworkUrl = if (previous.artworkUrl.isNotBlank()) previous.artworkUrl else result.artworkUrl,
         )
+
         is PodcastDetailResult.SetLoading -> previous.copy(isLoading = result.loading)
         is PodcastDetailResult.SetError -> previous.copy(error = result.message)
         is PodcastDetailResult.SetFollowing -> previous.copy(isFollowing = result.following)
@@ -281,5 +351,8 @@ class PodcastDetailFeature(
         is PodcastDetailResult.SortToggled -> previous.copy(sortNewestFirst = !previous.sortNewestFirst)
         is PodcastDetailResult.DescriptionToggled -> previous.copy(isDescriptionExpanded = !previous.isDescriptionExpanded)
         is PodcastDetailResult.PageChanged -> previous.copy(currentPage = result.page)
+        is PodcastDetailResult.QueuedGuidsLoaded -> previous.copy(queuedGuids = result.guids)
+        is PodcastDetailResult.EpisodeAddedToQueue -> previous.copy(queuedGuids = previous.queuedGuids + result.guid)
+        is PodcastDetailResult.EpisodeRemovedFromQueue -> previous.copy(queuedGuids = previous.queuedGuids - result.guid)
     }
 }
