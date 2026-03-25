@@ -6,7 +6,7 @@ import { PlayerProvider } from "@/components/player/PlayerContext";
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 
 export const metadata: Metadata = {
-  title: "PodSync",
+  title: "SyncPods",
   description: "Podcast player with cross-device sync",
 };
 

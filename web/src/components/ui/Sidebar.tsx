@@ -201,7 +201,7 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
   return (
     <aside className={`${open ? 'w-56' : 'w-14'} flex-shrink-0 bg-surface-container-low flex flex-col border-r border-outline-variant transition-[width] duration-200`}>
       <div className={`py-5 border-b border-outline-variant flex items-center min-w-0 ${open ? 'px-3 justify-between' : 'justify-center'}`}>
-        {open && <span className="text-xl font-bold text-primary truncate mr-2">PodSync</span>}
+        {open && <span className="text-xl font-bold text-primary truncate mr-2">SyncPods</span>}
         <button
           onClick={toggleSidebar}
           className="text-on-surface-variant hover:text-on-surface flex-shrink-0 p-1 rounded hover:bg-surface-container transition-colors"

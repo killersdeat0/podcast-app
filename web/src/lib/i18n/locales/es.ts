@@ -188,7 +188,7 @@ const es = {
   upgrade: {
     heading: 'Mejora a Pro',
     free_tier_status: 'Estás en el plan gratuito.',
-    paid_tier_status: '¡Estás en el plan de pago. Gracias por apoyar PodSync!',
+    paid_tier_status: '¡Estás en el plan de pago. Gracias por apoyar SyncPods!',
     payment_success: '¡Pago exitoso! Tu cuenta se actualizará pronto.',
     checkout_cancelled: 'El pago fue cancelado.',
     error_generic: 'Algo salió mal.',
@@ -212,7 +212,7 @@ const es = {
     stripe_portal_link: 'portal de Stripe',
   },
   ad_banner: {
-    message: '¿Disfrutas PodSync?',
+    message: '¿Disfrutas SyncPods?',
     upgrade_link: 'Mejora a Pro',
     suffix: 'para una experiencia sin anuncios.',
   },
