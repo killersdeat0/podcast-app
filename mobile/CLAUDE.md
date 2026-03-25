@@ -82,18 +82,21 @@ commonMain/kotlin/com/trilium/syncpods/
 ├── <feature>/
 │   ├── <Feature>Feature.kt        ← STATE, EVENT, ACTION, RESULT, EFFECT + StandardFeature subclass
 │   ├── <Feature>Screen.kt         ← @Composable UI, collects state, sends events
-│   └── PodcastRepository.kt       ← data layer interfaces
-├── components/                    ← reusable composables (PodcastCard, etc.)
+│   ├── <Feature>ViewModel.kt      ← thin ViewModel wrapper (lifecycle owner)
+│   ├── <Feature>Models.kt         ← domain model data classes
+│   └── <Feature>Repository.kt     ← data layer interface + impl
+├── components/                    ← reusable composables (PodcastCard, PodcastSearchBar, etc.)
 ├── navigation/AppRoutes.kt        ← sealed class route definitions
-├── shell/AppShell.kt              ← Scaffold + NavigationBar + NavHost
-├── player/MiniPlayerBar.kt        ← persistent player bar (stub)
-├── auth/LoginPromptSheet.kt       ← guest auth prompt
+├── shell/AppShell.kt              ← Scaffold + NavigationBar + NavHost; retrieves ViewModels via koinViewModel<>()
+├── theme/Theme.kt                 ← SyncPodsTheme, Material3 darkColorScheme
+├── player/MiniPlayerBar.kt        ← persistent mini player bar
+├── auth/LoginPromptSheet.kt       ← guest auth prompt sheet
 └── di/
-    ├── AppModule.kt               ← Koin module (common dependencies)
-    └── PlatformModule.kt          ← expect declarations (HttpClient, supabaseUrl, supabaseAnonKey)
+    ├── AppModule.kt               ← Koin module (ViewModels, repositories, shared scope)
+    └── PlatformModule.kt          ← expect declarations (HttpClient, supabaseUrl, supabaseAnonKey, AudioPlayer)
 androidMain/kotlin/com/trilium/syncpods/
-├── <feature>/
-│   └── <Feature>ViewModel.kt      ← ViewModel wrapper that owns a CoroutineScope for the Feature
+├── MainActivity.kt                ← Android entry point, initializes Koin
+├── player/AndroidAudioPlayer.kt   ← AudioPlayer impl using ExoPlayer (media3)
 └── di/
     └── PlatformModule.android.kt  ← actual Android implementations
 iosMain/kotlin/com/trilium/syncpods/
@@ -101,7 +104,14 @@ iosMain/kotlin/com/trilium/syncpods/
     └── PlatformModule.ios.kt      ← actual iOS implementations
 ```
 
-**Note on DiscoverScreen/AppShell composables**: these accept a `DiscoverFeature` parameter created in the NavHost composable using `remember { DiscoverFeature(rememberCoroutineScope(), repository) }`. The `DiscoverViewModel` in androidMain exists for config-change survival on Android but is not currently wired into the NavHost.
+**DI wiring:** All ViewModels are registered in `di/AppModule.kt` and retrieved in `AppShell.kt` via `koinViewModel<>()`. Screens receive `viewModel.feature` — no manual `remember { Feature(...) }` needed.
+
+**AudioPlayer expect/actual:** `AudioPlayer` is an interface in commonMain with platform implementations: `AndroidAudioPlayer` (androidMain, uses ExoPlayer/media3) and `IOSAudioPlayer` (iosMain). Registered as a Koin single in `audioPlayerModule()`.
+
+**QueueRepository delegation:** `QueueRepository` has three implementations:
+- `LocalQueueRepository` — guest queue stored via multiplatform-settings (SharedPreferences on Android)
+- `SupabaseQueueRepository` — authenticated queue via Supabase
+- `DelegatingQueueRepository` — switches between local/remote based on `client.auth.currentUserOrNull()`; migrates local queue to Supabase on sign-in
 
 ### Class Design Rules
 
@@ -114,7 +124,7 @@ iosMain/kotlin/com/trilium/syncpods/
 ### Android ViewModel Convention
 
 ```kotlin
-// androidMain
+// commonMain
 class LoginViewModel(scope: CoroutineScope = viewModelScope + Dispatchers.Default) : ViewModel() {
     val feature = LoginFeature(scope)
 }
@@ -135,7 +145,7 @@ The ViewModel is a thin lifecycle owner — no logic lives here.
 @Test
 fun `loads trending on ScreenVisible`() = runTest {
     val repo = FakeRepository(result = listOf(item))
-    val feature = DiscoverFeature(backgroundScope, repo) // ← backgroundScope, not this
+    val feature = DiscoverFeature(backgroundScope, repo, cache) // ← backgroundScope, not this
 
     feature.state.test {
         awaitItem() // consume initial state
