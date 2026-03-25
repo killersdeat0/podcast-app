@@ -12,6 +12,19 @@ const parser = new XMLParser({
   processEntities: { enabled: true, maxTotalExpansions: 500000 },
 })
 
+// Safely extract a string from an XML field that may be a plain string,
+// a CDATA object ({ '#text': '...' }), or a number.
+function xmlStr(val: unknown): string {
+  if (val === null || val === undefined) return ''
+  if (typeof val === 'string') return val
+  if (typeof val === 'number') return String(val)
+  if (typeof val === 'object') {
+    const obj = val as Record<string, unknown>
+    return String(obj['#text'] ?? obj['__cdata'] ?? '')
+  }
+  return String(val)
+}
+
 function parseDuration(raw: string): number | null {
   if (!raw) return null
   const parts = raw.split(':').map(Number)
@@ -49,22 +62,19 @@ serve(async (req) => {
       const enclosure = item['enclosure'] as Record<string, string> | undefined
       const chapters = item['podcast:chapters'] as Record<string, string> | undefined
       return {
-        // guid can be an XML object { '#text': '...', '@_isPermaLink': 'false' } — do not simplify to String(item['guid'])
-        guid: typeof item['guid'] === 'object'
-          ? String((item['guid'] as Record<string, string>)?.['#text'] ?? JSON.stringify(item['guid']))
-          : String(item['guid'] ?? ''),
-        title: String(item['title'] ?? ''),
+        guid: xmlStr(item['guid'] || ''),
+        title: xmlStr(item['title']),
         audioUrl: enclosure?.['@_url'] ?? '',
-        duration: parseDuration(String(item['itunes:duration'] ?? '')),
-        pubDate: String(item['pubDate'] ?? ''),
-        description: String(item['description'] ?? item['itunes:summary'] ?? ''),
+        duration: parseDuration(xmlStr(item['itunes:duration'])),
+        pubDate: xmlStr(item['pubDate']),
+        description: xmlStr(item['description'] ?? item['itunes:summary']),
         chapterUrl: chapters?.['@_url'] ?? null,
       }
     })
 
     const feed = {
-      title: String(channel['title'] ?? ''),
-      description: String(channel['description'] ?? ''),
+      title: xmlStr(channel['title']),
+      description: xmlStr(channel['description']),
       artworkUrl:
         (channel['itunes:image'] as Record<string, string> | undefined)?.['@_href'] ??
         (channel['image'] as Record<string, string> | undefined)?.['url'] ??

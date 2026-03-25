@@ -18,6 +18,8 @@ Both `podcasts-feed` and `podcasts-search` must be deployed with `--no-verify-jw
 
 On error, `podcasts-feed` returns `{ "error": "Failed to parse feed", "debug": "<error message>" }` with status 502. The `debug` field contains the raw exception message for easier diagnosis (e.g. `"Entity expansion limit exceeded"`). This field is always present on errors.
 
+**XML text extraction:** RSS fields may be plain strings, numbers, or CDATA objects (`{ '#text': '...' }`). All text fields in `podcasts-feed` are extracted via the `xmlStr()` helper which handles all three cases. Use `xmlStr()` for any new text fields added to the parser — never use `String()` directly on a parsed XML value.
+
 ---
 
 ## Podcast Discovery
@@ -129,6 +131,8 @@ Subscribe to a podcast.
 **Body:** `{ feedUrl, title, artworkUrl, collectionId? }`
 
 **Freemium gate:** Both free and paid users are capped at 500 subscriptions. Returns `403` with `{ error: 'Subscription limit reached...' }`. Limit defined in `web/src/lib/limits.ts`.
+
+**Default notifications:** New subscriptions are created with `episode_filter: '*'` (All notifications on) by default.
 
 **Response:** `{ ok: true }`
 

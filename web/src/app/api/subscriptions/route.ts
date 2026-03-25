@@ -126,6 +126,7 @@ export async function POST(request: NextRequest) {
       title,
       artwork_url: artworkUrl,
       collection_id: collectionId ?? null,
+      episode_filter: '*',
     })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

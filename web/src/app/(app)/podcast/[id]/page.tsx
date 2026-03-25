@@ -529,6 +529,15 @@ export default function PodcastPage() {
           body: JSON.stringify({ feedUrl, title, artworkUrl: artwork, collectionId: id }),
         })
         setSubscribed(true)
+        setSubscription({
+          feed_url: feedUrl,
+          title: title,
+          artwork_url: artwork || null,
+          collection_id: id ?? null,
+          last_visited_at: null,
+          latest_episode_pub_date: null,
+          episode_filter: '*',
+        })
       }
       window.dispatchEvent(new Event('subscriptions-changed'))
     } finally {
