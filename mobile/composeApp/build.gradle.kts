@@ -63,6 +63,8 @@ kotlin {
             implementation(libs.navigation.compose)
             implementation(compose.materialIconsExtended)
             implementation(libs.sh.calvin.reorderable)
+            implementation(libs.multiplatform.settings)
+            implementation(libs.multiplatform.settings.serialization)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
@@ -71,6 +73,7 @@ kotlin {
             implementation(libs.kotlin.test)
             implementation(libs.turbine)
             implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.multiplatform.settings.test)
         }
     }
 }

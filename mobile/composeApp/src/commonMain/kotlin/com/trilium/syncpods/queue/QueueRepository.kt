@@ -1,17 +1,23 @@
 package com.trilium.syncpods.queue
 
+import com.russhwolf.settings.Settings
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 // ── Public model ──────────────────────────────────────────────────────────────
 
+@Serializable
 data class QueueItem(
     val guid: String,
     val feedUrl: String,
@@ -44,7 +50,7 @@ interface QueueRepository {
     fun isGuest(): Boolean
 }
 
-// ── Serializable row classes ──────────────────────────────────────────────────
+// ── Serializable row classes (Supabase only) ──────────────────────────────────
 
 @Serializable
 private data class QueueBaseRow(
@@ -66,11 +72,6 @@ private data class EpisodeMetaRow(
 @Serializable
 private data class UserProfileRow(
     @SerialName("tier") val tier: String,
-)
-
-@Serializable
-private data class QueueGuidRow(
-    @SerialName("episode_guid") val episodeGuid: String,
 )
 
 @Serializable
@@ -98,15 +99,82 @@ private data class QueuePositionRow(
     @SerialName("position") val position: Int,
 )
 
-// ── Implementation ────────────────────────────────────────────────────────────
+// ── Local (guest) implementation ──────────────────────────────────────────────
 
-class QueueRepositoryImpl(
+class LocalQueueRepository(private val settings: Settings) : QueueRepository {
+
+    private val json = Json { ignoreUnknownKeys = true }
+    private val queue: MutableList<QueueItem> = run {
+        val stored = settings.getStringOrNull("guest_queue")
+        if (stored != null) json.decodeFromString<List<QueueItem>>(stored).toMutableList()
+        else mutableListOf()
+    }
+
+    private fun persist() {
+        settings.putString("guest_queue", json.encodeToString<List<QueueItem>>(queue))
+    }
+
+    override fun isGuest(): Boolean = true
+
+    override suspend fun getUserTier(): String = "free"
+
+    override suspend fun getQueue(): List<QueueItem> = queue.toList()
+
+    override suspend fun getQueuedGuids(): Set<String> = queue.map { it.guid }.toSet()
+
+    override suspend fun addEpisode(
+        guid: String,
+        feedUrl: String,
+        title: String,
+        audioUrl: String,
+        durationSeconds: Int?,
+        pubDate: String?,
+        podcastTitle: String,
+        artworkUrl: String?,
+    ) {
+        if (queue.none { it.guid == guid }) {
+            val nextPosition = (queue.maxOfOrNull { it.position } ?: -1) + 1
+            queue.add(
+                QueueItem(
+                    guid = guid,
+                    feedUrl = feedUrl,
+                    position = nextPosition,
+                    title = title,
+                    podcastTitle = podcastTitle,
+                    artworkUrl = artworkUrl,
+                    audioUrl = audioUrl,
+                    durationSeconds = durationSeconds,
+                )
+            )
+            persist()
+        }
+    }
+
+    override suspend fun removeEpisode(guid: String) {
+        queue.removeAll { it.guid == guid }
+        persist()
+    }
+
+    override suspend fun reorderQueue(orderedGuids: List<String>) {
+        val order = orderedGuids.withIndex().associate { (i, g) -> g to i }
+        queue.sortBy { order[it.guid] ?: Int.MAX_VALUE }
+        queue.forEachIndexed { i, item -> queue[i] = item.copy(position = i) }
+        persist()
+    }
+
+    fun clearLocalQueue() {
+        queue.clear()
+        settings.remove("guest_queue")
+    }
+}
+
+// ── Supabase (authenticated) implementation ───────────────────────────────────
+
+class SupabaseQueueRepository(
     private val supabaseClient: SupabaseClient,
 ) : QueueRepository {
 
-    private val guestQueueGuids = mutableSetOf<String>()
-
-    override fun isGuest(): Boolean = supabaseClient.auth.currentUserOrNull() == null
+    override fun isGuest(): Boolean = false
 
     override suspend fun getQueue(): List<QueueItem> {
         val queueRows = supabaseClient.from("queue")
@@ -140,7 +208,6 @@ class QueueRepositoryImpl(
     override suspend fun getUserTier(): String {
         return try {
             val rows = supabaseClient.from("user_profiles").select {
-                filter { }
                 limit(1)
             }.decodeList<UserProfileRow>()
             rows.firstOrNull()?.tier ?: "free"
@@ -150,9 +217,8 @@ class QueueRepositoryImpl(
     }
 
     override suspend fun getQueuedGuids(): Set<String> {
-        if (isGuest()) return guestQueueGuids.toSet()
-        val rows = supabaseClient.from("queue").select(Columns.list("episode_guid"))
-            .decodeList<QueueGuidRow>()
+        val rows = supabaseClient.from("queue").select(Columns.list("episode_guid", "feed_url", "position"))
+            .decodeList<QueueBaseRow>()
         return rows.map { it.episodeGuid }.toSet()
     }
 
@@ -166,11 +232,7 @@ class QueueRepositoryImpl(
         podcastTitle: String,
         artworkUrl: String?,
     ) {
-        val userId = supabaseClient.auth.currentUserOrNull()?.id
-        if (userId == null) {
-            guestQueueGuids.add(guid)
-            return
-        }
+        val userId = supabaseClient.auth.currentUserOrNull()?.id ?: return
         supabaseClient.from("episodes").upsert(
             EpisodeUpsertRow(
                 guid = guid,
@@ -201,10 +263,6 @@ class QueueRepositoryImpl(
     }
 
     override suspend fun removeEpisode(guid: String) {
-        if (isGuest()) {
-            guestQueueGuids.remove(guid)
-            return
-        }
         supabaseClient.from("queue").delete {
             filter { eq("episode_guid", guid) }
         }
@@ -223,4 +281,58 @@ class QueueRepositoryImpl(
             }.awaitAll()
         }
     }
+}
+
+// ── Delegating implementation ─────────────────────────────────────────────────
+
+class DelegatingQueueRepository(
+    private val local: LocalQueueRepository,
+    private val remote: QueueRepository,
+    private val isGuestProvider: () -> Boolean,
+    scope: CoroutineScope,
+    onSignIn: Flow<Unit>,
+) : QueueRepository {
+
+    init {
+        scope.launch {
+            onSignIn.collect {
+                val items = local.getQueue()
+                if (items.isNotEmpty()) {
+                    items.forEach { item ->
+                        remote.addEpisode(
+                            guid = item.guid,
+                            feedUrl = item.feedUrl,
+                            title = item.title,
+                            audioUrl = item.audioUrl,
+                            durationSeconds = item.durationSeconds,
+                            pubDate = null,
+                            podcastTitle = item.podcastTitle,
+                            artworkUrl = item.artworkUrl,
+                        )
+                    }
+                    local.clearLocalQueue()
+                }
+            }
+        }
+    }
+
+    override fun isGuest(): Boolean = isGuestProvider()
+
+    private fun delegate(): QueueRepository = if (isGuest()) local else remote
+
+    override suspend fun getQueue(): List<QueueItem> = delegate().getQueue()
+    override suspend fun getQueuedGuids(): Set<String> = delegate().getQueuedGuids()
+    override suspend fun getUserTier(): String = delegate().getUserTier()
+    override suspend fun removeEpisode(guid: String) = delegate().removeEpisode(guid)
+    override suspend fun reorderQueue(orderedGuids: List<String>) = delegate().reorderQueue(orderedGuids)
+    override suspend fun addEpisode(
+        guid: String,
+        feedUrl: String,
+        title: String,
+        audioUrl: String,
+        durationSeconds: Int?,
+        pubDate: String?,
+        podcastTitle: String,
+        artworkUrl: String?,
+    ) = delegate().addEpisode(guid, feedUrl, title, audioUrl, durationSeconds, pubDate, podcastTitle, artworkUrl)
 }
