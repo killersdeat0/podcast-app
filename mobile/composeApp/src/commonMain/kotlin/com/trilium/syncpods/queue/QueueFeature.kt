@@ -122,37 +122,27 @@ class QueueFeature(
                 }
 
                 is QueueAction.RemoveEpisode -> flow {
-                    if (repository.isGuest()) {
-                        _effects.emit(QueueEffect.ShowLoginPrompt)
-                        emit(QueueResult.LoginPromptShown)
-                    } else {
-                        try {
-                            repository.removeEpisode(action.guid)
-                            emit(QueueResult.EpisodeRemoved(action.guid))
-                        } catch (_: Exception) {
-                            // Leave state unchanged on failure
-                        }
+                    try {
+                        repository.removeEpisode(action.guid)
+                        emit(QueueResult.EpisodeRemoved(action.guid))
+                    } catch (_: Exception) {
+                        // Leave state unchanged on failure
                     }
                 }
 
                 is QueueAction.ReorderQueue -> flow {
-                    if (repository.isGuest()) {
-                        _effects.emit(QueueEffect.ShowLoginPrompt)
-                        emit(QueueResult.LoginPromptShown)
-                    } else {
-                        // Optimistic update
-                        emit(QueueResult.QueueReordered(action.orderedGuids))
+                    // Optimistic update
+                    emit(QueueResult.QueueReordered(action.orderedGuids))
+                    try {
+                        repository.reorderQueue(action.orderedGuids)
+                    } catch (_: Exception) {
+                        // Reload to recover from failed reorder
                         try {
-                            repository.reorderQueue(action.orderedGuids)
+                            val items = repository.getQueue()
+                            val tier = repository.getUserTier()
+                            emit(QueueResult.QueueLoaded(items = items, tier = tier))
                         } catch (_: Exception) {
-                            // Reload to recover from failed reorder
-                            try {
-                                val items = repository.getQueue()
-                                val tier = repository.getUserTier()
-                                emit(QueueResult.QueueLoaded(items = items, tier = tier))
-                            } catch (_: Exception) {
-                                // Swallow secondary error
-                            }
+                            // Swallow secondary error
                         }
                     }
                 }

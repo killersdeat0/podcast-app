@@ -174,41 +174,42 @@ class QueueFeatureTest {
     }
 
     @Test
-    fun `emits ShowLoginPrompt effect when guest removes episode`() = runTest {
+    fun `guest can remove episode without login prompt`() = runTest {
         val items = listOf(testQueueItem(guid = "guid-1"))
         val repo = FakeQueueRepository(queueItems = items, guest = true)
         val feature = QueueFeature(backgroundScope, repo)
 
-        // Load queue first so state has items
         feature.state.test {
             awaitItem() // initial
             feature.process(QueueEvent.ScreenVisible)
             var latest = awaitItem()
             while (latest.isLoading) latest = awaitItem()
-            cancelAndIgnoreRemainingEvents()
-        }
 
-        feature.effects.test {
             feature.process(QueueEvent.EpisodeRemoved("guid-1"))
-
-            val effect = awaitItem()
-            assertIs<QueueEffect.ShowLoginPrompt>(effect)
-
+            latest = awaitItem()
+            assertTrue(latest.items.isEmpty())
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `emits ShowLoginPrompt effect when guest reorders queue`() = runTest {
-        val repo = FakeQueueRepository(guest = true)
+    fun `guest can reorder queue without login prompt`() = runTest {
+        val items = listOf(
+            testQueueItem(guid = "a"),
+            testQueueItem(guid = "b"),
+        )
+        val repo = FakeQueueRepository(queueItems = items, guest = true)
         val feature = QueueFeature(backgroundScope, repo)
 
-        feature.effects.test {
-            feature.process(QueueEvent.EpisodesReordered(listOf("guid-1")))
+        feature.state.test {
+            awaitItem() // initial
+            feature.process(QueueEvent.ScreenVisible)
+            var latest = awaitItem()
+            while (latest.isLoading) latest = awaitItem()
 
-            val effect = awaitItem()
-            assertIs<QueueEffect.ShowLoginPrompt>(effect)
-
+            feature.process(QueueEvent.EpisodesReordered(listOf("b", "a")))
+            latest = awaitItem()
+            assertEquals(listOf("b", "a"), latest.items.map { it.guid })
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -294,33 +295,6 @@ class QueueFeatureTest {
         }
     }
 
-    @Test
-    fun `dismisses login prompt`() = runTest {
-        val items = listOf(testQueueItem(guid = "guid-1"))
-        val repo = FakeQueueRepository(queueItems = items, guest = true)
-        val feature = QueueFeature(backgroundScope, repo)
-
-        feature.state.test {
-            awaitItem() // initial
-
-            feature.process(QueueEvent.ScreenVisible)
-
-            var latest = awaitItem()
-            while (latest.isLoading) latest = awaitItem()
-
-            feature.process(QueueEvent.EpisodeRemoved("guid-1"))
-
-            latest = awaitItem()
-            assertTrue(latest.showLoginPrompt)
-
-            feature.process(QueueEvent.LoginPromptDismissed)
-
-            latest = awaitItem()
-            assertFalse(latest.showLoginPrompt)
-
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
 }
 
 // ── Fake repository ───────────────────────────────────────────────────────────
