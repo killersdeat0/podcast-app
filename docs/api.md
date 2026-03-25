@@ -14,6 +14,10 @@ The mobile app calls Supabase Edge Functions directly rather than web API routes
 
 `podcasts-trending` mirrors the web's `/api/podcasts/trending` route: without `genreId` it fetches Apple Top Charts then enriches via iTunes Lookup; with `genreId > 0` it uses iTunes Search with `genreId` filter.
 
+Both `podcasts-feed` and `podcasts-search` must be deployed with `--no-verify-jwt` — Supabase's `sb_publishable_*` anon key format is not a valid JWT and will be rejected otherwise.
+
+On error, `podcasts-feed` returns `{ "error": "Failed to parse feed", "debug": "<error message>" }` with status 502. The `debug` field contains the raw exception message for easier diagnosis (e.g. `"Entity expansion limit exceeded"`). This field is always present on errors.
+
 ---
 
 ## Podcast Discovery

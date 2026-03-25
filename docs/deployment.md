@@ -115,10 +115,10 @@ This runs all migrations in `supabase/migrations/` against the new project.
 
 ```bash
 supabase functions deploy podcasts-feed --no-verify-jwt
-supabase functions deploy podcasts-search
+supabase functions deploy podcasts-search --no-verify-jwt
 ```
 
-`podcasts-feed` must use `--no-verify-jwt` — Supabase's new `sb_publishable_*` key format is not a valid JWT, so the gateway rejects requests without this flag. The function only fetches public RSS feeds so there is no security downside.
+Both functions must use `--no-verify-jwt` — Supabase's new `sb_publishable_*` key format is not a valid JWT, so the gateway rejects requests without this flag. Both functions only fetch public external data (RSS feeds / iTunes API) so there is no security downside.
 
 ### 4. Get the new project's keys
 

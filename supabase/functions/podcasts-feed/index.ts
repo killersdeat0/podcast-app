@@ -1,12 +1,16 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { XMLParser } from 'npm:fast-xml-parser@4'
+import { XMLParser } from 'npm:fast-xml-parser@5'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' })
+const parser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: '@_',
+  processEntities: { enabled: true, maxTotalExpansions: 50000 },
+})
 
 function parseDuration(raw: string): number | null {
   if (!raw) return null
@@ -72,7 +76,8 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {
-    return new Response(JSON.stringify({ error: 'Failed to parse feed' }), {
+    const message = err instanceof Error ? err.message : String(err)
+    return new Response(JSON.stringify({ error: 'Failed to parse feed', debug: message }), {
       status: 502,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
