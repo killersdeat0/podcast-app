@@ -491,7 +491,6 @@ private class FakeQueueRepository(
     var shouldThrowOnAdd: Boolean = false,
 ) : QueueRepository {
     override fun isGuest(): Boolean = guest
-    override suspend fun getUserTier(): String = tier
     override suspend fun getQueuedGuids(): Set<String> = initialQueuedGuids
     override suspend fun addEpisode(
         guid: String,
