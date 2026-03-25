@@ -3,6 +3,7 @@ package com.trilium.syncpods.podcastdetail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.trilium.syncpods.profile.ProfileRepository
 import com.trilium.syncpods.queue.QueueRepository
 import io.ktor.http.decodeURLPart
 import kotlinx.coroutines.Dispatchers
@@ -14,6 +15,7 @@ class PodcastDetailViewModel(
     subscriptionRepository: SubscriptionRepository,
     summaryCache: PodcastSummaryCache,
     queueRepository: QueueRepository,
+    profileRepository: ProfileRepository,
 ) : ViewModel() {
 
     // feedUrl is URL-encoded in the route path — decode before use
@@ -26,5 +28,6 @@ class PodcastDetailViewModel(
         subscriptionRepository = subscriptionRepository,
         summaryCache = summaryCache,
         queueRepository = queueRepository,
+        profileRepository = profileRepository,
     )
 }

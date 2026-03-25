@@ -2,6 +2,7 @@ package com.trilium.syncpods.podcastdetail
 
 import com.composure.arch.Interactor
 import com.composure.arch.StandardFeature
+import com.trilium.syncpods.profile.ProfileRepository
 import com.trilium.syncpods.queue.QueueRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -125,6 +126,7 @@ class PodcastDetailFeature(
     private val subscriptionRepository: SubscriptionRepository,
     private val summaryCache: PodcastSummaryCache,
     private val queueRepository: QueueRepository,
+    private val profileRepository: ProfileRepository,
 ) : StandardFeature<PodcastDetailState, PodcastDetailEvent, PodcastDetailAction, PodcastDetailResult, PodcastDetailEffect>(
     scope
 ) {
@@ -215,7 +217,7 @@ class PodcastDetailFeature(
                             emptySet()
                         }
                         val tier = try {
-                            queueRepository.getUserTier()
+                            profileRepository.getUserTier()
                         } catch (_: Exception) {
                             "free"
                         }

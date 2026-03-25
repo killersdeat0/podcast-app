@@ -2,6 +2,7 @@ package com.trilium.syncpods.queue
 
 import com.composure.arch.Interactor
 import com.composure.arch.StandardFeature
+import com.trilium.syncpods.profile.ProfileRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -75,6 +76,7 @@ sealed class QueueEffect {
 class QueueFeature(
     scope: CoroutineScope,
     private val repository: QueueRepository,
+    private val profileRepository: ProfileRepository,
 ) : StandardFeature<QueueState, QueueEvent, QueueAction, QueueResult, QueueEffect>(scope) {
 
     private val _effects = MutableSharedFlow<QueueEffect>(extraBufferCapacity = 8)
@@ -114,7 +116,7 @@ class QueueFeature(
                     emit(QueueResult.Loading)
                     try {
                         val items = repository.getQueue()
-                        val tier = repository.getUserTier()
+                        val tier = profileRepository.getUserTier()
                         emit(QueueResult.QueueLoaded(items = items, tier = tier))
                     } catch (e: Exception) {
                         emit(QueueResult.LoadError(e.message ?: "Failed to load queue"))
@@ -139,7 +141,7 @@ class QueueFeature(
                         // Reload to recover from failed reorder
                         try {
                             val items = repository.getQueue()
-                            val tier = repository.getUserTier()
+                            val tier = profileRepository.getUserTier()
                             emit(QueueResult.QueueLoaded(items = items, tier = tier))
                         } catch (_: Exception) {
                             // Swallow secondary error

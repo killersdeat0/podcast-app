@@ -1,6 +1,9 @@
 package com.trilium.syncpods.queue
 
 import app.cash.turbine.test
+import com.trilium.syncpods.profile.ProfileRepository
+import com.trilium.syncpods.profile.SubscriptionSummary
+import com.trilium.syncpods.profile.UserProfile
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -21,7 +24,7 @@ class QueueFeatureTest {
             testQueueItem(guid = "guid-2", position = 1),
         )
         val repo = FakeQueueRepository(queueItems = items, tier = "free")
-        val feature = QueueFeature(backgroundScope, repo)
+        val feature = QueueFeature(backgroundScope, repo, FakeProfileRepository(tier = repo.tier))
 
         feature.state.test {
             awaitItem() // initial QueueState()
@@ -42,7 +45,7 @@ class QueueFeatureTest {
     @Test
     fun `shows loading state while queue loads`() = runTest {
         val repo = FakeQueueRepository()
-        val feature = QueueFeature(backgroundScope, repo)
+        val feature = QueueFeature(backgroundScope, repo, FakeProfileRepository(tier = repo.tier))
 
         feature.state.test {
             awaitItem() // initial
@@ -60,7 +63,7 @@ class QueueFeatureTest {
     fun `shows inline upgrade card when free tier has 7 or more items`() = runTest {
         val items = (1..7).map { testQueueItem(guid = "guid-$it", position = it - 1) }
         val repo = FakeQueueRepository(queueItems = items, tier = "free")
-        val feature = QueueFeature(backgroundScope, repo)
+        val feature = QueueFeature(backgroundScope, repo, FakeProfileRepository(tier = repo.tier))
 
         feature.state.test {
             awaitItem() // initial
@@ -80,7 +83,7 @@ class QueueFeatureTest {
     fun `does not show upgrade card when free tier has fewer than 7 items`() = runTest {
         val items = (1..6).map { testQueueItem(guid = "guid-$it", position = it - 1) }
         val repo = FakeQueueRepository(queueItems = items, tier = "free")
-        val feature = QueueFeature(backgroundScope, repo)
+        val feature = QueueFeature(backgroundScope, repo, FakeProfileRepository(tier = repo.tier))
 
         feature.state.test {
             awaitItem() // initial
@@ -100,7 +103,7 @@ class QueueFeatureTest {
     fun `does not show upgrade card for paid tier`() = runTest {
         val items = (1..8).map { testQueueItem(guid = "guid-$it", position = it - 1) }
         val repo = FakeQueueRepository(queueItems = items, tier = "paid")
-        val feature = QueueFeature(backgroundScope, repo)
+        val feature = QueueFeature(backgroundScope, repo, FakeProfileRepository(tier = repo.tier))
 
         feature.state.test {
             awaitItem() // initial
@@ -124,7 +127,7 @@ class QueueFeatureTest {
             testQueueItem(guid = "guid-3", position = 2),
         )
         val repo = FakeQueueRepository(queueItems = items)
-        val feature = QueueFeature(backgroundScope, repo)
+        val feature = QueueFeature(backgroundScope, repo, FakeProfileRepository(tier = repo.tier))
 
         feature.state.test {
             awaitItem() // initial
@@ -152,7 +155,7 @@ class QueueFeatureTest {
             testQueueItem(guid = "guid-3", position = 2),
         )
         val repo = FakeQueueRepository(queueItems = items)
-        val feature = QueueFeature(backgroundScope, repo)
+        val feature = QueueFeature(backgroundScope, repo, FakeProfileRepository(tier = repo.tier))
 
         feature.state.test {
             awaitItem() // initial
@@ -177,7 +180,7 @@ class QueueFeatureTest {
     fun `guest can remove episode without login prompt`() = runTest {
         val items = listOf(testQueueItem(guid = "guid-1"))
         val repo = FakeQueueRepository(queueItems = items, guest = true)
-        val feature = QueueFeature(backgroundScope, repo)
+        val feature = QueueFeature(backgroundScope, repo, FakeProfileRepository(tier = repo.tier))
 
         feature.state.test {
             awaitItem() // initial
@@ -199,7 +202,7 @@ class QueueFeatureTest {
             testQueueItem(guid = "b"),
         )
         val repo = FakeQueueRepository(queueItems = items, guest = true)
-        val feature = QueueFeature(backgroundScope, repo)
+        val feature = QueueFeature(backgroundScope, repo, FakeProfileRepository(tier = repo.tier))
 
         feature.state.test {
             awaitItem() // initial
@@ -218,7 +221,7 @@ class QueueFeatureTest {
     fun `sets nowPlayingGuid when episode tapped`() = runTest {
         val items = listOf(testQueueItem(guid = "guid-42"))
         val repo = FakeQueueRepository(queueItems = items)
-        val feature = QueueFeature(backgroundScope, repo)
+        val feature = QueueFeature(backgroundScope, repo, FakeProfileRepository(tier = repo.tier))
 
         feature.state.test {
             awaitItem() // initial
@@ -241,7 +244,7 @@ class QueueFeatureTest {
     fun `emits PlayEpisode effect when episode tapped`() = runTest {
         val items = listOf(testQueueItem(guid = "guid-42"))
         val repo = FakeQueueRepository(queueItems = items)
-        val feature = QueueFeature(backgroundScope, repo)
+        val feature = QueueFeature(backgroundScope, repo, FakeProfileRepository(tier = repo.tier))
 
         // Load queue first so state has the item
         feature.state.test {
@@ -264,7 +267,7 @@ class QueueFeatureTest {
     @Test
     fun `emits NavigateToUpgrade effect when upgrade tapped`() = runTest {
         val repo = FakeQueueRepository()
-        val feature = QueueFeature(backgroundScope, repo)
+        val feature = QueueFeature(backgroundScope, repo, FakeProfileRepository(tier = repo.tier))
 
         feature.effects.test {
             feature.process(QueueEvent.UpgradeTapped)
@@ -278,7 +281,7 @@ class QueueFeatureTest {
     @Test
     fun `shows error state when load fails`() = runTest {
         val repo = FakeQueueRepository(shouldThrowOnGet = true)
-        val feature = QueueFeature(backgroundScope, repo)
+        val feature = QueueFeature(backgroundScope, repo, FakeProfileRepository(tier = repo.tier))
 
         feature.state.test {
             awaitItem() // initial
@@ -301,7 +304,7 @@ class QueueFeatureTest {
 
 private class FakeQueueRepository(
     private val queueItems: List<QueueItem> = emptyList(),
-    private val tier: String = "free",
+    val tier: String = "free",
     private val guest: Boolean = false,
     var removeCalledWith: String? = null,
     var reorderCalledWith: List<String>? = null,
@@ -316,7 +319,6 @@ private class FakeQueueRepository(
         return queueItems
     }
     override suspend fun getQueuedGuids(): Set<String> = queueItems.map { it.guid }.toSet()
-    override suspend fun getUserTier(): String = tier
     override suspend fun removeEpisode(guid: String) {
         removeCalledWith = guid
         if (shouldThrowOnRemove) throw Exception("Remove failed")
@@ -339,6 +341,13 @@ private class FakeQueueRepository(
         if (shouldThrowOnAdd) throw Exception("Add failed")
     }
     override fun isGuest(): Boolean = guest
+}
+
+private class FakeProfileRepository(private val tier: String = "free") : ProfileRepository {
+    override fun isGuest(): Boolean = false
+    override suspend fun getUserTier(): String = tier
+    override suspend fun getUserProfile() = UserProfile("", "", tier)
+    override suspend fun getSubscriptions() = emptyList<SubscriptionSummary>()
 }
 
 // ── Test helpers ──────────────────────────────────────────────────────────────

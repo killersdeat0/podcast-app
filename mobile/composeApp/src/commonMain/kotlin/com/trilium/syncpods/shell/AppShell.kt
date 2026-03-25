@@ -36,10 +36,13 @@ import com.trilium.syncpods.player.PlayerEvent
 import com.trilium.syncpods.player.PlayerViewModel
 import com.trilium.syncpods.podcastdetail.PodcastDetailScreen
 import com.trilium.syncpods.podcastdetail.PodcastDetailViewModel
+import com.trilium.syncpods.profile.ProfileScreen
+import com.trilium.syncpods.profile.ProfileViewModel
 import com.trilium.syncpods.queue.QueueScreen
 import com.trilium.syncpods.queue.QueueViewModel
 import com.trilium.syncpods.search.SearchScreen
 import com.trilium.syncpods.search.SearchViewModel
+import com.trilium.syncpods.settings.SettingsScreen
 import io.ktor.http.encodeURLPathPart
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -57,6 +60,7 @@ fun AppShell() {
 
     val isFullScreenRoute = currentDestination?.route == AppRoutes.Search.ROUTE
         || currentDestination?.route == AppRoutes.PodcastDetail.ROUTE
+        || currentDestination?.route == AppRoutes.Settings.route
 
     val tabs = listOf(
         TabItem(AppRoutes.Discover.route, "Discover") {
@@ -164,9 +168,22 @@ fun AppShell() {
             }
 
             composable(AppRoutes.Profile.route) {
-                Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-                    Text("Profile — coming soon")
-                }
+                val viewModel = koinViewModel<ProfileViewModel>()
+                ProfileScreen(
+                    feature = viewModel.feature,
+                    onNavigateToPodcast = { feedUrl ->
+                        navController.navigate("podcast/${feedUrl.encodeURLPathPart()}")
+                    },
+                    onNavigateToSettings = {
+                        navController.navigate(AppRoutes.Settings.route)
+                    },
+                    modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
+                    bottomContentPadding = innerPadding.calculateBottomPadding(),
+                )
+            }
+
+            composable(AppRoutes.Settings.route) {
+                SettingsScreen(onBack = { navController.popBackStack() })
             }
 
             composable(AppRoutes.PodcastDetail.ROUTE) {

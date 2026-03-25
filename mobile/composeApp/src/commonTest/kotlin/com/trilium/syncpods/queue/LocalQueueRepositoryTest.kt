@@ -36,11 +36,6 @@ class LocalQueueRepositoryTest {
     }
 
     @Test
-    fun `getUserTier returns free`() = runTest {
-        assertEquals("free", makeRepo().getUserTier())
-    }
-
-    @Test
     fun `addEpisode stores full QueueItem`() = runTest {
         val repo = makeRepo()
         repo.addTestEpisode(guid = "ep1", title = "My Episode", artworkUrl = "https://art.example.com/img.jpg")

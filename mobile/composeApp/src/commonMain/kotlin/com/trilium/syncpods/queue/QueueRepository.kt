@@ -34,7 +34,6 @@ data class QueueItem(
 interface QueueRepository {
     suspend fun getQueue(): List<QueueItem>
     suspend fun getQueuedGuids(): Set<String>
-    suspend fun getUserTier(): String
     suspend fun removeEpisode(guid: String)
     suspend fun reorderQueue(orderedGuids: List<String>)
     suspend fun addEpisode(
@@ -67,11 +66,6 @@ private data class EpisodeMetaRow(
     @SerialName("duration") val duration: Int? = null,
     @SerialName("artwork_url") val artworkUrl: String? = null,
     @SerialName("podcast_title") val podcastTitle: String? = null,
-)
-
-@Serializable
-private data class UserProfileRow(
-    @SerialName("tier") val tier: String,
 )
 
 @Serializable
@@ -115,8 +109,6 @@ class LocalQueueRepository(private val settings: Settings) : QueueRepository {
     }
 
     override fun isGuest(): Boolean = true
-
-    override suspend fun getUserTier(): String = "free"
 
     override suspend fun getQueue(): List<QueueItem> = queue.toList()
 
@@ -177,6 +169,7 @@ class SupabaseQueueRepository(
     override fun isGuest(): Boolean = false
 
     override suspend fun getQueue(): List<QueueItem> {
+
         val queueRows = supabaseClient.from("queue")
             .select(Columns.list("episode_guid", "feed_url", "position"))
             .decodeList<QueueBaseRow>()
@@ -203,17 +196,6 @@ class SupabaseQueueRepository(
                     durationSeconds = ep.duration,
                 )
             }
-    }
-
-    override suspend fun getUserTier(): String {
-        return try {
-            val rows = supabaseClient.from("user_profiles").select {
-                limit(1)
-            }.decodeList<UserProfileRow>()
-            rows.firstOrNull()?.tier ?: "free"
-        } catch (_: Exception) {
-            "free"
-        }
     }
 
     override suspend fun getQueuedGuids(): Set<String> {
@@ -322,7 +304,6 @@ class DelegatingQueueRepository(
 
     override suspend fun getQueue(): List<QueueItem> = delegate().getQueue()
     override suspend fun getQueuedGuids(): Set<String> = delegate().getQueuedGuids()
-    override suspend fun getUserTier(): String = delegate().getUserTier()
     override suspend fun removeEpisode(guid: String) = delegate().removeEpisode(guid)
     override suspend fun reorderQueue(orderedGuids: List<String>) = delegate().reorderQueue(orderedGuids)
     override suspend fun addEpisode(

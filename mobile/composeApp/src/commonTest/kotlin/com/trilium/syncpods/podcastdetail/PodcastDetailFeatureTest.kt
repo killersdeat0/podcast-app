@@ -2,6 +2,9 @@ package com.trilium.syncpods.podcastdetail
 
 import app.cash.turbine.test
 import com.trilium.syncpods.discover.PodcastSummary
+import com.trilium.syncpods.profile.ProfileRepository
+import com.trilium.syncpods.profile.SubscriptionSummary
+import com.trilium.syncpods.profile.UserProfile
 import com.trilium.syncpods.queue.QueueItem
 import com.trilium.syncpods.queue.QueueRepository
 import kotlinx.coroutines.test.runTest
@@ -57,7 +60,8 @@ class PodcastDetailFeatureTest {
         feedRepository: EpisodeFeedRepository = FakeFeedRepository(sampleFeed),
         subscriptionRepository: SubscriptionRepository = FakeSubscriptionRepository(),
         summaryCache: PodcastSummaryCache = PodcastSummaryCache(),
-        queueRepository: QueueRepository = FakeQueueRepository(),
+        queueRepository: FakeQueueRepository = FakeQueueRepository(),
+        profileRepository: ProfileRepository = FakeProfileRepository(tier = queueRepository.tier),
     ) = PodcastDetailFeature(
         scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default),
         feedUrl = feedUrl,
@@ -65,6 +69,7 @@ class PodcastDetailFeatureTest {
         subscriptionRepository = subscriptionRepository,
         summaryCache = summaryCache,
         queueRepository = queueRepository,
+        profileRepository = profileRepository,
     )
 
     @Test
@@ -77,6 +82,7 @@ class PodcastDetailFeatureTest {
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = cache,
             queueRepository = FakeQueueRepository(),
+            profileRepository = FakeProfileRepository(),
         )
 
         feature.state.test {
@@ -110,6 +116,7 @@ class PodcastDetailFeatureTest {
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = PodcastSummaryCache(), // empty cache
             queueRepository = FakeQueueRepository(),
+            profileRepository = FakeProfileRepository(),
         )
 
         feature.state.test {
@@ -137,6 +144,7 @@ class PodcastDetailFeatureTest {
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = PodcastSummaryCache(),
             queueRepository = FakeQueueRepository(guest = true),
+            profileRepository = FakeProfileRepository(),
         )
 
         feature.state.test {
@@ -162,6 +170,7 @@ class PodcastDetailFeatureTest {
             subscriptionRepository = subRepo,
             summaryCache = PodcastSummaryCache(),
             queueRepository = FakeQueueRepository(),
+            profileRepository = FakeProfileRepository(),
         )
 
         feature.state.test {
@@ -188,6 +197,7 @@ class PodcastDetailFeatureTest {
             subscriptionRepository = subRepo,
             summaryCache = PodcastSummaryCache(),
             queueRepository = FakeQueueRepository(),
+            profileRepository = FakeProfileRepository(),
         )
 
         // Load screen first to set isFollowing = true from repo
@@ -216,6 +226,7 @@ class PodcastDetailFeatureTest {
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = PodcastSummaryCache(),
             queueRepository = queueRepo,
+            profileRepository = FakeProfileRepository(tier = queueRepo.tier),
         )
 
         feature.state.test {
@@ -242,6 +253,7 @@ class PodcastDetailFeatureTest {
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = PodcastSummaryCache(),
             queueRepository = queueRepo,
+            profileRepository = FakeProfileRepository(tier = queueRepo.tier),
         )
 
         feature.state.test {
@@ -272,6 +284,7 @@ class PodcastDetailFeatureTest {
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = PodcastSummaryCache(),
             queueRepository = queueRepo,
+            profileRepository = FakeProfileRepository(tier = queueRepo.tier),
         )
 
         feature.state.test {
@@ -298,6 +311,7 @@ class PodcastDetailFeatureTest {
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = PodcastSummaryCache(),
             queueRepository = FakeQueueRepository(tier = "free", initialQueuedGuids = tenGuids),
+            profileRepository = FakeProfileRepository(tier = "free"),
         )
 
         feature.state.test {
@@ -328,6 +342,7 @@ class PodcastDetailFeatureTest {
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = PodcastSummaryCache(),
             queueRepository = queueRepo,
+            profileRepository = FakeProfileRepository(tier = queueRepo.tier),
         )
 
         feature.state.test {
@@ -357,6 +372,7 @@ class PodcastDetailFeatureTest {
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = PodcastSummaryCache(),
             queueRepository = FakeQueueRepository(),
+            profileRepository = FakeProfileRepository(),
         )
 
         feature.state.test {
@@ -384,6 +400,7 @@ class PodcastDetailFeatureTest {
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = PodcastSummaryCache(),
             queueRepository = FakeQueueRepository(),
+            profileRepository = FakeProfileRepository(),
         )
 
         feature.state.test {
@@ -408,13 +425,12 @@ class PodcastDetailFeatureTest {
 private class FakeQueueRepository(
     private val initialQueuedGuids: Set<String> = emptySet(),
     private val guest: Boolean = false,
-    private val tier: String = "free",
+    val tier: String = "free",
     var addCalledWith: String? = null,
     var removeCalledWith: String? = null,
     var shouldThrowOnAdd: Boolean = false,
 ) : QueueRepository {
     override fun isGuest(): Boolean = guest
-    override suspend fun getUserTier(): String = tier
     override suspend fun getQueuedGuids(): Set<String> = initialQueuedGuids
     override suspend fun addEpisode(
         guid: String,
@@ -432,6 +448,13 @@ private class FakeQueueRepository(
     override suspend fun getQueue(): List<QueueItem> = emptyList()
     override suspend fun removeEpisode(guid: String) { removeCalledWith = guid }
     override suspend fun reorderQueue(orderedGuids: List<String>) {}
+}
+
+private class FakeProfileRepository(private val tier: String = "free") : ProfileRepository {
+    override fun isGuest(): Boolean = false
+    override suspend fun getUserTier(): String = tier
+    override suspend fun getUserProfile() = UserProfile("", "", tier)
+    override suspend fun getSubscriptions() = emptyList<SubscriptionSummary>()
 }
 
 private class FakeFeedRepository(

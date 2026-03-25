@@ -128,7 +128,6 @@ private class FakeRemoteQueueRepository(
     val addedGuids = mutableListOf<String>()
 
     override fun isGuest() = false
-    override suspend fun getUserTier() = "free"
     override suspend fun getQueue() = items
     override suspend fun getQueuedGuids() = items.map { it.guid }.toSet()
     override suspend fun addEpisode(

@@ -15,4 +15,5 @@ sealed class AppRoutes(val route: String) {
             const val ROUTE = "search/{query}"
         }
     }
+    data object Settings : AppRoutes("settings")
 }
