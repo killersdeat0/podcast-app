@@ -177,8 +177,11 @@ private fun QueueList(
     }
 
     val lazyListState = rememberLazyListState()
+    val headerCount = if (state.showUpgradeCard) 1 else 0
     val reorderState = rememberReorderableLazyListState(lazyListState) { from, to ->
-        items = items.toMutableList().apply { add(to.index, removeAt(from.index)) }
+        val fromIndex = from.index - headerCount
+        val toIndex = to.index - headerCount
+        items = items.toMutableList().apply { add(toIndex, removeAt(fromIndex)) }
     }
 
     LazyColumn(
