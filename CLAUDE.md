@@ -45,6 +45,12 @@ STRIPE_YEARLY_PRICE_ID=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID=
 NEXT_PUBLIC_STRIPE_YEARLY_PRICE_ID=
+
+# Cloudflare Turnstile (optional — captcha on login/signup)
+# When set, the Turnstile widget appears automatically and tokens are validated by Supabase.
+# Also requires Supabase Dashboard → Authentication → Bot and Abuse Protection to be configured.
+# See docs/todo.md for full setup instructions.
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=
 ```
 
 ## Mobile (Compose Multiplatform)
@@ -62,6 +68,7 @@ See `/mobile/CLAUDE.md` for architecture details.
 
 Read any relevant docs before making changes
 
+- `docs/auth.md` — auth flows (signup, login, forgot/reset password, email verification, returnTo chain, Turnstile captcha, guest mode). Read before touching auth pages, `proxy.ts`, or `auth/callback`.
 - `docs/api.md` — all API routes, request/response shapes, freemium gates. Read before touching API routes.
 - `docs/stripe.md` — Stripe checkout flow, webhook events, user lookup logic, local dev setup. Read before touching anything in `web/src/app/api/stripe/`.
 - `docs/data-model.md` — DB tables, columns, RLS policies, key patterns. Read before touching DB schema or queries.
