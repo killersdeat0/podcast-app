@@ -9,7 +9,7 @@ const corsHeaders = {
 const parser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: '@_',
-  processEntities: { enabled: true, maxTotalExpansions: 50000 },
+  processEntities: { enabled: true, maxTotalExpansions: 500000 },
 })
 
 function parseDuration(raw: string): number | null {
