@@ -163,6 +163,25 @@ To add future mobile-only options, add another row to the `mobileMenu === 'main'
 
 ---
 
+## `progress-saved` custom event
+
+`window.dispatchEvent(new CustomEvent('progress-saved', { detail: { guid, positionSeconds, positionPct, completed } }))`
+
+Fired from `Player.tsx` at the 98% completion threshold and by `completeAndAdvance`. Listeners:
+
+- **History page:** does in-place position updates from the payload (no refetch) to avoid overwriting optimistic ordering. Falls back to a full refetch only when the episode isn't in the list yet.
+- **Queue and playlist pages:** do full refetches (safe — their ordering is by a static `position` column).
+
+## Progress display coordination
+
+Queue, history, playlist, and the podcast episode list all show playback progress. When changing how progress is fetched or displayed, **update all four together**.
+
+All use the same priority chain: `livePct` (from live audio while playing) → `position_pct` (stored in DB, accurate) → RSS-math fallback (inaccurate for ad-heavy podcasts due to dynamic ad insertion).
+
+Live position state resets via `useLayoutEffect` (not `useEffect`) on episode change — this prevents the previous episode's position from showing on the newly-playing row before the browser paints.
+
+---
+
 ## Layout integration
 
 `Player` lives inside the main content column in `src/app/(app)/layout.tsx`, not as a fixed overlay. This means:

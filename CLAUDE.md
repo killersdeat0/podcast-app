@@ -66,17 +66,13 @@ See `/mobile/CLAUDE.md` for architecture details.
 
 ## Docs
 
-Read any relevant docs before making changes
+Read relevant docs before making changes. Key triggers:
 
-- `docs/auth.md` — auth flows (signup, login, forgot/reset password, email verification, returnTo chain, Turnstile captcha, guest mode). Read before touching auth pages, `proxy.ts`, or `auth/callback`.
-- `docs/api.md` — all API routes, request/response shapes, freemium gates. Read before touching API routes.
-- `docs/stripe.md` — Stripe checkout flow, webhook events, user lookup logic, local dev setup. Read before touching anything in `web/src/app/api/stripe/`.
-- `docs/data-model.md` — DB tables, columns, RLS policies, key patterns. Read before touching DB schema or queries.
-- `docs/player.md` — player state machine, progress saving, queue auto-advance, chapters. Read before touching player/queue logic.
-- `docs/i18n.md` — i18n system: adding languages, string namespaces, EmptyState component, tone guidelines. Read before adding any user-visible text.
-- `docs/theming.md` — Material3 color token system (web CSS variables + Tailwind utilities, mobile ColorScheme). Read before adding colors to any component.
-- `docs/deployment.md` — Vercel setup, root directory config, preview deployments. Read before touching deployment config.
-- `docs/playlists.md` — playlist data model, freemium limits, RLS, player integration, public sharing. Read before touching playlist routes or components.
+- `docs/player.md` — before touching player, queue, or progress
+- `docs/auth.md` — before touching `proxy.ts`, auth pages, or `auth/callback`
+- `docs/data-model.md` — before touching DB schema or queries
+- `docs/playlists.md` — before touching playlist routes or components
+- `docs/api.md`, `docs/stripe.md`, `docs/i18n.md`, `docs/theming.md`, `docs/ui-patterns.md`, `docs/deployment.md`
 
 ## Architecture
 
@@ -113,9 +109,7 @@ Podcast discovery proxies through `web/src/app/api/podcasts/search` → calls `s
 
 **Shared UI components:** `web/src/components/podcasts/PodcastCard.tsx` — reusable podcast card used by both the Discover page and the podcast detail page's similar podcasts section.
 
-**Dev-only debug panels:** API routes can return an additional `debug` object when `process.env.NODE_ENV === 'development'`. The client checks `process.env.NODE_ENV === 'development'` and renders a collapsible `<details>` panel with `JSON.stringify(debug)`. Never include `debug` in production responses.
-
-**Delayed skeleton pattern:** When a UI section fetches data on mount and only shows if data is present, delay the skeleton by 300ms before showing it — this avoids a flash of skeleton UI on fast connections. Pattern: set a `setTimeout` for 300ms that sets a `showSkeleton` flag, then clear both the timer and flag in the fetch's `finally` block. Use a `cancelled` ref to handle unmount races. The section itself stays hidden (`showSkeleton || items.length > 0`) so nothing appears at all if data loads within 300ms. See the "Continue Listening" section in `web/src/app/(app)/discover/page.tsx` for a reference implementation.
+**Dev-only debug panels, delayed skeleton pattern:** see `docs/ui-patterns.md`.
 
 ### i18n
 
@@ -123,15 +117,13 @@ All user-facing strings live in `web/src/lib/i18n/`. The active locale is stored
 
 ### Global playback state
 
-`PlayerContext` (`web/src/components/player/PlayerContext.tsx`) holds `nowPlaying` in React state. On mount it restores `nowPlaying` from `localStorage` via `useEffect` (not initial state — avoids SSR hydration mismatch). The `play()` call persists to `localStorage`.
+`PlayerContext` (`web/src/components/player/PlayerContext.tsx`) holds `nowPlaying` in React state, restored from `localStorage` on mount via `useEffect` (not initial state — avoids SSR hydration mismatch). See `docs/player.md` for full architecture.
 
-The `Player` component (`web/src/components/player/Player.tsx`) always renders the `<audio>` element (even when `nowPlaying` is null) so that event listeners attach on mount. The UI is conditionally shown. It restores saved position from `/api/progress` on episode load (only auto-plays if `playing` is true), saves position to `/api/progress` every 10 seconds via throttle, and on `ended` marks the episode complete, removes it from the queue, and auto-plays the next queue item.
+**Progress saves — all 4 paths must stay in sync:** switch-away save, 10s throttled save, 98% completion mark, and `completeAndAdvance` in `Player.tsx`. All must send `positionPct`. Switch-away and 10s saves must guard with `!hasCompletedRef.current`. At 98%, save `completed: true` but do NOT call `completeAndAdvance`.
 
-**Progress save paths — all must stay in sync:** There are 4 places in `Player.tsx` that call `POST /api/progress`: switch-away save, 10s throttled save, 98% completion mark, and `completeAndAdvance`. All must send `positionPct` (computed from `audio.currentTime / audio.duration`). Switch-away and 10s saves must guard with `!hasCompletedRef.current`. At 98% (`onTime`), save `completed: true` but do NOT call `completeAndAdvance` — playback continues and auto-advance only fires on `ended`. Seeking back below 98% resets `hasCompletedRef` to false so the 10s save can write `completed: false`. See `docs/player.md` for full details.
+**`progress-saved` event:** `{ guid, positionSeconds, positionPct, completed }`. History uses in-place updates; queue and playlist do full refetches. See `docs/player.md`.
 
-**`progress-saved` event carries a detail payload:** `window.dispatchEvent(new CustomEvent('progress-saved', { detail: { guid, positionSeconds, positionPct, completed } }))`. History does in-place position updates from this payload (no refetch) to avoid overwriting optimistic ordering — only falls back to a full refetch when the episode isn't in the list yet. Queue and playlist still do full refetches (safe — their ordering is by a static position column).
-
-**Progress display pages — queue, history, and playlist must be updated together** when changing how progress is fetched or displayed. All three use the same priority chain: `livePct` (from live audio while playing) → `position_pct` (stored in DB, accurate) → RSS-math fallback (inaccurate for ad-heavy podcasts). The podcast page episode list also shows progress. Live position state resets via `useLayoutEffect` (not `useEffect`) on episode change to prevent the previous episode's position showing on the newly-playing row before the browser paints.
+**Progress display (queue, history, playlist, podcast episode list) must be updated together.** Priority chain: `livePct` → `position_pct` → RSS fallback. Use `useLayoutEffect` on episode change.
 
 ### Silence skipping — canceled for web, mobile only
 
@@ -168,12 +160,6 @@ All freemium caps live in `web/src/lib/limits.ts` — **never hardcode limit num
 
 `web/src/lib/supabase/admin.ts` exports `createAdminClient()` using `SUPABASE_SERVICE_ROLE_KEY` (server-only — never `NEXT_PUBLIC_*`). Used **only** for serving public playlist reads to unauthenticated users in `GET /api/playlists/[id]`. For all other API routes use `createClient()` from `@/lib/supabase/server`.
 
-### Playlist player integration
-
-`NowPlaying` (in `PlayerContext.tsx`) has an optional `playlistContext?: { playlistId: string; episodes: PlaylistEpisodeRef[] } | null`. When set, `Player.tsx` advances through playlist episodes non-destructively — does not touch the queue. The context is persisted automatically via the existing `play()` localStorage write.
-
-Use `playPlaylist(playlistId, episodes, startIndex?)` from `usePlayer()` to start playlist playback. It wraps `play()` with the correct `playlistContext`.
-
 ### Theming and colors
 
 Both web and mobile use **Material3** color roles as the shared design vocabulary. Source color: `#7c3aed` (violet-600). The goal is full portability: change a single `--md-*` variable and both platforms update.
@@ -186,11 +172,7 @@ See `docs/theming.md` for the full token table and light-theme migration notes.
 
 ### Modals and toasts
 
-All modal dialogs use `@radix-ui/react-dialog` (`import * as Dialog from '@radix-ui/react-dialog'`). Do not use custom backdrop + `useEscapeKey` patterns for new modals — Radix Dialog provides focus trap, escape handling, and accessible close for free. Pattern: `<Dialog.Root open={open} onOpenChange={(o) => { if (!o) onClose() }}>` with `<Dialog.Portal>`, `<Dialog.Overlay>`, and `<Dialog.Content>`.
-
-**Blocking (non-dismissable) modals:** `AuthPromptModal` accepts `dismissable={false}` to prevent closing — `onOpenChange` becomes a no-op and the "Maybe later" cancel button is hidden. Use this for hard gates (e.g. guests on `/playlist/[id]`) where continuing without auth is not allowed.
-
-Toast notifications use **sonner** via the single `<AppToasts />` component rendered in the app shell layout (`web/src/app/(app)/layout.tsx`). Do not create new standalone toast components — add new toast triggers inside `AppToasts`. **Exception:** utility/library functions (e.g. `addEpisodeToPlaylist`) may call `toast.error()` directly via dynamic import to surface errors at the call site, without needing a component context.
+Use `@radix-ui/react-dialog` for all modals — no custom backdrop/escape patterns. Use **sonner** via `<AppToasts />` in the app shell — no standalone toast components. See `docs/ui-patterns.md` for patterns and the blocking-modal (`dismissable={false}`) usage.
 
 ### Rendering HTML from RSS feeds
 
