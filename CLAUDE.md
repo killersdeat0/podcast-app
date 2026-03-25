@@ -192,6 +192,17 @@ All modal dialogs use `@radix-ui/react-dialog` (`import * as Dialog from '@radix
 
 Toast notifications use **sonner** via the single `<AppToasts />` component rendered in the app shell layout (`web/src/app/(app)/layout.tsx`). Do not create new standalone toast components — add new toast triggers inside `AppToasts`. **Exception:** utility/library functions (e.g. `addEpisodeToPlaylist`) may call `toast.error()` directly via dynamic import to surface errors at the call site, without needing a component context.
 
+### Rendering HTML from RSS feeds
+
+Podcast/episode descriptions from RSS feeds may contain HTML (from CDATA sections). Always sanitize before rendering: use `DOMPurify.sanitize()` with `dangerouslySetInnerHTML`. Never render raw RSS HTML without sanitization. Apply Tailwind child selectors (`[&_a]:`, `[&_p]:`, etc.) on the container to style the rendered HTML using semantic tokens.
+
+```tsx
+<div
+  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(description) }}
+  className="[&_a]:text-primary [&_a]:underline [&_p]:mb-2"
+/>
+```
+
 ### Ownership verification
 
 Mutating playlist API routes (`PATCH`/`DELETE` on `/api/playlists/[id]`) fold `.eq('user_id', user.id)` into the Supabase query and return `404` when no rows are matched — this avoids leaking whether a private playlist ID exists. Episode sub-routes (`/api/playlists/[id]/episodes`) do a pre-flight `playlists` query with both `.eq('id', id).eq('user_id', user.id)` and return `404` on no match.

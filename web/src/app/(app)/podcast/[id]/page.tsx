@@ -12,6 +12,7 @@ import { useUserPlaylists } from '@/hooks/useUserPlaylists'
 import { addEpisodeToPlaylist } from '@/lib/playlists/addEpisodeToPlaylist'
 import { Play, Plus, Check, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
 import { LIVE_POSITION_INTERVAL_MS } from '@/lib/player/constants'
+import DOMPurify from 'dompurify'
 import { computeNewEpisodes } from '@/lib/subscriptions/computeNewEpisodes'
 import { mergeEpisodeSources } from '@/lib/episodes/mergeEpisodeSources'
 import { PodcastCard } from '@/components/podcasts/PodcastCard'
@@ -774,14 +775,17 @@ export default function PodcastPage() {
             <img
               src={artwork}
               alt={title}
-              className="w-32 h-32 md:w-40 md:h-40 rounded-2xl object-cover flex-shrink-0 shadow-2xl ring-1 ring-outline-variant"
+              className="w-32 h-32 md:w-40 md:h-40 rounded-2xl object-cover flex-shrink-0 shadow-2xl ring-1 ring-outline-variant self-start"
             />
           )}
           <div className="min-w-0 pb-1">
             <h1 className="text-3xl md:text-4xl font-bold text-on-surface leading-tight mb-1">{title}</h1>
             {feed && (
               <div className="mb-4">
-                <p className={`text-on-surface-variant text-sm leading-relaxed ${descExpanded ? '' : 'line-clamp-2'}`}>{feed.description}</p>
+                <div
+                  className={`text-on-surface-variant text-sm leading-relaxed [&_a]:text-primary [&_a]:underline [&_p]:mb-2 [&_p:last-child]:mb-0 ${descExpanded ? '' : 'line-clamp-2'}`}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(feed.description) }}
+                />
                 {feed.description && feed.description.length > 120 && (
                   <button onClick={() => setDescExpanded((v) => !v)} className="text-xs text-on-surface-dim hover:text-on-surface-variant mt-0.5 transition-colors">
                     {descExpanded ? 'Show less' : 'Show more'}
