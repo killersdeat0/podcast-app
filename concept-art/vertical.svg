@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 290" width="220" height="290">
+  <defs>
+    <!-- Light circle gradient (top, play button) -->
+    <radialGradient id="lightGrad1" cx="38%" cy="30%" r="68%">
+      <stop offset="0%" stop-color="#AADE46"/>
+      <stop offset="100%" stop-color="#72BC2C"/>
+    </radialGradient>
+    <!-- Dark circle gradient (bottom, sync icon) -->
+    <radialGradient id="darkGrad1" cx="38%" cy="30%" r="68%">
+      <stop offset="0%" stop-color="#56BA2E"/>
+      <stop offset="100%" stop-color="#318418"/>
+    </radialGradient>
+  </defs>
+
+  <!-- White background -->
+  <rect width="220" height="290" fill="white"/>
+
+  <!-- Dark circle (bottom, drawn first) -->
+  <circle cx="110" cy="196" r="65" fill="url(#darkGrad1)"/>
+
+  <!-- Light circle (top, drawn on top) -->
+  <circle cx="110" cy="80" r="65" fill="url(#lightGrad1)"/>
+
+  <!-- Play triangle centered at (110, 80) -->
+  <polygon points="97,61 133,80 97,99" fill="white"/>
+
+  <!-- Sync icon centered at (110, 196), scale=2.9 (fits within non-overlap dark region) -->
+  <g transform="translate(110,196) scale(2.9) translate(-12,-12)" fill="white">
+    <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
+  </g>
+
+  <!-- "syncpods" text -->
+  <text x="110" y="276"
+        text-anchor="middle"
+        font-family="'Nunito', 'Poppins', 'Montserrat', sans-serif"
+        font-size="26" font-weight="600" letter-spacing="-0.3">
+    <tspan fill="#5AAD2C">sync</tspan><tspan fill="#44AABB">pods</tspan>
+  </text>
+</svg>
