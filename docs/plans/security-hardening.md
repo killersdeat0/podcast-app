@@ -18,7 +18,7 @@ Edge Config) is out of scope here — we focus on targeted, in-code fixes.
 
 ---
 
-## Fix 1 — Chapters route: Block SSRF
+## Fix 1 — Chapters route: Block SSRF ✅
 
 **File:** `web/src/app/api/podcasts/chapters/route.ts`
 
@@ -42,7 +42,7 @@ function isSafeChapterUrl(raw: string): boolean {
 
 ---
 
-## Fix 2 — OPML import: Throttle parallel RSS fetches
+## Fix 2 — OPML import: Throttle parallel RSS fetches ✅
 
 **File:** `web/src/app/api/opml/import/route.ts`
 
@@ -71,7 +71,7 @@ async function fetchInBatches<T>(
 
 ---
 
-## Fix 3 — Feed route: Gate `nocache=1` behind auth
+## Fix 3 — Feed route: Gate `nocache=1` behind auth ✅
 
 **File:** `web/src/app/api/podcasts/feed/route.ts`
 
@@ -94,7 +94,7 @@ if (nocacheRequested) {
 
 ---
 
-## Fix 4 — Subscription refresh: Per-user cooldown
+## Fix 4 — Subscription refresh: Per-user cooldown ✅
 
 **File:** `web/src/app/api/subscriptions/refresh/route.ts`
 
@@ -114,7 +114,7 @@ if (mostRecentCheck && Date.now() - new Date(mostRecentCheck).getTime() < COOLDO
 
 ---
 
-## Fix 5 — Progress save: Sanitize positionSeconds
+## Fix 5 — Progress save: Sanitize positionSeconds (skipped — already handled)
 
 **File:** `web/src/app/api/progress/route.ts`
 
