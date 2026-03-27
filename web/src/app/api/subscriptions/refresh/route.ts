@@ -55,6 +55,13 @@ export async function POST() {
   const tier = profile?.tier ?? 'free'
   const now = Date.now()
 
+  const COOLDOWN_MS = 2 * 60 * 1000
+  const mostRecentCheck = (subs as SubscriptionRow[]).reduce((max, s) =>
+    s.last_feed_checked_at && s.last_feed_checked_at > max ? s.last_feed_checked_at : max, '')
+  if (mostRecentCheck && now - new Date(mostRecentCheck).getTime() < COOLDOWN_MS) {
+    return NextResponse.json({ subscriptions: subs })
+  }
+
   const stale = (subs as SubscriptionRow[]).filter((sub) => {
     if (!sub.last_feed_checked_at) return true
     return now - new Date(sub.last_feed_checked_at).getTime() >= STALE_MS

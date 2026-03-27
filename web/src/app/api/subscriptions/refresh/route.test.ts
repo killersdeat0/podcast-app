@@ -75,15 +75,13 @@ describe('POST /api/subscriptions/refresh', () => {
     mockGetUser.mockResolvedValue(AUTH)
     const subsChain = makeChain({ data: [FRESH_SUB], error: null })
     const profileChain = makeChain({ data: { tier: 'free' }, error: null })
-    const updatedChain = makeChain({ data: [FRESH_SUB], error: null })
+    // No final-select mockFrom: cooldown fires before reaching it
     mockFrom
-      .mockImplementationOnce(() => subsChain)      // subscriptions select
-      .mockImplementationOnce(() => profileChain)   // user_profiles select
-      .mockImplementationOnce(() => updatedChain)   // final subscriptions select
+      .mockImplementationOnce(() => subsChain)
+      .mockImplementationOnce(() => profileChain)
 
     const res = await POST()
     expect(res.status).toBe(200)
-    // parseFeed should not be called — subscription is not stale
     expect(mockParseFeed).not.toHaveBeenCalled()
     const body = await res.json()
     expect(body).toHaveProperty('subscriptions')

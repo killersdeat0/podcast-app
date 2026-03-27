@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
 export async function GET(req: NextRequest) {
   const feedUrl = req.nextUrl.searchParams.get('url')
@@ -10,7 +11,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 })
   }
 
-  const nocache = req.nextUrl.searchParams.get('nocache') === '1'
+  let nocache = false
+  if (req.nextUrl.searchParams.get('nocache') === '1') {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    nocache = !!user
+  }
   const limitParam = req.nextUrl.searchParams.get('limit')
   const limit = limitParam ? parseInt(limitParam, 10) : null
 

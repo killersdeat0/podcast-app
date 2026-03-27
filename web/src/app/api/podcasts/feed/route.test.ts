@@ -2,6 +2,16 @@ import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET } from './route'
 
+const { mockGetUser } = vi.hoisted(() => ({
+  mockGetUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-123' } } }),
+}))
+
+vi.mock('@/lib/supabase/server', () => ({
+  createClient: vi.fn().mockResolvedValue({
+    auth: { getUser: mockGetUser },
+  }),
+}))
+
 beforeAll(() => {
   process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
