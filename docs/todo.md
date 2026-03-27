@@ -6,7 +6,7 @@ Developer to-do items that require manual setup outside of code changes.
 
 ## Auth & Email
 
-### [ ] Set up custom email sender (transactional emails)
+### [x] Set up custom email sender (transactional emails)
 
 Currently all auth emails (password reset, email confirmation) are sent from `noreply@mail.app.supabase.io` via Supabase's default SMTP. To send from `noreply@syncpods.app`:
 
@@ -21,23 +21,9 @@ Currently all auth emails (password reset, email confirmation) are sent from `no
    - Sender name: `SyncPods`
    - Sender email: `noreply@syncpods.app`
 
-### [ ] Customize email templates
+### [x] Customize email templates
 
-Supabase sends plain default emails (subject "Reset Password", minimal body). You can override the subject and HTML via `supabase/config.toml` — this is version-controlled and applied via the Supabase CLI.
-
-Example config:
-```toml
-# supabase/config.toml
-[auth.email.template.recovery]
-subject = "Reset your SyncPods password"
-content_path = "./templates/recovery.html"
-
-[auth.email.template.confirmation]
-subject = "Confirm your SyncPods account"
-content_path = "./templates/confirmation.html"
-```
-
-Then create `supabase/templates/recovery.html` and `supabase/templates/confirmation.html` with custom HTML. Use `{{ .ConfirmationURL }}` as the link placeholder. Apply with `supabase db push`.
+Templates live in `supabase/templates/` — paste HTML into Supabase Dashboard → Authentication → Email Templates for production. Use `{{ .ConfirmationURL }}` as the link placeholder.
 
 > Note: custom SMTP (above) must be set up first before sender address changes take effect.
 
