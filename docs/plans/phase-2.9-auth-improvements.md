@@ -1,4 +1,4 @@
-# Auth Flow Improvements
+# Auth Flow Improvements ✅ COMPLETE
 
 ## Context
 The current auth flow is minimal — email/password + Google OAuth, no forgot-password, no email verification UI, and `?returnTo=` is passed by `AuthPromptModal` but silently ignored by `AuthForm`. This plan adds the missing pieces to make auth production-ready.
