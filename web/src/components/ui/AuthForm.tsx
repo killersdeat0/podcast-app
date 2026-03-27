@@ -4,7 +4,6 @@ import { Suspense, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useStrings } from '@/lib/i18n/LocaleContext'
-import { Turnstile } from '@marsidev/react-turnstile'
 
 type Mode = 'login' | 'signup'
 
@@ -26,7 +25,6 @@ function AuthFormInner({ mode }: { mode: Mode }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -34,7 +32,7 @@ function AuthFormInner({ mode }: { mode: Mode }) {
     setError(null)
 
     if (mode === 'signup') {
-      const { data, error } = await supabase.auth.signUp({ email, password, options: { captchaToken: captchaToken ?? undefined } })
+      const { data, error } = await supabase.auth.signUp({ email, password })
 
       if (error) {
         setError(error.message)
@@ -52,7 +50,7 @@ function AuthFormInner({ mode }: { mode: Mode }) {
       router.push(returnTo)
       router.refresh()
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken: captchaToken ?? undefined } })
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
 
       if (error) {
         setError(error.message)
@@ -114,17 +112,9 @@ function AuthFormInner({ mode }: { mode: Mode }) {
           </div>
         )}
         {error && <p className="text-error text-sm">{error}</p>}
-        {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
-          <Turnstile
-            siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-            onSuccess={(token) => setCaptchaToken(token)}
-            onExpire={() => setCaptchaToken(null)}
-            options={{ theme: 'dark' }}
-          />
-        )}
         <button
           type="submit"
-          disabled={loading || (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !captchaToken)}
+          disabled={loading}
           className="w-full bg-brand hover:bg-brand disabled:opacity-50 text-on-surface rounded-lg px-4 py-3 text-sm font-medium transition-colors"
         >
           {loading ? s.auth.loading : mode === 'login' ? s.auth.login_button : s.auth.signup_button}
