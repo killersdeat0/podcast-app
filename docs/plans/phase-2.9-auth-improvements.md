@@ -1,22 +1,10 @@
 # Auth Flow Improvements
 
 ## Context
-The current auth flow is minimal — email/password + Google OAuth, no forgot-password, no email verification UI, no captcha, and `?returnTo=` is passed by `AuthPromptModal` but silently ignored by `AuthForm`. This plan adds the missing pieces to make auth production-ready.
+The current auth flow is minimal — email/password + Google OAuth, no forgot-password, no email verification UI, and `?returnTo=` is passed by `AuthPromptModal` but silently ignored by `AuthForm`. This plan adds the missing pieces to make auth production-ready.
 
 ## Scope
-4 features: forgot/reset password, returnTo redirect, email verification screen, Cloudflare Turnstile captcha.
-
----
-
-## Step 0 — Install & env
-```bash
-cd web && npm install @marsidev/react-turnstile
-```
-Add to `web/.env.local` (and document in CLAUDE.md):
-```
-NEXT_PUBLIC_TURNSTILE_SITE_KEY=
-```
-> Supabase Dashboard → Authentication → Bot and Abuse Protection must be configured with the matching Turnstile site key + secret before `captchaToken` will be accepted.
+3 features: forgot/reset password, returnTo redirect, email verification screen.
 
 ---
 
@@ -131,21 +119,6 @@ Add 3 new paths to `PUBLIC_PATHS`:
 </div>
 ```
 
-### d) Turnstile captcha
-- Import `Turnstile` from `@marsidev/react-turnstile`
-- State: `const [captchaToken, setCaptchaToken] = useState<string | null>(null)`
-- Render widget below password field (before submit button):
-```tsx
-<Turnstile
-  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
-  onSuccess={(token) => setCaptchaToken(token)}
-  onExpire={() => setCaptchaToken(null)}
-  options={{ theme: 'dark' }}
-/>
-```
-- Disable submit button when `!captchaToken` (in addition to `loading`)
-- Pass `options: { captchaToken }` to both `signUp()` and `signInWithPassword()`
-
 ---
 
 ## Critical files
@@ -181,8 +154,6 @@ After all three complete, merge each worktree branch back to main and run the fu
    - **Forgot password:** request reset → receive email → click link → `/reset-password` → set password → redirected to `/discover`
    - **returnTo:** visit `/discover`, get prompted to sign in, complete auth → land back at `/discover` (or wherever `?returnTo=` pointed)
    - **Email verification:** sign up with new email → see verify-email page → resend works → click confirmation link → `/discover`
-   - **Captcha:** Turnstile widget renders on both login and signup; submit disabled until token present
 
 ## Docs to update
-- `CLAUDE.md`: add `NEXT_PUBLIC_TURNSTILE_SITE_KEY` to env var table; note Supabase dashboard captcha setup
 - No new `docs/` file needed — auth patterns are already described in `CLAUDE.md`

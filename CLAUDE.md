@@ -46,11 +46,6 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID=
 NEXT_PUBLIC_STRIPE_YEARLY_PRICE_ID=
 
-# Cloudflare Turnstile (optional — captcha on login/signup)
-# When set, the Turnstile widget appears automatically and tokens are validated by Supabase.
-# Also requires Supabase Dashboard → Authentication → Bot and Abuse Protection to be configured.
-# See docs/todo.md for full setup instructions.
-NEXT_PUBLIC_TURNSTILE_SITE_KEY=
 ```
 
 ## Mobile (Compose Multiplatform)

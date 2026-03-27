@@ -100,18 +100,6 @@ Only paths starting with `/` and containing no scheme are accepted. Tests live i
 
 ---
 
-## Captcha (Cloudflare Turnstile)
-
-`AuthForm` conditionally renders a Turnstile widget based on `NEXT_PUBLIC_TURNSTILE_SITE_KEY`. When the env var is set:
-- The widget appears below the password field
-- The submit button is disabled until Turnstile issues a token
-- The token is passed as `options.captchaToken` to both `signUp()` and `signInWithPassword()`
-- Supabase validates the token server-side (requires the secret key configured in Supabase dashboard)
-
-Since `NEXT_PUBLIC_*` vars are embedded at build time, a dev server restart is required after adding the key to `.env.local`. See `docs/todo.md` for full setup instructions.
-
----
-
 ## Guest mode
 
 Public routes (`/discover`, `/podcast/[id]`, `/queue`, `/playlist/[id]`) are accessible without an account. `UserContext` tracks `isGuest: true` for unauthenticated visitors. Guest queue state is stored in `localStorage` under `guestQueue` and cleared on sign-in.

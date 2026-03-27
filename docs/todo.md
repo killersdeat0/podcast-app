@@ -41,16 +41,3 @@ Then create `supabase/templates/recovery.html` and `supabase/templates/confirmat
 
 > Note: custom SMTP (above) must be set up first before sender address changes take effect.
 
-### [ ] Enable Cloudflare Turnstile captcha
-
-The login/signup form already has Turnstile integrated — it just needs to be activated:
-
-1. **Create a Cloudflare account** (free) and go to Turnstile in the dashboard.
-2. **Add a site**, set the domain to `syncpods.app`, choose "Managed" challenge type.
-3. **Copy the Site Key** → add to `web/.env.local`:
-   ```
-   NEXT_PUBLIC_TURNSTILE_SITE_KEY=<your-site-key>
-   ```
-4. **Copy the Secret Key** → configure in Supabase: Dashboard → Authentication → Bot and Abuse Protection → enable Turnstile → paste secret key.
-
-Once both keys are set, the widget will appear automatically on login/signup and tokens will be validated server-side by Supabase.
