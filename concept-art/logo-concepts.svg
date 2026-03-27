@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="960" viewBox="0 0 720 960">
+  <defs>
+    <!-- 1. Green → Teal -->
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4ade80"/>
+      <stop offset="100%" stop-color="#0d9488"/>
+    </linearGradient>
+    <!-- 2. Lime → Cyan -->
+    <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a3e635"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+    <!-- 3. Teal → Indigo -->
+    <linearGradient id="g3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2dd4bf"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+    <!-- 4. Emerald → Blue -->
+    <linearGradient id="g4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <!-- 5. Sage → Slate -->
+    <linearGradient id="g5" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#86efac"/>
+      <stop offset="100%" stop-color="#94a3b8"/>
+    </linearGradient>
+    <!-- 6. Yellow-green → Teal -->
+    <linearGradient id="g6" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#84cc16"/>
+      <stop offset="100%" stop-color="#0891b2"/>
+    </linearGradient>
+
+    <!-- Reusable sync icon (Material Design sync, 24x24 viewBox) -->
+    <symbol id="sync-icon" viewBox="0 0 24 24" width="32" height="32">
+      <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" fill="white"/>
+    </symbol>
+  </defs>
+
+  <!-- Background: app violet -->
+  <rect width="720" height="960" fill="#1e1b4b"/>
+
+  <!-- Subtitle -->
+  <text x="360" y="44" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" fill="#a5b4fc" opacity="0.6">all shown on app violet background — 2-stop diagonal gradient</text>
+
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- LOGO 1 — Green → Teal  (col 180, row 200) -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <g transform="translate(180, 200)">
+    <!-- Pill -->
+    <rect x="-115" y="-52" width="230" height="104" rx="52" fill="url(#g1)"/>
+    <!-- Left circle + play -->
+    <circle cx="-42" cy="0" r="38" fill="rgba(0,0,0,0.22)" stroke="white" stroke-width="3"/>
+    <polygon points="-54,-15 -54,15 -18,0" fill="white"/>
+    <!-- Right circle + sync -->
+    <circle cx="42" cy="0" r="38" fill="rgba(0,0,0,0.22)" stroke="white" stroke-width="3"/>
+    <use href="#sync-icon" x="26" y="-16" width="32" height="32"/>
+    <!-- Wordmark -->
+    <text y="72" text-anchor="middle" font-family="system-ui, sans-serif" font-size="28" font-weight="500" letter-spacing="0.5">
+      <tspan fill="#4ade80">sync</tspan><tspan fill="#0d9488">pods</tspan>
+    </text>
+    <!-- Label -->
+    <text y="96" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="white" opacity="0.45">#4ade80 → #0d9488  ·  green → teal</text>
+  </g>
+
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- LOGO 2 — Lime → Cyan  (col 540, row 200) -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <g transform="translate(540, 200)">
+    <rect x="-115" y="-52" width="230" height="104" rx="52" fill="url(#g2)"/>
+    <circle cx="-42" cy="0" r="38" fill="rgba(0,0,0,0.22)" stroke="white" stroke-width="3"/>
+    <polygon points="-54,-15 -54,15 -18,0" fill="white"/>
+    <circle cx="42" cy="0" r="38" fill="rgba(0,0,0,0.22)" stroke="white" stroke-width="3"/>
+    <use href="#sync-icon" x="26" y="-16" width="32" height="32"/>
+    <text y="72" text-anchor="middle" font-family="system-ui, sans-serif" font-size="28" font-weight="500" letter-spacing="0.5">
+      <tspan fill="#a3e635">sync</tspan><tspan fill="#06b6d4">pods</tspan>
+    </text>
+    <text y="96" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="white" opacity="0.45">#a3e635 → #06b6d4  ·  lime → cyan</text>
+  </g>
+
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- LOGO 3 — Teal → Indigo  (col 180, row 490) -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <g transform="translate(180, 490)">
+    <rect x="-115" y="-52" width="230" height="104" rx="52" fill="url(#g3)"/>
+    <circle cx="-42" cy="0" r="38" fill="rgba(0,0,0,0.22)" stroke="white" stroke-width="3"/>
+    <polygon points="-54,-15 -54,15 -18,0" fill="white"/>
+    <circle cx="42" cy="0" r="38" fill="rgba(0,0,0,0.22)" stroke="white" stroke-width="3"/>
+    <use href="#sync-icon" x="26" y="-16" width="32" height="32"/>
+    <text y="72" text-anchor="middle" font-family="system-ui, sans-serif" font-size="28" font-weight="500" letter-spacing="0.5">
+      <tspan fill="#2dd4bf">sync</tspan><tspan fill="#818cf8">pods</tspan>
+    </text>
+    <text y="96" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="white" opacity="0.45">#2dd4bf → #6366f1  ·  teal → indigo</text>
+  </g>
+
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- LOGO 4 — Emerald → Blue  (col 540, row 490) -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <g transform="translate(540, 490)">
+    <rect x="-115" y="-52" width="230" height="104" rx="52" fill="url(#g4)"/>
+    <circle cx="-42" cy="0" r="38" fill="rgba(0,0,0,0.22)" stroke="white" stroke-width="3"/>
+    <polygon points="-54,-15 -54,15 -18,0" fill="white"/>
+    <circle cx="42" cy="0" r="38" fill="rgba(0,0,0,0.22)" stroke="white" stroke-width="3"/>
+    <use href="#sync-icon" x="26" y="-16" width="32" height="32"/>
+    <text y="72" text-anchor="middle" font-family="system-ui, sans-serif" font-size="28" font-weight="500" letter-spacing="0.5">
+      <tspan fill="#34d399">sync</tspan><tspan fill="#60a5fa">pods</tspan>
+    </text>
+    <text y="96" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="white" opacity="0.45">#10b981 → #3b82f6  ·  emerald → blue</text>
+  </g>
+
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- LOGO 5 — Sage → Slate  (col 180, row 780) -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <g transform="translate(180, 780)">
+    <rect x="-115" y="-52" width="230" height="104" rx="52" fill="url(#g5)"/>
+    <circle cx="-42" cy="0" r="38" fill="rgba(0,0,0,0.22)" stroke="white" stroke-width="3"/>
+    <polygon points="-54,-15 -54,15 -18,0" fill="white"/>
+    <circle cx="42" cy="0" r="38" fill="rgba(0,0,0,0.22)" stroke="white" stroke-width="3"/>
+    <use href="#sync-icon" x="26" y="-16" width="32" height="32"/>
+    <text y="72" text-anchor="middle" font-family="system-ui, sans-serif" font-size="28" font-weight="500" letter-spacing="0.5">
+      <tspan fill="#86efac">sync</tspan><tspan fill="#94a3b8">pods</tspan>
+    </text>
+    <text y="96" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="white" opacity="0.45">#86efac → #94a3b8  ·  sage → slate</text>
+  </g>
+
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- LOGO 6 — Yellow-green → Teal  (col 540, row 780) -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <g transform="translate(540, 780)">
+    <rect x="-115" y="-52" width="230" height="104" rx="52" fill="url(#g6)"/>
+    <circle cx="-42" cy="0" r="38" fill="rgba(0,0,0,0.22)" stroke="white" stroke-width="3"/>
+    <polygon points="-54,-15 -54,15 -18,0" fill="white"/>
+    <circle cx="42" cy="0" r="38" fill="rgba(0,0,0,0.22)" stroke="white" stroke-width="3"/>
+    <use href="#sync-icon" x="26" y="-16" width="32" height="32"/>
+    <text y="72" text-anchor="middle" font-family="system-ui, sans-serif" font-size="28" font-weight="500" letter-spacing="0.5">
+      <tspan fill="#a3e635">sync</tspan><tspan fill="#22d3ee">pods</tspan>
+    </text>
+    <text y="96" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="white" opacity="0.45">#84cc16 → #0891b2  ·  yellow-green → teal</text>
+  </g>
+
+</svg>
