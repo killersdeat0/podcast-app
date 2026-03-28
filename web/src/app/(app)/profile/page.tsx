@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Headphones, CheckCircle, Flame, Radio, Sparkles } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { useStrings, useLocale, LOCALE_LABELS } from '@/lib/i18n/LocaleContext'
-import type { Locale } from '@/lib/i18n'
+import { useStrings } from '@/lib/i18n/LocaleContext'
 
 interface ProfileData {
   email: string
@@ -107,7 +106,6 @@ export default function ProfilePage() {
   const [importStatus, setImportStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [importedCount, setImportedCount] = useState(0)
   const strings = useStrings()
-  const { locale, setLocale } = useLocale()
 
   function fetchProfile() {
     fetch('/api/profile')
@@ -292,18 +290,15 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {/* ── Language ─────────────────────────────────────────────────── */}
+          {/* ── Settings link ────────────────────────────────────────────── */}
           <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6 flex items-center justify-between">
-            <p className="text-xs text-on-surface-variant uppercase tracking-wider">{strings.profile.language}</p>
-            <select
-              value={locale}
-              onChange={(e) => setLocale(e.target.value as Locale)}
-              className="bg-surface-container text-on-surface text-sm rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-primary"
+            <p className="text-xs text-on-surface-variant uppercase tracking-wider">{strings.nav.settings}</p>
+            <Link
+              href="/settings"
+              className="text-sm text-primary hover:underline transition-colors"
             >
-              {(Object.entries(LOCALE_LABELS) as [Locale, string][]).map(([code, label]) => (
-                <option key={code} value={code}>{label}</option>
-              ))}
-            </select>
+              {strings.settings.settings_link}
+            </Link>
           </div>
 
           {/* ── Subscriptions list ───────────────────────────────────────── */}

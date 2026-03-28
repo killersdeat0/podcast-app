@@ -80,27 +80,29 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { guid, feedUrl, title, audioUrl, artworkUrl, podcastTitle, duration, pubDate, description } =
+  const { guid, feedUrl, title, audioUrl, artworkUrl, podcastTitle, duration, pubDate, description, prepend } =
     await request.json()
 
-  // Enforce free-tier queue cap of 10 episodes
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('tier')
-    .eq('user_id', user.id)
-    .single()
+  // Enforce free-tier queue cap — skipped for prepend (restoring a removed episode)
+  if (!prepend) {
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('tier')
+      .eq('user_id', user.id)
+      .single()
 
-  const queueLimit = (!profile || profile.tier === 'free') ? LIMITS.free.queue : LIMITS.paid.queue
-  const { count } = await supabase
-    .from('queue')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
+    const queueLimit = (!profile || profile.tier === 'free') ? LIMITS.free.queue : LIMITS.paid.queue
+    const { count } = await supabase
+      .from('queue')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
 
-  if ((count ?? 0) >= queueLimit) {
-    return NextResponse.json(
-      { error: 'Queue limit reached. Upgrade to add more episodes.' },
-      { status: 403 }
-    )
+    if ((count ?? 0) >= queueLimit) {
+      return NextResponse.json(
+        { error: 'Queue limit reached. Upgrade to add more episodes.' },
+        { status: 403 }
+      )
+    }
   }
 
   // Upsert episode metadata
@@ -123,16 +125,22 @@ export async function POST(request: NextRequest) {
     podcast_title: podcastTitle ?? null,
   }, { onConflict: 'feed_url,guid' })
 
-  // Get next position
-  const { data: maxRow } = await supabase
-    .from('queue')
-    .select('position')
-    .eq('user_id', user.id)
-    .order('position', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  const position = (maxRow?.position ?? 0) + 1
+  let position: number
+  if (prepend) {
+    // Shift all existing positions up by 1 to make room at the front
+    await supabase.rpc('increment_queue_positions', { p_user_id: user.id })
+    position = 0
+  } else {
+    // Append: use max position + 1
+    const { data: maxRow } = await supabase
+      .from('queue')
+      .select('position')
+      .eq('user_id', user.id)
+      .order('position', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    position = (maxRow?.position ?? 0) + 1
+  }
 
   const { error } = await supabase
     .from('queue')

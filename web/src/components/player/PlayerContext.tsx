@@ -38,6 +38,7 @@ interface PlayerControls {
   audioRef: React.RefObject<HTMLAudioElement | null>
   clientQueue: NowPlaying[]
   enqueueClient: (ep: NowPlaying) => void
+  prependClient: (ep: NowPlaying) => void
   dequeueClient: (guid: string) => void
   clearClientQueue: () => void
   clearNowPlaying: () => void
@@ -112,6 +113,15 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     })
   }, [])
 
+  const prependClient = useCallback((ep: NowPlaying) => {
+    setClientQueue((prev) => {
+      if (prev.find((e) => e.guid === ep.guid)) return prev
+      const next = [ep, ...prev].slice(0, 10)
+      localStorage.setItem('guestQueue', JSON.stringify(next))
+      return next
+    })
+  }, [])
+
   const dequeueClient = useCallback((guid: string) => {
     setClientQueue((prev) => {
       const next = prev.filter((e) => e.guid !== guid)
@@ -152,7 +162,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <PlayerContext.Provider
-      value={{ nowPlaying, playing, speed, play, togglePlay, seek, setSpeed, audioRef, clientQueue, enqueueClient, dequeueClient, clearClientQueue, clearNowPlaying, playPlaylist, updatePlaylistEpisodes }}
+      value={{ nowPlaying, playing, speed, play, togglePlay, seek, setSpeed, audioRef, clientQueue, enqueueClient, prependClient, dequeueClient, clearClientQueue, clearNowPlaying, playPlaylist, updatePlaylistEpisodes }}
     >
       {children}
     </PlayerContext.Provider>

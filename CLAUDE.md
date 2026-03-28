@@ -84,6 +84,7 @@ Read relevant docs before making changes. Key triggers:
 
 - `web/src/app/(auth)/` — login/signup pages, no sidebar/player shell
 - `web/src/app/(app)/` — protected app shell (sidebar + player), all main pages
+  - `/settings` — playback defaults, language, sign-out, delete account (auth-protected; guests redirected to login)
 - `web/src/app/api/` — server-side API routes (all require auth via Supabase server client)
 - `web/src/app/auth/callback/` — OAuth redirect handler
 
@@ -108,7 +109,7 @@ Podcast discovery proxies through `web/src/app/api/podcasts/search` → calls `s
 
 ### i18n
 
-All user-facing strings live in `web/src/lib/i18n/`. The active locale is stored in `localStorage` and toggled from **Profile → Language**. Use `useStrings()` from `LocaleContext.tsx` in every client component — never the static `strings` export from `index.ts`. When writing or editing user-visible text, keep it fun: use emojis in titles/empty states and write CTAs as actions. See `docs/i18n.md` for the full guide.
+All user-facing strings live in `web/src/lib/i18n/`. The active locale is stored in `localStorage` and toggled from **Settings → Language**. Use `useStrings()` from `LocaleContext.tsx` in every client component — never the static `strings` export from `index.ts`. When writing or editing user-visible text, keep it fun: use emojis in titles/empty states and write CTAs as actions. See `docs/i18n.md` for the full guide.
 
 ### Global playback state
 
@@ -136,6 +137,12 @@ Schema lives in `supabase/migrations/`. Key tables: `subscriptions`, `episodes` 
 **Artwork URL priority:** Always prefer the iTunes CDN URL (stored in `subscriptions.artwork_url`) over RSS feed artwork URLs — many podcast sites block hotlinking. The queue and history APIs look up `subscriptions.artwork_url` as a fallback when `episodes.artwork_url` is missing.
 
 **Subscription ordering:** `subscriptions.position` stores drag-drop order. Use `PATCH /api/subscriptions` with `{ orderedFeedUrls }` to update. Same pattern for queue: `PATCH /api/queue` with `{ orderedGuids }`.
+
+**Per-show speed override:** `subscriptions.speed_override FLOAT NULL` — paid-only. Set via picker on the podcast detail page. `POST /api/subscriptions` PATCH Body B accepts `speedOverride` (null to clear). Player reads `localStorage` key `podcast-speed-{feedUrl}` on episode load (synced from DB on podcast page mount). See `web/src/lib/player/speed.ts` for utility functions.
+
+**Default volume:** `user_profiles.default_volume FLOAT NULL` — synced cross-device. Settings page fetches `GET /api/profile` on mount and writes back via `PATCH /api/profile` on change. localStorage key `playback-volume` is the fast read path, DB is authoritative.
+
+**Queue prepend:** `POST /api/queue` with `prepend: true` skips the queue-cap check, calls the `increment_queue_positions(p_user_id)` Supabase RPC (shifts all existing positions up by 1), and inserts at position 0. Used by undo-skip to restore the previous episode to the front of the queue. Guest users use `prependClient()` from `PlayerContext`.
 
 ### Sidebar subscription sync
 

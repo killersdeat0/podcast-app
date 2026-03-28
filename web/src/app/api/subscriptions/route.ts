@@ -30,6 +30,16 @@ export async function PATCH(request: NextRequest) {
     if (body.latestEpisodePubDate !== undefined) update.latest_episode_pub_date = body.latestEpisodePubDate
     if (body.lastVisitedAt !== undefined) update.last_visited_at = body.lastVisitedAt
     if (body.newEpisodeCount !== undefined) update.new_episode_count = body.newEpisodeCount
+    if (body.speedOverride !== undefined) {
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('tier')
+        .eq('user_id', user.id)
+        .single()
+      if (profile?.tier === 'paid') {
+        update.speed_override = body.speedOverride === null ? null : Number(body.speedOverride)
+      }
+    }
     if (body.episodeFilter !== undefined) {
       const isSentinel = body.episodeFilter === '' || body.episodeFilter === '*'
       if (isSentinel) {

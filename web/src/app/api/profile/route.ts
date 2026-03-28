@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET() {
   const supabase = await createClient()
@@ -9,7 +9,7 @@ export async function GET() {
   const [profileResult, listeningResult, completedResult, streakResult] = await Promise.all([
     supabase
       .from('user_profiles')
-      .select('tier')
+      .select('tier, default_volume')
       .eq('user_id', user.id)
       .single(),
     supabase
@@ -57,5 +57,32 @@ export async function GET() {
     cursor.setDate(cursor.getDate() - 1)
   }
 
-  return NextResponse.json({ email: user.email, tier, listeningSeconds, completedThisWeek, streakDays })
+  const defaultVolume = profileResult.data?.default_volume ?? null
+  return NextResponse.json({ email: user.email, tier, listeningSeconds, completedThisWeek, streakDays, defaultVolume })
+}
+
+export async function PATCH(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const body = await request.json()
+  const update: Record<string, number | null> = {}
+
+  if (body.defaultVolume !== undefined) {
+    const v = Number(body.defaultVolume)
+    update.default_volume = isNaN(v) ? null : Math.max(0, Math.min(1, v))
+  }
+
+  if (Object.keys(update).length === 0) {
+    return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
+  }
+
+  const { error } = await supabase
+    .from('user_profiles')
+    .update(update)
+    .eq('user_id', user.id)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
 }

@@ -106,6 +106,26 @@ Triggered only by the `ended` audio event (not the 98% threshold).
 
 > **TODO:** Play an audio ad clip between steps 1 and 5 for free-tier users (see comment in source).
 
+### Undo accidental skip
+
+When the player auto-advances (via `completeAndAdvance`) or the user manually skips (`skipToNext`), a 5-second sonner toast appears with an **Undo** action. Tapping Undo restores the previous episode and seeks to the saved position.
+
+**Implementation (all in `Player.tsx`):**
+
+- `previousEpisodeRef` — ref holding `{ episode: NowPlaying; positionSeconds: number } | null`. Populated *before* the advance fires; cleared after a successful undo or when a new episode is deliberately loaded.
+- `pendingSeekRef` — ref holding a position in seconds. Set by `restorePreviousEpisode`; consumed in the `nowPlaying` sync `useEffect` via a one-shot `canplay` listener that seeks the audio to that position after the episode loads.
+- `restorePreviousEpisode` — reads `previousEpisodeRef`, calls `play(prev.episode)`, sets `pendingSeekRef`, clears the ref.
+
+**Paths that trigger the undo toast:**
+| Path | Condition |
+|---|---|
+| `skipToNext` (authenticated) | Next item found in queue after removing current |
+| `skipToNext` (guest) | Next item found in `clientQueue` |
+| `completeAndAdvance` (authenticated) | Queue has a next item after removing completed |
+| `completeAndAdvance` (guest `onEnded`) | `clientQueue` has a next item |
+
+The toast is **not** shown when the queue is empty (nothing to undo to) or when playback ends with no next item.
+
 ### Next episode button (`skipToNext`)
 
 A skip-forward button appears in the player when there's a next item in the queue. Unlike `completeAndAdvance`, this does **not** mark the episode as complete — it lets the user resume from where they left off.
@@ -145,7 +165,20 @@ Volume is controlled via `audio.volume` (0–1). State is held in `Player` as `v
 - Free tier: speed options `[1, 2]` + "Upgrade for more speeds" link
 - Paid tier: full range `[0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]`
 
-**Speed persistence (paid only):** When a paid user changes speed, it is saved to `localStorage` under the key `playback-speed`. On mount, `Player` restores this value by calling `setSpeed()` — so the preferred rate is applied before the first episode loads. Free-tier users always start at 1x.
+**Speed persistence:**
+
+| Key | Written by | Read by | Notes |
+|---|---|---|---|
+| `playback-speed` | Settings page | Player on mount | Global default speed |
+| `podcast-speed-{feedUrl}` | Podcast detail page (paid only) | Player on episode load | Per-show override |
+
+**Player speed control is ephemeral.** Changing speed in the player affects `audio.playbackRate` and UI state for the current session only. It does **not** write to `localStorage`. The speed selector in the player is a session override.
+
+**Global default speed** is set on the Settings page. It writes to `localStorage` under `playback-speed` and is restored by the Player on mount.
+
+**Per-show speed** is set explicitly on the podcast detail page (paid users only, visible only when subscribed). Options are "Follow global" (clears the per-show key) or a specific speed from `ALL_SPEEDS`. The control reads `podcast-speed-{feedUrl}` from `localStorage` on mount and writes or removes it on change.
+
+Speed logic lives in `src/lib/player/speed.ts` (`resolveEpisodeSpeed`, `saveSpeedPreference`). On episode load, the per-show key is checked first; if absent, `globalSpeed` is used. For free-tier users any stored speed is clamped to `Math.min(2, stored)` then snapped to the nearest value in `FREE_SPEEDS = [1, 2]`.
 
 ### Mobile layout
 
@@ -157,7 +190,7 @@ On narrow viewports (below the `md` breakpoint):
   - **Main level:** lists available actions (Playback Speed + Volume, each showing the current value inline).
   - **Speed submenu:** back button + the available speed options for the user's tier.
   - **Volume submenu:** back button + mute-toggle icon + range slider.
-- Selecting a speed closes the menu and calls `handleSetSpeed()`, which also persists to `localStorage` for paid users.
+- Selecting a speed closes the menu and calls `handleSetSpeed()`, which updates the session speed only (ephemeral — does not persist to `localStorage`).
 
 To add future mobile-only options, add another row to the `mobileMenu === 'main'` block in `Player.tsx`.
 

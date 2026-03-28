@@ -2,15 +2,14 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Volume1, Volume2, VolumeX, SkipForward } from 'lucide-react'
+import { toast } from 'sonner'
 import { usePlayer, NowPlaying, PlaylistEpisodeRef } from './PlayerContext'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
 import { COMPLETION_THRESHOLD_PCT } from '@/lib/player/constants'
-
-const ALL_SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]
-const FREE_SPEEDS = [1, 2]
+import { ALL_SPEEDS, FREE_SPEEDS, GLOBAL_SPEED_KEY, resolveEpisodeSpeed } from '@/lib/player/speed'
 
 interface Chapter {
   startTime: number
@@ -26,7 +25,7 @@ function formatTime(s: number) {
 }
 
 export default function Player({ isFreeTier = false }: { isFreeTier?: boolean }) {
-  const { nowPlaying, playing, speed, play, togglePlay, seek, setSpeed, audioRef, clientQueue, dequeueClient, updatePlaylistEpisodes } = usePlayer()
+  const { nowPlaying, playing, speed, play, togglePlay, seek, setSpeed, audioRef, clientQueue, prependClient, dequeueClient, updatePlaylistEpisodes } = usePlayer()
   const { isGuest } = useUser()
   const availableSpeeds = isFreeTier ? FREE_SPEEDS : ALL_SPEEDS
   const strings = useStrings()
@@ -83,10 +82,18 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
     if (audioRef.current) audioRef.current.volume = volume
   }, [volume, audioRef])
 
+  useEffect(() => {
+    function onVolumeChanged(e: Event) {
+      const v = (e as CustomEvent<{ volume: number }>).detail.volume
+      if (!isNaN(v)) setVolume(v)
+    }
+    window.addEventListener('volume-changed', onVolumeChanged)
+    return () => window.removeEventListener('volume-changed', onVolumeChanged)
+  }, [])
+
 
   function handleSetSpeed(s: number) {
     setSpeed(s)
-    if (!isFreeTier) localStorage.setItem('playback-speed', String(s))
   }
 
   function handleSetVolume(v: number) {
@@ -100,6 +107,8 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
   const clientQueueRef = useRef(clientQueue)
   const isDragging = useRef(false)
   const hasCompletedRef = useRef(false)
+  const previousEpisodeRef = useRef<{ episode: NowPlaying; positionSeconds: number; source: 'queue' | 'playlist' | 'guest' } | null>(null)
+  const pendingSeekRef = useRef<number | null>(null)
   const [sliderValue, setSliderValue] = useState(0)
 
   useEffect(() => {
@@ -180,13 +189,32 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
     prevNowPlayingRef.current = nowPlaying
 
     audio.src = nowPlaying.audioUrl
-    audio.playbackRate = speed
+
+    // Apply per-show speed preference, falling back to the stored global default.
+    // Use the localStorage value (not the current `speed` state) so that switching
+    // away from a fast podcast doesn't carry its speed to a show with no preference.
+    const storedGlobal = Number(localStorage.getItem(GLOBAL_SPEED_KEY)) || speed
+    const resolvedSpeed = resolveEpisodeSpeed(nowPlaying.feedUrl, storedGlobal, isFreeTier)
+    if (resolvedSpeed !== speed) setSpeed(resolvedSpeed)
+    audio.playbackRate = resolvedSpeed
     setCurrentTime(0)
     hasCompletedRef.current = false
     lastSavedAt.current = 0
 
+    // Check for a pending undo seek (restore previous position) — takes priority over DB progress
+    const pendingSeek = pendingSeekRef.current
+    pendingSeekRef.current = null
+
     if (isGuest) {
       if (playingRef.current) audio.play().catch(() => {})
+    } else if (pendingSeek !== null) {
+      // Undo restore: seek to saved position once the audio can play
+      const applySeek = () => {
+        if (pendingSeek > 5) audio.currentTime = pendingSeek
+        if (playingRef.current) audio.play().catch(() => {})
+        audio.removeEventListener('canplay', applySeek)
+      }
+      audio.addEventListener('canplay', applySeek)
     } else {
       fetch(`/api/progress?guid=${encodeURIComponent(nowPlaying.guid)}&feedUrl=${encodeURIComponent(nowPlaying.feedUrl)}`)
         .then((r) => r.json())
@@ -197,6 +225,35 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
         .catch(() => { if (playingRef.current) audio.play().catch(() => {}) })
     }
   }, [nowPlaying]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const restorePreviousEpisode = useCallback(() => {
+    const prev = previousEpisodeRef.current
+    if (!prev) return
+    previousEpisodeRef.current = null
+    pendingSeekRef.current = prev.positionSeconds
+    play(prev.episode)
+    // Re-add to the front of whichever queue it came from
+    if (prev.source === 'queue') {
+      fetch('/api/queue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          guid: prev.episode.guid,
+          feedUrl: prev.episode.feedUrl,
+          title: prev.episode.title,
+          audioUrl: prev.episode.audioUrl,
+          artworkUrl: prev.episode.artworkUrl,
+          podcastTitle: prev.episode.podcastTitle,
+          duration: prev.episode.duration,
+          prepend: true,
+        }),
+      })
+        .then(() => window.dispatchEvent(new Event('queue-changed')))
+        .catch(() => {})
+    } else if (prev.source === 'guest') {
+      prependClient(prev.episode)
+    }
+  }, [play, prependClient])
 
   // Fetch fresh playlist order and advance to the episode after np.guid
   const advancePlaylist = useCallback((playlistId: string, currentGuid: string) => {
@@ -226,6 +283,18 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
 
   const skipToNext = useCallback((np: NowPlaying) => {
     const audio = audioRef.current
+    // Only offer undo if the episode isn't almost done (< 95% played)
+    const pctPlayed = audio && audio.duration > 0 ? (audio.currentTime / audio.duration) * 100 : 0
+    if (pctPlayed < 95) {
+      previousEpisodeRef.current = {
+        episode: np,
+        positionSeconds: Math.floor(audio?.currentTime ?? 0),
+        source: np.playlistContext ? 'playlist' : 'queue',
+      }
+    } else {
+      previousEpisodeRef.current = null
+    }
+
     // Save current position without marking complete so the user can resume
     if (audio && audio.currentTime > 5) {
       const pct = audio.duration > 0 ? Math.min(100, Math.round((audio.currentTime / audio.duration) * 100)) : undefined
@@ -250,6 +319,12 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
     // Playlist context: fetch fresh order, advance non-destructively (don't touch queue)
     if (np.playlistContext) {
       advancePlaylist(np.playlistContext.playlistId, np.guid)
+      if (previousEpisodeRef.current) {
+        toast('Playing next episode', {
+          duration: 5000,
+          action: { label: 'Undo', onClick: () => restorePreviousEpisode() },
+        })
+      }
       return
     }
 
@@ -277,13 +352,23 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
             audioUrl: next.episode.audio_url,
             duration: next.episode.duration ?? 0,
           })
+          toast('Playing next episode', {
+            duration: 5000,
+            action: { label: 'Undo', onClick: () => restorePreviousEpisode() },
+          })
+        } else {
+          // No next episode — clear the snapshot so undo isn't offered
+          previousEpisodeRef.current = null
         }
       })
       .catch(() => {})
-  }, [audioRef, play, advancePlaylist])
+  }, [audioRef, play, advancePlaylist, restorePreviousEpisode])
 
   const completeAndAdvance = useCallback((np: NowPlaying) => {
     const audio = audioRef.current
+    // Auto-advance on completion — no undo offered (episode naturally finished)
+    previousEpisodeRef.current = null
+
     fetch('/api/progress', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -346,7 +431,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
         }
       })
       .catch(() => {})
-  }, [audioRef, play, advancePlaylist])
+  }, [audioRef, play, advancePlaylist, restorePreviousEpisode])
 
   useEffect(() => {
     const audio = audioRef.current
@@ -419,7 +504,9 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
         const idx = queue.findIndex((e) => e.guid === np.guid)
         dequeueClient(np.guid)
         const next = queue[idx + 1] ?? queue[0]
-        if (next && next.guid !== np.guid) play(next)
+        if (next && next.guid !== np.guid) {
+          play(next)
+        }
         return
       }
 
@@ -452,7 +539,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
       audio.removeEventListener('ended', onEnded)
       audio.removeEventListener('seeked', onSeeked)
     }
-  }, [audioRef, play, isGuest, dequeueClient])
+  }, [audioRef, play, isGuest, dequeueClient, restorePreviousEpisode])
 
   function startSleepTimer(minutes: number) {
     if (sleepTimer.current) clearTimeout(sleepTimer.current)

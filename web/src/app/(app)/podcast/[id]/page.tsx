@@ -23,6 +23,7 @@ import AuthPromptModal from '@/components/ui/AuthPromptModal'
 import UpgradeModal from '@/components/ui/UpgradeModal'
 import AddToPlaylistPopover from '@/components/ui/AddToPlaylistPopover'
 import { EpisodeProgressOverlay } from '@/components/ui/EpisodeProgressOverlay'
+import { ALL_SPEEDS, perShowSpeedKey } from '@/lib/player/speed'
 
 interface SubscriptionRow {
   feed_url: string
@@ -32,6 +33,7 @@ interface SubscriptionRow {
   last_visited_at: string | null
   latest_episode_pub_date: string | null
   episode_filter: string | null
+  speed_override: number | null
 }
 
 interface ItunesEpisode {
@@ -124,6 +126,9 @@ export default function PodcastPage() {
   const [feedRefreshKey, setFeedRefreshKey] = useState(0)
   const [episodeLimit, setEpisodeLimit] = useState(15)
 
+  // Per-show playback speed ('' = follow global)
+  const [perShowSpeed, setPerShowSpeed] = useState<string>('')
+
   // All subscriptions (for filtering similar podcasts)
   const [allSubscriptions, setAllSubscriptions] = useState<{ feedUrl: string }[]>([])
 
@@ -183,6 +188,18 @@ export default function PodcastPage() {
         // Only populate modal input with actual text filters, not sentinels
         const f = sub?.episode_filter
         setEpisodeFilter(f && f !== '*' ? f : '')
+        // Sync per-show speed from DB into state + localStorage so the player picks it up
+        if (sub) {
+          const resolvedFeedUrl = sub.feed_url
+          if (sub.speed_override != null) {
+            const val = String(sub.speed_override)
+            setPerShowSpeed(val)
+            localStorage.setItem(perShowSpeedKey(resolvedFeedUrl), val)
+          } else {
+            setPerShowSpeed('')
+            localStorage.removeItem(perShowSpeedKey(resolvedFeedUrl))
+          }
+        }
       })
       .catch(() => {})
     fetch('/api/queue')
@@ -215,6 +232,25 @@ export default function PodcastPage() {
       })
       .catch(() => {})
   }, [feedUrl, oldLastVisitedAt, subscribed])
+
+  // Per-show speed is hydrated from the subscription row (DB → localStorage) in the
+  // subscription fetch effect above. Guest users get it from localStorage directly.
+
+  function handlePerShowSpeedChange(value: string) {
+    setPerShowSpeed(value)
+    if (value === '') {
+      localStorage.removeItem(perShowSpeedKey(feedUrl))
+    } else {
+      localStorage.setItem(perShowSpeedKey(feedUrl), value)
+    }
+    if (!isGuest) {
+      fetch('/api/subscriptions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedUrl, speedOverride: value === '' ? null : Number(value) }),
+      }).catch(() => {})
+    }
+  }
 
   const handleRefreshFeed = () => setFeedRefreshKey(k => k + 1)
 
@@ -538,6 +574,7 @@ export default function PodcastPage() {
           last_visited_at: null,
           latest_episode_pub_date: null,
           episode_filter: '*',
+          speed_override: null,
         })
       }
       window.dispatchEvent(new Event('subscriptions-changed'))
@@ -805,6 +842,28 @@ export default function PodcastPage() {
               >
                 {subscribing ? '...' : subscribed ? s.podcast_page.subscribed : s.podcast_page.subscribe}
               </button>
+              {/* Per-show playback speed — inline with subscribe button, paid users only */}
+              {subscribed && !isGuest && contextTier === 'paid' && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-on-surface-variant">{s.podcast_page.per_show_speed_label}</span>
+                  <select
+                    value={perShowSpeed}
+                    onChange={(e) => handlePerShowSpeedChange(e.target.value)}
+                    className="bg-surface-container text-on-surface text-xs rounded px-2 py-1 border border-outline-variant outline-none"
+                  >
+                    <option value="">{s.podcast_page.per_show_speed_follow_global}</option>
+                    {ALL_SPEEDS.map((spd) => (
+                      <option key={spd} value={String(spd)}>{spd}×</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {subscribed && !isGuest && contextTier === 'free' && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-on-surface-variant">{s.podcast_page.per_show_speed_label}</span>
+                  <a href="/upgrade" className="text-xs text-primary hover:underline">{s.player.upgrade_for_speeds}</a>
+                </div>
+              )}
               {process.env.NODE_ENV === 'development' && subscribed && (
                 <button onClick={devResetLastVisited} className="text-xs text-error underline">
                   [dev] reset last visited → 7 days ago

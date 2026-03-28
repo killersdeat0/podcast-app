@@ -165,12 +165,13 @@ Two body variants:
 
 **Body A — Reorder:** `{ orderedFeedUrls: string[] }` — full ordered list of feed URLs. Runs parallel updates setting `position = index` for each.
 
-**Body B — Visit tracking / episode filter:** `{ feedUrl: string, latestEpisodePubDate?: string, lastVisitedAt?: string, newEpisodeCount?: number, episodeFilter?: string, newEpisodesToCache?: EpisodeCache[] }`
+**Body B — Visit tracking / episode filter / speed override:** `{ feedUrl: string, latestEpisodePubDate?: string, lastVisitedAt?: string, newEpisodeCount?: number, episodeFilter?: string, newEpisodesToCache?: EpisodeCache[], speedOverride?: number | null }`
 - `latestEpisodePubDate`: set on podcast detail page mount (after feed fetch) to the newest episode's `pubDate`
 - `lastVisitedAt`: set on podcast detail page unmount to record when the user last visited
 - `newEpisodeCount`: count of new episodes since last visit; set on mount alongside `latestEpisodePubDate`
 - `episodeFilter`: controls the ✨ New Episodes section. Sentinel values: `''` = no notifications (all users), `'*'` = all new episodes (all users), any other text = custom keyword filter (paid only — free users who send custom text are silently ignored). On downgrade, custom text filters are automatically reset to `'*'`.
 - `newEpisodesToCache`: array of new episode metadata `{ guid, title, audioUrl, pubDate, duration, description, artworkUrl, podcastTitle }` to upsert into the shared `episodes` table. This ensures new episodes remain queryable via `GET /api/podcasts/unseen` even after they age out of the RSS feed's retention window. Uses `{ onConflict: 'feed_url,guid' }`. Empty array is a no-op.
+- `speedOverride`: paid users only. Per-show playback speed (e.g. `1.5`). Pass `null` to clear. Silently ignored for free-tier users. Written to `subscriptions.speed_override`.
 
 **Response:** `{ ok: true }`
 
@@ -193,9 +194,11 @@ Returns the user's queue ordered by `position`, with episode metadata joined fro
 ### `POST /api/queue`
 Add an episode to the queue. Upserts episode metadata into `episodes` first.
 
-**Freemium gate:** Free tier capped at 10 items; paid tier capped at 500. Returns `403` with `"Queue limit reached. Upgrade to add more episodes."` if at cap. Limits defined in `web/src/lib/limits.ts`.
+**Freemium gate:** Free tier capped at 10 items; paid tier capped at 500. Returns `403` with `"Queue limit reached. Upgrade to add more episodes."` if at cap. The cap check is **skipped** when `prepend: true`. Limits defined in `web/src/lib/limits.ts`.
 
-**Body:** `{ guid, feedUrl, title, audioUrl, artworkUrl, podcastTitle, duration?, pubDate?, description? }`
+**Body:** `{ guid, feedUrl, title, audioUrl, artworkUrl, podcastTitle, duration?, pubDate?, description?, prepend?: boolean }`
+
+- `prepend`: when `true`, calls the `increment_queue_positions(p_user_id)` Supabase RPC to shift all existing queue positions up by 1, then inserts the episode at position 0 (front of queue). Used by the undo-skip feature to restore a skipped episode. The queue-cap check is bypassed so undo always works.
 
 **Response:** `{ ok: true }`
 
@@ -260,13 +263,27 @@ Returns all episodes where `position_seconds > 0`, ordered by `updated_at` desce
 ## Profile
 
 ### `GET /api/profile`
-Returns the current user's profile and listening stats.
+Returns the current user's profile, listening stats, and persisted preferences.
 
-**Response:** `{ email, tier, listeningSeconds, completedThisWeek, streakDays }`
+**Response:** `{ email, tier, listeningSeconds, completedThisWeek, streakDays, defaultVolume }`
 
 - `listeningSeconds` — sum of `position_seconds` from `playback_progress` in the last 30 days
 - `completedThisWeek` — count of episodes marked `completed = true` in the last 7 days (paid-only display)
 - `streakDays` — consecutive days with any listening activity; starts from today, falls back to yesterday if no activity yet today (paid-only display)
+- `defaultVolume` — user's saved default volume from `user_profiles.default_volume` (0–1, or `null` if not set)
+
+---
+
+### `PATCH /api/profile`
+Update persisted user preferences.
+
+**Body:** `{ defaultVolume?: number }`
+
+- `defaultVolume`: clamped to `[0, 1]`. Written to `user_profiles.default_volume`. Used by the Settings page for cross-device volume sync.
+
+**Response:** `{ ok: true }`
+
+**Errors:** `400` if body contains nothing to update, `500` on DB error.
 
 ---
 
