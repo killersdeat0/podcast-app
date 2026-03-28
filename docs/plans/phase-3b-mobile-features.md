@@ -40,7 +40,7 @@ and `<Feature>ViewModel.kt` (androidMain).
 | **Full Player** | Artwork, title, podcast name; scrubber + chapter markers; play/pause/skip ±15s; speed selector (1x/2x free — 0.5x–3x paid); silence skip toggle (paid only); sleep timer; queue-ahead preview |
 | **Settings** | Back + "Settings" title; PREFERENCES group (Notification Settings, Playback Defaults); DATA & ACCOUNT group (OPML Import/Export with lock icon — paid, Manage Subscription, Sign Out — destructive red); app version footer |
 | **Notification Settings** | Master on/off toggle; per-podcast toggle list (mirrors per-podcast toggle on Podcast Detail); episode filter patterns (paid) |
-| **Stats** | Total listening time; episodes per week chart; listening streak (paid only — accessible from Profile) |
+| **Stats** | Total listening time (30-day, from `listening_daily`); listening by day of week (bar chart); monthly trend; top shows by listening time; episodes completed per show (from `listening_by_show`); streak (paid only — accessible from Profile). Requires web stats implementation first — mobile reads same API. |
 
 #### Sheets (inline — no full-screen navigation)
 

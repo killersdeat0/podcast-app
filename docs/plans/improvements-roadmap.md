@@ -31,20 +31,45 @@ Consolidate scattered settings into a `/settings` page: language, default playba
 - [x] Add "Delete account" danger zone (Radix Dialog confirmation)
 - [x] Link to Settings from sidebar (Settings icon) and from Profile page ("Settings →" link)
 
-### 5. Notification Settings UI Per Podcast
+### 5. Notification Settings UI Per Podcast ✅
 `episode_filter` column already exists in DB. Add a settings popover on the podcast detail page / subscription list to configure per-podcast new-episode notifications.
-- [ ] Add notification settings UI to podcast detail page (popover or inline toggle)
-- [ ] Wire to existing `episode_filter` column via `PATCH /api/subscriptions`
-- [ ] Gate `*` (all episodes) on paid tier
+- [x] Add notification settings UI to podcast detail page (popover or inline toggle)
+- [x] Wire to existing `episode_filter` column via `PATCH /api/subscriptions`
+- [x] Gate `*` (all episodes) on paid tier
 
 ### 6. Dedicated Stats Page
-All data already tracked in `playback_progress`. Expand profile stats into a full `/stats` page.
+Two pre-aggregated tables capture listening data at write time, making stat queries trivially cheap. Written to on every 10s progress save (server-side, in `POST /api/progress`). Can throttle to 60s later if needed.
+
+**`listening_daily`** — one row per user per day, upserted:
+- `user_id`, `date` (date), `seconds_listened` (integer, incremented)
+- Powers: streak, day-of-week chart, monthly trend
+
+**`listening_by_show`** — one row per user per feed, upserted:
+- `user_id`, `feed_url`, `seconds_listened` (integer, incremented), `episodes_completed` (integer, incremented), `last_listened_at` (timestamptz, overwritten)
+- No FK to `subscriptions` — stats survive unsubscribe
+- `episodes_completed` only increments on `false → true` transition (check previous `playback_progress.completed` before upsert)
+- Powers: top shows, per-show completion count
+
+**Tier gating:**
+- Data stored for all users regardless of tier
+- Free: `listening_daily` queries limited to last 30 days; show "📊 Unlock your full listening history" upsell nudge
+- Paid: full history, no date filter
+- `listening_by_show` (top shows, episodes completed) is always all-time for everyone — no time dimension
+
+**Stats page shows (using current + new data):**
+- Streak (already computed in profile, now from real `listening_daily` data)
+- Hours listened (30-day free / all-time paid, from `listening_daily`)
+- Listening by day of week (bar chart, from `listening_daily`)
+- Monthly trend (from `listening_daily`)
+- Top shows by listening time (from `listening_by_show`)
+- Episodes completed per show (from `listening_by_show`)
+
+**Cut from original plan:** streak calendar visualization, episodes completed milestones.
+
+- [ ] Migration: `listening_daily` + `listening_by_show` tables
+- [ ] Update `POST /api/progress` to upsert into both tables on every save
+- [ ] Update `GET /api/profile`: replace expensive `playback_progress` aggregations for `listeningSeconds` and `streakDays` with queries against new tables (`completedThisWeek` stays on `playback_progress`)
 - [ ] Create `/stats` route
-- [ ] Top shows by listening time
-- [ ] Listening by day of week (bar chart)
-- [ ] Monthly listening trend
-- [ ] Streak calendar visualization
-- [ ] Episodes completed milestones
 - [ ] Link from Profile page
 
 ### 7. Skip Intro/Outro
