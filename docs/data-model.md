@@ -144,6 +144,42 @@ Unique: `(playlist_id, episode_guid)`.
 
 ---
 
+### `listening_daily`
+One row per user per calendar day (UTC). Upserted on every `POST /api/progress` save.
+
+| Column | Type | Notes |
+|---|---|---|
+| `user_id` | `uuid` PK | References `auth.users(id)`, cascades on delete |
+| `date` | `date` PK | UTC calendar date (`YYYY-MM-DD`) |
+| `seconds_listened` | `integer` | Cumulative seconds listened on this day |
+
+**Primary key:** `(user_id, date)`
+
+**Write strategy:** On every progress save, compute `timeSinceLastSave = now - prevProgress.updated_at`, then `secondsListened = min(timeSinceLastSave, 15)`. Using wall-clock elapsed time (not position delta) means forward skips and playback speed don't inflate stats — stats reflect real time spent listening. The 15s cap absorbs timing jitter on pause/resume. Saves only fire while audio is playing so pauses are naturally excluded. If no previous row exists, skip the stats upsert.
+
+**RLS:** Users can manage only their own rows.
+
+---
+
+### `listening_by_show`
+One row per user per podcast feed. Upserted on every `POST /api/progress` save.
+
+| Column | Type | Notes |
+|---|---|---|
+| `user_id` | `uuid` PK | References `auth.users(id)`, cascades on delete |
+| `feed_url` | `text` PK | RSS feed URL |
+| `seconds_listened` | `integer` | Cumulative seconds listened for this show |
+| `episodes_completed` | `integer` | Count of distinct episodes completed (false→true transitions only) |
+| `last_listened_at` | `timestamptz` | Timestamp of most recent progress save |
+
+**Primary key:** `(user_id, feed_url)`
+
+**Write strategy:** Same `secondsListened` calculation as `listening_daily`. If `secondsListened > 0`, increment `seconds_listened` and update `last_listened_at`. Increment `episodes_completed` by 1 only on a `false→true` completion transition (prevents double-counting). When `secondsListened = 0` but a new completion is detected, only `episodes_completed` is incremented.
+
+**RLS:** Users can manage only their own rows.
+
+---
+
 ### `favorites`
 Reserved for future use.
 

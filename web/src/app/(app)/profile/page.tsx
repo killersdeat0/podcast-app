@@ -290,6 +290,17 @@ export default function ProfilePage() {
             )}
           </div>
 
+          {/* ── Stats link ───────────────────────────────────────────────── */}
+          <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6 flex items-center justify-between">
+            <p className="text-xs text-on-surface-variant uppercase tracking-wider">{strings.nav.history}</p>
+            <Link
+              href="/stats"
+              className="text-sm text-primary hover:underline transition-colors"
+            >
+              {strings.stats.view_stats}
+            </Link>
+          </div>
+
           {/* ── Settings link ────────────────────────────────────────────── */}
           <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6 flex items-center justify-between">
             <p className="text-xs text-on-surface-variant uppercase tracking-wider">{strings.nav.settings}</p>

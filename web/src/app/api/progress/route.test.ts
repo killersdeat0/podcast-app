@@ -115,8 +115,9 @@ describe('POST /api/progress', () => {
     })
     const res = await POST(req)
     expect(res.status).toBe(200)
-    const upsertArg = upsertMock.mock.calls[0][0]
-    expect(upsertArg.position_seconds).toBe(3600)
+    // Find the playback_progress upsert call (the first upsert on the chain)
+    const progressUpsertArg = upsertMock.mock.calls[0][0]
+    expect(progressUpsertArg.position_seconds).toBe(3600)
   })
 
   it('returns 500 when the database write fails', async () => {
@@ -128,5 +129,255 @@ describe('POST /api/progress', () => {
     })
     const res = await POST(req)
     expect(res.status).toBe(500)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Stats upsert tests
+// ---------------------------------------------------------------------------
+
+describe('POST /api/progress — stats upserts', () => {
+  /**
+   * Build a mockFrom that returns specific chains per table in order.
+   * tableMap: array of [tableName, chain] pairs consumed sequentially.
+   * Unknown tables fall through to a default no-op chain.
+   */
+  function buildFromMock(
+    calls: Array<{ table: string; chain: ReturnType<typeof makeChain> }>,
+  ) {
+    let idx = 0
+    return vi.fn((table: string) => {
+      const entry = calls[idx]
+      if (entry && entry.table === table) {
+        idx++
+        return entry.chain
+      }
+      // fallback no-op chain
+      return makeChain({ data: null, error: null })
+    })
+  }
+
+  it('upserts into listening_daily and listening_by_show using timeSinceLastSave', async () => {
+    mockGetUser.mockResolvedValue(AUTH)
+
+    // prevProgress updated 10s ago → timeSinceLastSave = 10, secondsListened = min(10, 15) = 10
+    const tenSecondsAgo = new Date(Date.now() - 10000).toISOString()
+    const prevProgressChain = makeChain({ data: { completed: false, updated_at: tenSecondsAgo }, error: null })
+    const dailyRowChain = makeChain({ data: { seconds_listened: 100 }, error: null })
+    const showRowChain = makeChain({ data: { seconds_listened: 200, episodes_completed: 5 }, error: null })
+
+    const dailyUpsertChain = makeChain({ data: null, error: null })
+    const dailyUpsertMock = vi.fn().mockResolvedValue({ data: null, error: null })
+    ;(dailyUpsertChain as Record<string, unknown>).upsert = dailyUpsertMock
+
+    const showUpsertChain = makeChain({ data: null, error: null })
+    const showUpsertMock = vi.fn().mockResolvedValue({ data: null, error: null })
+    ;(showUpsertChain as Record<string, unknown>).upsert = showUpsertMock
+
+    const progressUpsertChain = makeChain({ data: null, error: null })
+
+    const calls = [
+      { table: 'playback_progress', chain: prevProgressChain },
+      { table: 'playback_progress', chain: progressUpsertChain },
+      { table: 'listening_daily', chain: dailyRowChain },
+      { table: 'listening_daily', chain: dailyUpsertChain },
+      { table: 'listening_by_show', chain: showRowChain },
+      { table: 'listening_by_show', chain: showUpsertChain },
+    ]
+    mockFrom.mockImplementation(buildFromMock(calls))
+
+    const req = new NextRequest('http://localhost/api/progress', {
+      method: 'POST',
+      body: JSON.stringify({ guid: 'ep1', feedUrl: 'https://example.com/feed', positionSeconds: 60 }),
+    })
+    const res = await POST(req)
+    expect(res.status).toBe(200)
+
+    // daily: 100 + 10 = 110
+    expect(dailyUpsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({ seconds_listened: 110 }),
+      expect.anything(),
+    )
+    // show: 200 + 10 = 210, episodes_completed unchanged (5)
+    expect(showUpsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({ seconds_listened: 210, episodes_completed: 5 }),
+      expect.anything(),
+    )
+  })
+
+  it('caps secondsListened at 15s when timeSinceLastSave exceeds cap (e.g. after long pause)', async () => {
+    mockGetUser.mockResolvedValue(AUTH)
+
+    // prevProgress updated 60s ago (long pause/jitter) → capped at 15
+    const sixtySecondsAgo = new Date(Date.now() - 60000).toISOString()
+    const prevProgressChain = makeChain({ data: { completed: false, updated_at: sixtySecondsAgo }, error: null })
+    const dailyRowChain = makeChain({ data: { seconds_listened: 0 }, error: null })
+    const showRowChain = makeChain({ data: { seconds_listened: 0, episodes_completed: 0 }, error: null })
+
+    const dailyUpsertChain = makeChain({ data: null, error: null })
+    const dailyUpsertMock = vi.fn().mockResolvedValue({ data: null, error: null })
+    ;(dailyUpsertChain as Record<string, unknown>).upsert = dailyUpsertMock
+
+    const showUpsertChain = makeChain({ data: null, error: null })
+    const progressUpsertChain = makeChain({ data: null, error: null })
+
+    const calls = [
+      { table: 'playback_progress', chain: prevProgressChain },
+      { table: 'playback_progress', chain: progressUpsertChain },
+      { table: 'listening_daily', chain: dailyRowChain },
+      { table: 'listening_daily', chain: dailyUpsertChain },
+      { table: 'listening_by_show', chain: showRowChain },
+      { table: 'listening_by_show', chain: showUpsertChain },
+    ]
+    mockFrom.mockImplementation(buildFromMock(calls))
+
+    const req = new NextRequest('http://localhost/api/progress', {
+      method: 'POST',
+      body: JSON.stringify({ guid: 'ep1', feedUrl: 'https://example.com/feed', positionSeconds: 60 }),
+    })
+    await POST(req)
+
+    // capped at 15: 0 + 15 = 15
+    expect(dailyUpsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({ seconds_listened: 15 }),
+      expect.anything(),
+    )
+  })
+
+  it('skips listening_daily and listening_by_show upserts when no previous row exists (first save)', async () => {
+    mockGetUser.mockResolvedValue(AUTH)
+
+    // No prevProgress → timeSinceLastSave = 0 → skip stats
+    const prevProgressChain = makeChain({ data: null, error: null })
+    const progressUpsertChain = makeChain({ data: null, error: null })
+
+    let dailyCalled = false
+    let showCalled = false
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'playback_progress') return prevProgressChain
+      if (table === 'listening_daily') { dailyCalled = true; return makeChain() }
+      if (table === 'listening_by_show') { showCalled = true; return makeChain() }
+      return progressUpsertChain
+    })
+
+    const req = new NextRequest('http://localhost/api/progress', {
+      method: 'POST',
+      body: JSON.stringify({ guid: 'ep1', feedUrl: 'https://example.com/feed', positionSeconds: 60 }),
+    })
+    await POST(req)
+    expect(dailyCalled).toBe(false)
+    expect(showCalled).toBe(false)
+  })
+
+  it('increments episodes_completed only on false→true completion transition', async () => {
+    mockGetUser.mockResolvedValue(AUTH)
+
+    const tenSecondsAgo = new Date(Date.now() - 10000).toISOString()
+    const prevProgressChain = makeChain({ data: { completed: false, updated_at: tenSecondsAgo }, error: null })
+    const progressUpsertChain = makeChain({ data: null, error: null })
+    const dailyRowChain = makeChain({ data: { seconds_listened: 0 }, error: null })
+    const showRowChain = makeChain({ data: { seconds_listened: 0, episodes_completed: 2 }, error: null })
+    const dailyUpsertChain = makeChain({ data: null, error: null })
+    const showUpsertChain = makeChain({ data: null, error: null })
+    const showUpsertMock = vi.fn().mockResolvedValue({ data: null, error: null })
+    ;(showUpsertChain as Record<string, unknown>).upsert = showUpsertMock
+
+    const calls = [
+      { table: 'playback_progress', chain: prevProgressChain },
+      { table: 'playback_progress', chain: progressUpsertChain },
+      { table: 'listening_daily', chain: dailyRowChain },
+      { table: 'listening_daily', chain: dailyUpsertChain },
+      { table: 'listening_by_show', chain: showRowChain },
+      { table: 'listening_by_show', chain: showUpsertChain },
+    ]
+    mockFrom.mockImplementation(buildFromMock(calls))
+
+    const req = new NextRequest('http://localhost/api/progress', {
+      method: 'POST',
+      body: JSON.stringify({ guid: 'ep1', feedUrl: 'https://example.com/feed', positionSeconds: 60, completed: true }),
+    })
+    await POST(req)
+
+    // episodes_completed should go from 2 → 3
+    expect(showUpsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({ episodes_completed: 3 }),
+      expect.anything(),
+    )
+  })
+
+  it('does not increment episodes_completed when already completed (true→true)', async () => {
+    mockGetUser.mockResolvedValue(AUTH)
+
+    const tenSecondsAgo = new Date(Date.now() - 10000).toISOString()
+    const prevProgressChain = makeChain({ data: { completed: true, updated_at: tenSecondsAgo }, error: null })
+    const progressUpsertChain = makeChain({ data: null, error: null })
+    const dailyRowChain = makeChain({ data: { seconds_listened: 0 }, error: null })
+    const showRowChain = makeChain({ data: { seconds_listened: 0, episodes_completed: 5 }, error: null })
+    const dailyUpsertChain = makeChain({ data: null, error: null })
+    const showUpsertChain = makeChain({ data: null, error: null })
+    const showUpsertMock = vi.fn().mockResolvedValue({ data: null, error: null })
+    ;(showUpsertChain as Record<string, unknown>).upsert = showUpsertMock
+
+    const calls = [
+      { table: 'playback_progress', chain: prevProgressChain },
+      { table: 'playback_progress', chain: progressUpsertChain },
+      { table: 'listening_daily', chain: dailyRowChain },
+      { table: 'listening_daily', chain: dailyUpsertChain },
+      { table: 'listening_by_show', chain: showRowChain },
+      { table: 'listening_by_show', chain: showUpsertChain },
+    ]
+    mockFrom.mockImplementation(buildFromMock(calls))
+
+    const req = new NextRequest('http://localhost/api/progress', {
+      method: 'POST',
+      body: JSON.stringify({ guid: 'ep1', feedUrl: 'https://example.com/feed', positionSeconds: 90, completed: true }),
+    })
+    await POST(req)
+
+    // episodes_completed must stay at 5 — no double-count
+    expect(showUpsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({ episodes_completed: 5 }),
+      expect.anything(),
+    )
+  })
+
+  it('increments episodes_completed even when secondsListened is 0 (completion-only save)', async () => {
+    mockGetUser.mockResolvedValue(AUTH)
+
+    // No prev row → timeSinceLastSave = 0, but completion flips false→true
+    const prevProgressChain = makeChain({ data: { completed: false, updated_at: null }, error: null })
+    const progressUpsertChain = makeChain({ data: null, error: null })
+    const showRowChain = makeChain({ data: { seconds_listened: 100, episodes_completed: 1 }, error: null })
+    const showUpsertChain = makeChain({ data: null, error: null })
+    const showUpsertMock = vi.fn().mockResolvedValue({ data: null, error: null })
+    ;(showUpsertChain as Record<string, unknown>).upsert = showUpsertMock
+
+    let listenDailyCalled = false
+    let showCallCount = 0
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'playback_progress') return prevProgressChain
+      if (table === 'listening_by_show') {
+        showCallCount++
+        return showCallCount === 1 ? showRowChain : showUpsertChain
+      }
+      if (table === 'listening_daily') { listenDailyCalled = true; return makeChain() }
+      return progressUpsertChain
+    })
+
+    const req = new NextRequest('http://localhost/api/progress', {
+      method: 'POST',
+      body: JSON.stringify({ guid: 'ep1', feedUrl: 'https://example.com/feed', positionSeconds: 60, completed: true }),
+    })
+    await POST(req)
+
+    // listening_daily must NOT have been touched (secondsListened = 0)
+    expect(listenDailyCalled).toBe(false)
+    // episodes_completed: 1 + 1 = 2
+    expect(showUpsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({ episodes_completed: 2 }),
+      expect.anything(),
+    )
   })
 })

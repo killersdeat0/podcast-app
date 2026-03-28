@@ -239,11 +239,17 @@ Fetch playback progress for all episodes in a feed that have been listened to (`
 ---
 
 ### `POST /api/progress`
-Save playback position. Also upserts episode metadata into `episodes` if `title` and `audioUrl` are provided.
+Save playback position. Also upserts episode metadata into `episodes` if `title` and `audioUrl` are provided. After saving progress, updates listening stats in `listening_daily` and `listening_by_show`.
 
 **Body:** `{ guid, feedUrl, positionSeconds, completed?, title?, audioUrl?, duration?, artworkUrl?, podcastTitle? }`
 
 **Position capping:** When `completed` is falsy and `duration` is provided, `positionSeconds` is capped to `duration` before saving. This guards against RSS metadata duration mismatches where the actual audio is longer than the feed-reported duration, which would otherwise produce progress values above 100%.
+
+**Stats side-effects (server-side, on every save):**
+1. Fetches the previous `playback_progress` row for this user+episode before upserting.
+2. Computes `delta = max(0, positionSeconds - prevPositionSeconds)`.
+3. If `delta > 0`: increments `listening_daily.seconds_listened` for today (UTC) and `listening_by_show.seconds_listened` for this feed.
+4. Increments `listening_by_show.episodes_completed` by 1 **only** on a false→true `completed` transition (never double-counts). This increment happens even when `delta = 0`.
 
 **Response:** `{ ok: true }`
 
@@ -267,9 +273,9 @@ Returns the current user's profile, listening stats, and persisted preferences.
 
 **Response:** `{ email, tier, listeningSeconds, completedThisWeek, streakDays, defaultVolume }`
 
-- `listeningSeconds` — sum of `position_seconds` from `playback_progress` in the last 30 days
-- `completedThisWeek` — count of episodes marked `completed = true` in the last 7 days (paid-only display)
-- `streakDays` — consecutive days with any listening activity; starts from today, falls back to yesterday if no activity yet today (paid-only display)
+- `listeningSeconds` — sum of `seconds_listened` from `listening_daily` in the last 30 days
+- `completedThisWeek` — count of episodes marked `completed = true` in the last 7 days from `playback_progress` (paid-only display)
+- `streakDays` — consecutive days with `seconds_listened > 0` in `listening_daily`; starts from today, falls back to yesterday if no activity yet today (paid-only display)
 - `defaultVolume` — user's saved default volume from `user_profiles.default_volume` (0–1, or `null` if not set)
 
 ---
@@ -284,6 +290,35 @@ Update persisted user preferences.
 **Response:** `{ ok: true }`
 
 **Errors:** `400` if body contains nothing to update, `500` on DB error.
+
+---
+
+### `GET /api/stats`
+Returns detailed listening statistics for the authenticated user. Auth required (returns 401 if no session).
+
+**Tier behaviour:**
+- **Free:** `dailyRows` filtered to the last 30 days only (`date >= now - 30 days`)
+- **Paid:** `dailyRows` returned for all time (no date filter)
+- `showRows` is always all-time for both tiers
+
+**Response:**
+```ts
+{
+  tier: 'free' | 'paid',
+  dailyRows: { date: string; secondsListened: number }[],  // sorted ascending by date
+  showRows: {
+    feedUrl: string;
+    secondsListened: number;
+    episodesCompleted: number;
+    lastListenedAt: string;
+  }[],  // sorted by secondsListened DESC, limit 10
+}
+```
+
+- `dailyRows` — one entry per day with any listening activity from `listening_daily`
+- `showRows` — top 10 shows by total listening time from `listening_by_show`
+
+**Errors:** `401` if unauthenticated.
 
 ---
 
