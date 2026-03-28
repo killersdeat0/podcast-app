@@ -35,6 +35,7 @@ const en = {
   profile: {
     heading: 'Profile',
     account: 'Account',
+    stats_section: 'Stats',
     listened: 'Hours listened',
     listened_period: 'last 30 days',
     completed_this_week: 'Completed',

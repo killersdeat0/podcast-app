@@ -35,6 +35,7 @@ const es = {
   profile: {
     heading: 'Perfil',
     account: 'Cuenta',
+    stats_section: 'Estadísticas',
     listened: 'Horas escuchadas',
     listened_period: 'últimos 30 días',
     completed_this_week: 'Completados',

@@ -24,18 +24,11 @@ interface Subscription {
   episode_filter: string | null
 }
 
-function formatHours(seconds: number): string {
-  if (seconds < 60) return '—'
+function formatDuration(seconds: number, unitMin: string, unitHr: string): { value: string; unit: string } {
+  if (seconds < 60) return { value: '—', unit: '' }
   const hours = seconds / 3600
-  if (hours < 1) return `${Math.round(seconds / 60)}m`
-  return `${hours.toFixed(1)}`
-}
-
-function formatHoursLabel(seconds: number): string {
-  if (seconds < 60) return ''
-  const hours = seconds / 3600
-  if (hours < 1) return 'min'
-  return 'hr'
+  if (hours < 1) return { value: `${Math.round(seconds / 60)}${unitMin}`, unit: '' }
+  return { value: hours.toFixed(1), unit: unitHr }
 }
 
 /** Circular SVG ring around an icon. pct is 0–100. */
@@ -238,8 +231,7 @@ export default function ProfilePage() {
               </CircularRing>
               <div className="min-w-0">
                 <p className="text-2xl font-bold text-on-surface leading-none">
-                  {formatHours(data.listeningSeconds)}
-                  <span className="text-sm font-normal text-on-surface-variant ml-1">{formatHoursLabel(data.listeningSeconds)}</span>
+                  {(() => { const { value, unit } = formatDuration(data.listeningSeconds, strings.stats.unit_min, strings.stats.unit_hr); return <>{value}{unit && <span className="text-sm font-normal text-on-surface-variant ml-1">{unit}</span>}</> })()}
                 </p>
                 <p className="text-xs text-on-surface-variant mt-0.5">{strings.profile.listened}</p>
                 <p className="text-xs text-on-surface-dim">{strings.profile.listened_period}</p>
@@ -290,16 +282,35 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {/* ── Stats link ───────────────────────────────────────────────── */}
-          <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6 flex items-center justify-between">
-            <p className="text-xs text-on-surface-variant uppercase tracking-wider">{strings.nav.history}</p>
-            <Link
-              href="/stats"
-              className="text-sm text-primary hover:underline transition-colors"
-            >
-              {strings.stats.view_stats}
-            </Link>
-          </div>
+          {/* ── Stats sneak peek ─────────────────────────────────────────── */}
+          <Link
+            href="/stats"
+            className="block bg-surface-container-low border border-outline-variant rounded-xl p-5 hover:border-primary/40 transition-colors group"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs text-on-surface-variant uppercase tracking-wider">{strings.profile.stats_section}</p>
+              <span className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">{strings.stats.view_stats}</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <Headphones size={13} className="text-on-surface-dim flex-shrink-0" />
+                <span className="text-sm font-medium text-on-surface">
+                  {(() => { const { value, unit } = formatDuration(data.listeningSeconds, strings.stats.unit_min, strings.stats.unit_hr); return <>{value}{unit && <span className="text-xs font-normal text-on-surface-variant ml-0.5">{unit}</span>}</> })()}
+                </span>
+                <span className="text-xs text-on-surface-dim">{strings.profile.listened_period}</span>
+              </div>
+              {data.streakDays > 0 && (
+                <>
+                  <span className="text-outline-variant">·</span>
+                  <div className="flex items-center gap-1.5">
+                    <Flame size={13} className="text-warning flex-shrink-0" />
+                    <span className="text-sm font-medium text-on-surface">{data.streakDays}</span>
+                    <span className="text-xs text-on-surface-dim">{strings.profile.streak}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </Link>
 
           {/* ── Settings link ────────────────────────────────────────────── */}
           <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6 flex items-center justify-between">
