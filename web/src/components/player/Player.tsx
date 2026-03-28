@@ -510,11 +510,10 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
         return
       }
 
-      // completeAndAdvance is only called here — 98% threshold saves completed:true but doesn't advance
-      if (!hasCompletedRef.current) {
-        hasCompletedRef.current = true
-        completeAndAdvance(np)
-      }
+      // Always advance on actual end. The 98% threshold may have already set hasCompletedRef=true
+      // and saved completed:true to DB — completeAndAdvance re-saves idempotently and handles queue advance.
+      hasCompletedRef.current = true
+      completeAndAdvance(np)
     }
 
     const onSeeked = () => {
@@ -625,8 +624,8 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
                 value={isDragging.current ? sliderValue : currentTime}
                 onPointerDown={() => { isDragging.current = true; setSliderValue(currentTime) }}
                 onChange={(e) => setSliderValue(Number(e.target.value))}
-                onPointerUp={(e) => { isDragging.current = false; seek(Number(e.currentTarget.value)) }}
-                className="w-full accent-brand"
+                onPointerUp={(e) => { isDragging.current = false; seek(Number(e.currentTarget.value)); e.currentTarget.blur() }}
+                className="w-full accent-brand outline-none"
               />
               {duration > 0 && chapters.map((ch) => (
                 <div

@@ -87,7 +87,7 @@ Episodes are considered complete when `(currentTime / duration) * 100 >= COMPLET
 
 **Seeking back below 98% (`onSeeked`):** if `hasCompletedRef` is true and the user scrubs below the threshold, `hasCompletedRef` resets to `false` and a `progress-saved` event fires with `completed: false` so the UI un-completes immediately. The next 10s interval save then persists `completed: false` to the DB.
 
-**At `ended`:** `completeAndAdvance` is called (only if `!hasCompletedRef.current` — i.e. the audio ended before the 98% threshold was ever detected, which can happen with very short trailing silence). This is the only place auto-advance fires.
+**At `ended`:** `completeAndAdvance` is always called (regardless of `hasCompletedRef`). The 98% threshold saves completed:true to DB ahead of time, so `completeAndAdvance` re-saves idempotently — this is fine. `hasCompletedRef` is only used to guard the 10s interval save, not the advance. This is the only place auto-advance fires.
 
 ### Episode completion flow (`completeAndAdvance`)
 
