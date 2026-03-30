@@ -77,7 +77,7 @@ fun LoginScreen(
                 NativeSignInResult.Success -> onBack()
                 is NativeSignInResult.Error -> feature.process(LoginEvent.GoogleSignInFailed(result.message))
                 is NativeSignInResult.NetworkError -> feature.process(LoginEvent.GoogleSignInFailed(result.message))
-                NativeSignInResult.ClosedByUser -> {}
+                NativeSignInResult.ClosedByUser -> feature.process(LoginEvent.GoogleSignInDismissed)
             }
         },
     )

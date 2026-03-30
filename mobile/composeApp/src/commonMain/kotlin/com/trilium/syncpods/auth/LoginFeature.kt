@@ -29,6 +29,7 @@ sealed class LoginEvent {
     data object SignInTapped : LoginEvent()
     data object BackTapped : LoginEvent()
     data class GoogleSignInFailed(val message: String) : LoginEvent()
+    data object GoogleSignInDismissed : LoginEvent()
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────
@@ -39,6 +40,7 @@ sealed class LoginAction {
     data object AttemptSignIn : LoginAction()
     data object NavigateBack : LoginAction()
     data class SetError(val message: String) : LoginAction()
+    data object GoogleSignInUnavailable : LoginAction()
 }
 
 // ── Results ───────────────────────────────────────────────────────────────────
@@ -86,6 +88,9 @@ class LoginFeature(
 
             events.filterIsInstance<LoginEvent.GoogleSignInFailed>()
                 .map { LoginAction.SetError(it.message) },
+
+            events.filterIsInstance<LoginEvent.GoogleSignInDismissed>()
+                .map { LoginAction.GoogleSignInUnavailable },
         )
     }
 
@@ -125,6 +130,10 @@ class LoginFeature(
 
                 is LoginAction.SetError -> flow {
                     emit(LoginResult.SignInFailed(action.message))
+                }
+
+                is LoginAction.GoogleSignInUnavailable -> flow {
+                    emit(LoginResult.SignInFailed("Google sign-in unavailable. Make sure a Google account is added to your device settings."))
                 }
             }
         }
