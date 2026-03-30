@@ -323,6 +323,14 @@ fun AppShell() {
                 )
             }
 
+            composable(AppRoutes.Login.route) {
+                val viewModel = koinViewModel<LoginViewModel>()
+                LoginScreen(
+                    feature = viewModel.feature,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
             composable(AppRoutes.PodcastDetail.ROUTE) {
                 val viewModel = koinViewModel<PodcastDetailViewModel>()
                 PodcastDetailScreen(
