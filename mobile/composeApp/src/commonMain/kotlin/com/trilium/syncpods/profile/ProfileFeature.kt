@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 
@@ -22,7 +21,6 @@ data class ProfileState(
     val email: String = "",
     val tier: String = "free",
     val subscriptions: List<SubscriptionSummary> = emptyList(),
-    val showLoginPrompt: Boolean = false,
     val error: String? = null,
 )
 
@@ -36,7 +34,6 @@ sealed class ProfileEvent {
     data object ViewAllSubscriptionsTapped : ProfileEvent()
     data object UpgradeTapped : ProfileEvent()
     data object SettingsTapped : ProfileEvent()
-    data object LoginPromptDismissed : ProfileEvent()
     data object RetryTapped : ProfileEvent()
 }
 
@@ -50,7 +47,6 @@ sealed class ProfileAction {
     data object NavigateToViewAll : ProfileAction()
     data object ShowUpgrade : ProfileAction()
     data object NavigateToSettings : ProfileAction()
-    data object DismissLoginPrompt : ProfileAction()
 }
 
 // ── Results ───────────────────────────────────────────────────────────────────
@@ -65,8 +61,6 @@ sealed class ProfileResult {
         val subscriptions: List<SubscriptionSummary>,
     ) : ProfileResult()
     data class LoadError(val message: String) : ProfileResult()
-    data object LoginPromptShown : ProfileResult()
-    data object LoginPromptDismissed : ProfileResult()
 }
 
 // ── Effects ───────────────────────────────────────────────────────────────────
@@ -117,9 +111,6 @@ class ProfileFeature(
 
             events.filterIsInstance<ProfileEvent.SettingsTapped>()
                 .map { ProfileAction.NavigateToSettings },
-
-            events.filterIsInstance<ProfileEvent.LoginPromptDismissed>()
-                .map { ProfileAction.DismissLoginPrompt },
         )
     }
 
@@ -149,11 +140,11 @@ class ProfileFeature(
                 }
 
                 is ProfileAction.NavigateToSignIn -> flow<ProfileResult> {
-                    emit(ProfileResult.LoginPromptShown)
+                    _effects.emit(ProfileEffect.NavigateToSignIn)
                 }
 
                 is ProfileAction.NavigateToCreateAccount -> flow<ProfileResult> {
-                    emit(ProfileResult.LoginPromptShown)
+                    _effects.emit(ProfileEffect.NavigateToCreateAccount)
                 }
 
                 is ProfileAction.NavigateToPodcast -> flow<ProfileResult> {
@@ -171,9 +162,6 @@ class ProfileFeature(
                 is ProfileAction.NavigateToSettings -> flow<ProfileResult> {
                     _effects.emit(ProfileEffect.NavigateToSettings)
                 }
-
-                is ProfileAction.DismissLoginPrompt ->
-                    flowOf(ProfileResult.LoginPromptDismissed)
             }
         }
     }
@@ -201,9 +189,5 @@ class ProfileFeature(
         )
 
         is ProfileResult.LoadError -> previous.copy(isLoading = false, error = result.message)
-
-        is ProfileResult.LoginPromptShown -> previous.copy(showLoginPrompt = true)
-
-        is ProfileResult.LoginPromptDismissed -> previous.copy(showLoginPrompt = false)
     }
 }

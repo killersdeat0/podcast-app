@@ -19,15 +19,21 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.trilium.syncpods.auth.LoginScreen
+import com.trilium.syncpods.auth.LoginViewModel
 import com.trilium.syncpods.discover.DiscoverScreen
 import com.trilium.syncpods.discover.DiscoverViewModel
 import com.trilium.syncpods.navigation.AppRoutes
@@ -36,6 +42,7 @@ import com.trilium.syncpods.player.PlayerEvent
 import com.trilium.syncpods.player.PlayerViewModel
 import com.trilium.syncpods.podcastdetail.PodcastDetailScreen
 import com.trilium.syncpods.podcastdetail.PodcastDetailViewModel
+import com.trilium.syncpods.profile.ProfileEvent
 import com.trilium.syncpods.profile.ProfileScreen
 import com.trilium.syncpods.profile.ProfileViewModel
 import com.trilium.syncpods.queue.QueueScreen
@@ -61,6 +68,7 @@ fun AppShell() {
     val isFullScreenRoute = currentDestination?.route == AppRoutes.Search.ROUTE
         || currentDestination?.route == AppRoutes.PodcastDetail.ROUTE
         || currentDestination?.route == AppRoutes.Settings.route
+        || currentDestination?.route == AppRoutes.Login.route
 
     val tabs = listOf(
         TabItem(AppRoutes.Discover.route, "Discover") {
@@ -169,6 +177,12 @@ fun AppShell() {
 
             composable(AppRoutes.Profile.route) {
                 val viewModel = koinViewModel<ProfileViewModel>()
+                val lifecycleOwner = LocalLifecycleOwner.current
+                LaunchedEffect(lifecycleOwner) {
+                    lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                        viewModel.feature.process(ProfileEvent.ScreenVisible)
+                    }
+                }
                 ProfileScreen(
                     feature = viewModel.feature,
                     onNavigateToPodcast = { feedUrl ->
@@ -177,6 +191,7 @@ fun AppShell() {
                     onNavigateToSettings = {
                         navController.navigate(AppRoutes.Settings.route)
                     },
+                    onNavigateToSignIn = { navController.navigate(AppRoutes.Login.route) },
                     modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
                     bottomContentPadding = innerPadding.calculateBottomPadding(),
                 )
@@ -184,6 +199,14 @@ fun AppShell() {
 
             composable(AppRoutes.Settings.route) {
                 SettingsScreen(onBack = { navController.popBackStack() })
+            }
+
+            composable(AppRoutes.Login.route) {
+                val viewModel = koinViewModel<LoginViewModel>()
+                LoginScreen(
+                    feature = viewModel.feature,
+                    onBack = { navController.popBackStack() },
+                )
             }
 
             composable(AppRoutes.PodcastDetail.ROUTE) {

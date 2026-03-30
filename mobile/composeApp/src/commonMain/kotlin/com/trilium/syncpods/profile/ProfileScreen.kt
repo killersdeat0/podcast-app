@@ -50,14 +50,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.trilium.syncpods.auth.LoginPromptReason
-import com.trilium.syncpods.auth.LoginPromptSheet
 
 @Composable
 fun ProfileScreen(
     feature: ProfileFeature,
     onNavigateToPodcast: (String) -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToSignIn: () -> Unit,
     modifier: Modifier = Modifier,
     bottomContentPadding: Dp = 0.dp,
 ) {
@@ -65,14 +64,13 @@ fun ProfileScreen(
     var showUpgradeSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        feature.process(ProfileEvent.ScreenVisible)
         feature.effects.collect { effect ->
             when (effect) {
                 is ProfileEffect.NavigateToPodcastDetail -> onNavigateToPodcast(effect.feedUrl)
                 is ProfileEffect.NavigateToSettings -> onNavigateToSettings()
                 is ProfileEffect.ShowUpgradeSheet -> showUpgradeSheet = true
-                is ProfileEffect.NavigateToSignIn -> { /* handled via showLoginPrompt state */ }
-                is ProfileEffect.NavigateToCreateAccount -> { /* handled via showLoginPrompt state */ }
+                is ProfileEffect.NavigateToSignIn -> onNavigateToSignIn()
+                is ProfileEffect.NavigateToCreateAccount -> { /* stub: create-account screen not yet implemented */ }
             }
         }
     }
@@ -111,15 +109,6 @@ fun ProfileScreen(
                 bottomContentPadding = bottomContentPadding,
             )
         }
-    }
-
-    if (state.showLoginPrompt) {
-        LoginPromptSheet(
-            reason = LoginPromptReason.PROFILE,
-            onDismiss = { feature.process(ProfileEvent.LoginPromptDismissed) },
-            onSignIn = { feature.process(ProfileEvent.LoginPromptDismissed) },
-            onCreateAccount = { feature.process(ProfileEvent.LoginPromptDismissed) },
-        )
     }
 
     if (showUpgradeSheet) {

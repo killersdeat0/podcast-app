@@ -65,6 +65,10 @@ androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", versi
 multiplatform-settings = { module = "com.russhwolf:multiplatform-settings-no-arg", version.ref = "multiplatform-settings" }
 multiplatform-settings-serialization = { module = "com.russhwolf:multiplatform-settings-serialization", version.ref = "multiplatform-settings" }
 multiplatform-settings-test = { module = "com.russhwolf:multiplatform-settings-test", version.ref = "multiplatform-settings" }
+supabase-compose-auth = { module = "io.github.jan-tennert.supabase:compose-auth", version.ref = "supabase" }
+credentials = { module = "androidx.credentials:credentials", version = "1.5.0" }
+credentials-play-services = { module = "androidx.credentials:credentials-play-services-auth", version = "1.5.0" }
+googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version = "1.1.1" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

@@ -5,6 +5,7 @@ import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.compose.auth.ComposeAuth
 import platform.Foundation.NSBundle
 
 actual fun createSupabaseClient(): SupabaseClient = createSupabaseClient(
@@ -14,4 +15,5 @@ actual fun createSupabaseClient(): SupabaseClient = createSupabaseClient(
     install(Postgrest)
     install(Auth)
     install(Realtime)
+    install(ComposeAuth)
 }

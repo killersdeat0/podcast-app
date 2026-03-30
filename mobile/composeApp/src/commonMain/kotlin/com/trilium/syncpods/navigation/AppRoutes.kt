@@ -16,4 +16,5 @@ sealed class AppRoutes(val route: String) {
         }
     }
     data object Settings : AppRoutes("settings")
+    data object Login : AppRoutes("login")
 }

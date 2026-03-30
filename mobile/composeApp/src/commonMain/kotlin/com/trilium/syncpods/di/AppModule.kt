@@ -10,6 +10,9 @@ import com.trilium.syncpods.podcastdetail.PodcastDetailViewModel
 import com.trilium.syncpods.podcastdetail.PodcastSummaryCache
 import com.trilium.syncpods.podcastdetail.SubscriptionRepository
 import com.trilium.syncpods.podcastdetail.SubscriptionRepositoryImpl
+import com.trilium.syncpods.auth.LoginRepository
+import com.trilium.syncpods.auth.LoginRepositoryImpl
+import com.trilium.syncpods.auth.LoginViewModel
 import com.trilium.syncpods.profile.ProfileRepository
 import com.trilium.syncpods.profile.ProfileRepositoryImpl
 import com.trilium.syncpods.profile.ProfileViewModel
@@ -59,6 +62,9 @@ val appModule = module {
     single<ProfileRepository> {
         ProfileRepositoryImpl(supabaseClient = get())
     }
+    single<LoginRepository> {
+        LoginRepositoryImpl(supabaseClient = get())
+    }
     single { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
     single { Settings() }
     single { LocalQueueRepository(settings = get()) }
@@ -79,5 +85,6 @@ val appModule = module {
     viewModel { PodcastDetailViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { QueueViewModel(get(), get()) }
     viewModelOf(::ProfileViewModel)
+    viewModel { LoginViewModel(get()) }
     viewModel { PlayerViewModel(get<AudioPlayer>()) }
 }
