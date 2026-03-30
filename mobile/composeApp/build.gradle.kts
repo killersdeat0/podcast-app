@@ -119,3 +119,27 @@ dependencies {
     debugImplementation(libs.compose.uiTooling)
 }
 
+val generateIosSecrets by tasks.registering {
+    group = "ios"
+    description = "Generates iosApp/Configuration/Secrets.xcconfig from local.properties"
+    val secretsFile = rootProject.file("iosApp/Configuration/Secrets.xcconfig")
+    outputs.file(secretsFile)
+    // Capture values at configuration time so the task is configuration-cache compatible
+    val googleWebClientId = localProperties["GOOGLE_WEB_CLIENT_ID"] as? String ?: ""
+    val googleIosClientId = localProperties["GOOGLE_IOS_CLIENT_ID"] as? String ?: ""
+    val googleIosReverseClientId = localProperties["GOOGLE_IOS_REVERSE_CLIENT_ID"] as? String ?: ""
+    doLast {
+        secretsFile.writeText(buildString {
+            appendLine("// Auto-generated from local.properties — do not commit")
+            appendLine("GOOGLE_WEB_CLIENT_ID = $googleWebClientId")
+            appendLine("GOOGLE_IOS_CLIENT_ID = $googleIosClientId")
+            appendLine("GIDClientID = $googleIosClientId")
+            appendLine("GOOGLE_IOS_REVERSE_CLIENT_ID = $googleIosReverseClientId")
+        })
+    }
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink>().configureEach {
+    dependsOn(generateIosSecrets)
+}
+

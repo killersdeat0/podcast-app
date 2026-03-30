@@ -6,6 +6,7 @@ import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.compose.auth.ComposeAuth
+import io.github.jan.supabase.compose.auth.googleNativeLogin
 import platform.Foundation.NSBundle
 
 actual fun createSupabaseClient(): SupabaseClient = createSupabaseClient(
@@ -15,5 +16,9 @@ actual fun createSupabaseClient(): SupabaseClient = createSupabaseClient(
     install(Postgrest)
     install(Auth)
     install(Realtime)
-    install(ComposeAuth)
+    install(ComposeAuth) {
+        googleNativeLogin(
+            serverClientId = NSBundle.mainBundle.objectForInfoDictionaryKey("GOOGLE_WEB_CLIENT_ID") as? String ?: ""
+        )
+    }
 }
