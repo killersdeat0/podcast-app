@@ -679,6 +679,7 @@ export default function PodcastPage() {
       audioUrl: episode.audioUrl,
       duration: episode.duration ?? 0,
       chapterUrl: episode.chapterUrl,
+      description: episode.description || undefined,
     })
   }
 

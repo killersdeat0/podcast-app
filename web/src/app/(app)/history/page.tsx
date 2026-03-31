@@ -223,6 +223,7 @@ export default function HistoryPage() {
       artworkUrl: item.episode.artwork_url ?? '',
       audioUrl: item.episode.audio_url,
       duration: item.episode.duration ?? 0,
+      description: item.episode.description || undefined,
     })
   }
 

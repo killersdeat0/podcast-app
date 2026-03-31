@@ -20,6 +20,7 @@ export interface NowPlaying {
   artworkUrl: string
   audioUrl: string
   duration: number
+  description?: string | null
   chapterUrl?: string | null
   playlistContext?: { playlistId: string; episodes: PlaylistEpisodeRef[] } | null
 }

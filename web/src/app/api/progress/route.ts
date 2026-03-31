@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { guid, feedUrl, positionSeconds, positionPct, completed, title, audioUrl, duration, artworkUrl, podcastTitle } =
+  const { guid, feedUrl, positionSeconds, positionPct, completed, title, audioUrl, duration, artworkUrl, podcastTitle, description } =
     await request.json()
 
   // Upsert episode metadata so history can display it
@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
       duration: duration ?? null,
       artwork_url: sub?.artwork_url || artworkUrl || null,
       podcast_title: podcastTitle ?? null,
+      ...(description ? { description } : {}),
     }, { onConflict: 'feed_url,guid' })
   }
 
@@ -126,8 +127,8 @@ export async function POST(request: NextRequest) {
       last_listened_at: new Date().toISOString(),
     }, { onConflict: 'user_id,feed_url' })
   } else if (isNewCompletion) {
-    // Delta is 0 or negative (e.g. user scrubbed back) but this is still a new completion
-    // — increment episodes_completed only
+    // Delta is 0 or negative (e.g. clock skew) but this is still a new completion
+    // — increment episodes_completed only, leave seconds_listened untouched
     const { data: showRow } = await supabase
       .from('listening_by_show')
       .select('seconds_listened, episodes_completed')

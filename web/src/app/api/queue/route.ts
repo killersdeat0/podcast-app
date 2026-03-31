@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     audio_url: audioUrl,
     duration: duration ?? null,
     pub_date: pubDate ?? null,
-    description: description ?? null,
+    ...(description ? { description } : {}),
     artwork_url: sub?.artwork_url || artworkUrl || null,
     podcast_title: podcastTitle ?? null,
   }, { onConflict: 'feed_url,guid' })

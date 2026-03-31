@@ -181,6 +181,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
           duration: prev.duration,
           artworkUrl: prev.artworkUrl,
           podcastTitle: prev.podcastTitle,
+          ...(prev.description ? { description: prev.description } : {}),
         }),
       })
         .then(() => window.dispatchEvent(new CustomEvent('progress-saved', { detail: { guid: prev.guid, positionSeconds: savedSeconds, positionPct: savedPct, completed: false } })))
@@ -312,6 +313,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
           duration: np.duration,
           artworkUrl: np.artworkUrl,
           podcastTitle: np.podcastTitle,
+          ...(np.description ? { description: np.description } : {}),
         }),
       }).catch(() => {})
     }
@@ -383,6 +385,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
         duration: np.duration,
         artworkUrl: np.artworkUrl,
         podcastTitle: np.podcastTitle,
+        description: np.description ?? undefined,
       }),
     })
       .then(() => window.dispatchEvent(new CustomEvent('progress-saved', { detail: { guid: np.guid, positionPct: 100, completed: true } })))
