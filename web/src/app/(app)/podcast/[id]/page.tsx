@@ -759,7 +759,7 @@ export default function PodcastPage() {
             <button
               onClick={() => setOpenDescGuid(descOpen ? null : ep.guid)}
               title="Show description"
-              className={`p-2 transition-colors flex-shrink-0 ${descOpen ? 'text-primary' : 'text-on-surface-dim hover:text-on-surface-variant'}`}
+              className={`p-2 transition flex-shrink-0 ${descOpen ? 'opacity-100 text-primary' : 'opacity-0 group-hover:opacity-100 text-on-surface-dim hover:text-on-surface-variant'}`}
             >
               <Info className="w-4 h-4" />
             </button>
