@@ -61,6 +61,8 @@ function SortableQueueItem({
   isPlaying,
   livePosition,
   liveDuration,
+  openDescGuid,
+  onToggleDesc,
 }: {
   item: QueueItem
   onPlay: (item: QueueItem) => void
@@ -70,16 +72,13 @@ function SortableQueueItem({
   isPlaying: boolean
   livePosition: number
   liveDuration: number
+  openDescGuid: string | null
+  onToggleDesc: (guid: string) => void
 }) {
   const [removing, setRemoving] = useState(false)
-  const [showDesc, setShowDesc] = useState(false)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.episode_guid,
   })
-
-  useEffect(() => {
-    if (isDragging) setShowDesc(false)
-  }, [isDragging])
 
   const posSeconds = isPlaying ? livePosition : item.position_seconds
   const livePct = isPlaying && liveDuration > 0 ? Math.min(100, Math.round((livePosition / liveDuration) * 100)) : null
@@ -87,6 +86,7 @@ function SortableQueueItem({
   const durSeconds = item.episode?.duration ?? 0
   const pct = livePct ?? storedPct ?? (isPlaying ? null : (posSeconds > 0 && durSeconds > 0 ? Math.min(100, Math.round((posSeconds / durSeconds) * 100)) : null))
   const description = item.episode?.description ?? null
+  const showDesc = openDescGuid === item.episode_guid
 
   return (
     <div
@@ -131,9 +131,9 @@ function SortableQueueItem({
         </button>
         {description && (
           <button
-            onClick={() => setShowDesc((v) => !v)}
+            onClick={() => onToggleDesc(item.episode_guid)}
             title="Show description"
-            className={`p-3 transition-colors ${showDesc ? 'text-primary' : 'text-on-surface-dim hover:text-on-surface-variant'}`}
+            className={`p-2 transition-colors ${showDesc ? 'text-primary' : 'text-on-surface-dim hover:text-on-surface-variant'}`}
           >
             <Info className="w-4 h-4" />
           </button>
@@ -175,6 +175,7 @@ export default function QueuePage() {
   const userPlaylists = useUserPlaylists(isGuest)
   const strings = useStrings()
 
+  const [openDescGuid, setOpenDescGuid] = useState<string | null>(null)
   const sensors = useSensors(useSensor(PointerSensor))
   const reorderInProgressRef = useRef(false)
 
@@ -370,7 +371,7 @@ export default function QueuePage() {
           cta={{ label: strings.queue.empty_cta, href: '/discover' }}
         />
       ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={() => setOpenDescGuid(null)} onDragEnd={handleDragEnd}>
           <SortableContext items={items.map((i) => i.episode_guid)} strategy={verticalListSortingStrategy}>
             <div className="space-y-2">
               {items.map((item) => (
@@ -384,6 +385,8 @@ export default function QueuePage() {
                   isPlaying={nowPlaying?.guid === item.episode_guid && playing}
                   livePosition={livePosition}
                   liveDuration={liveDuration}
+                  openDescGuid={openDescGuid}
+                  onToggleDesc={(guid) => setOpenDescGuid((prev) => prev === guid ? null : guid)}
                 />
               ))}
             </div>

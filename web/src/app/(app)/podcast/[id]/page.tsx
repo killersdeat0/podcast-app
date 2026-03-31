@@ -758,13 +758,9 @@ export default function PodcastPage() {
             <button
               onClick={() => setOpenDescGuid(descOpen ? null : ep.guid)}
               title="Show description"
-              className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all ${
-                descOpen
-                  ? 'text-primary'
-                  : 'text-on-surface-variant/30 hover:text-on-surface hover:bg-surface-container-high opacity-0 group-hover:opacity-100'
-              }`}
+              className={`p-2 transition-colors flex-shrink-0 ${descOpen ? 'text-primary' : 'text-on-surface-dim hover:text-on-surface-variant'}`}
             >
-              <Info className="w-3.5 h-3.5" />
+              <Info className="w-4 h-4" />
             </button>
           )}
 
@@ -792,7 +788,7 @@ export default function PodcastPage() {
         </div>
         {descOpen && ep.description && (
           <div
-            className="px-14 pb-3 pt-1 text-sm text-on-surface-variant max-h-40 overflow-y-auto [&_a]:text-primary [&_a]:underline [&_p]:mb-1"
+            className="pl-14 pr-4 pb-3 pt-1 text-sm text-on-surface-variant max-h-40 overflow-y-auto [&_a]:text-primary [&_a]:underline [&_p]:mb-1"
             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(ep.description) }}
           />
         )}
