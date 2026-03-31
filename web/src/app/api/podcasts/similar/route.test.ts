@@ -137,7 +137,7 @@ describe('GET /api/podcasts/similar', () => {
     // At least one call should be a search with the cleaned term
     const searchCall = calls.find((c: string[]) => c[0].includes('itunes.apple.com/search') && c[0].includes('term='))
     expect(searchCall).toBeDefined()
-    const url = new URL(searchCall[0])
+    const url = new URL(searchCall![0])
     const termValue = url.searchParams.get('term') ?? ''
     expect(termValue).toContain('crime')
     expect(termValue).toContain('junkie')
@@ -153,7 +153,7 @@ describe('GET /api/podcasts/similar', () => {
     await GET(req)
     const calls = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls
     const searchCall = calls.find((c: string[]) => c[0].includes('itunes.apple.com/search') && c[0].includes('term='))
-    const url = new URL(searchCall[0])
+    const url = new URL(searchCall![0])
     // Falls back to original term — should not be empty
     expect(url.searchParams.get('term')).toBeTruthy()
   })
