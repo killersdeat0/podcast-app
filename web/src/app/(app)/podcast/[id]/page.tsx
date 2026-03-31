@@ -786,11 +786,13 @@ export default function PodcastPage() {
             />
           )}
         </div>
-        {descOpen && ep.description && (
-          <div
-            className="pl-14 pr-4 pb-3 pt-1 text-sm text-on-surface-variant max-h-40 overflow-y-auto [&_a]:text-primary [&_a]:underline [&_p]:mb-1"
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(ep.description) }}
-          />
+        {ep.description && (
+          <div className={`overflow-hidden transition-all duration-200 ease-in-out ${descOpen ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
+            <div
+              className="pl-14 pr-4 pb-3 pt-1 text-sm text-on-surface-variant [&_a]:text-primary [&_a]:underline [&_p]:mb-1"
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(ep.description) }}
+            />
+          </div>
         )}
       </div>
     )
