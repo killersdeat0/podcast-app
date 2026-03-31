@@ -68,6 +68,7 @@ function SortableSub({ sub, active, isNowPlaying, playing }: { sub: Subscription
       </div>
       <Link
         href={href}
+        prefetch={false}
         className={`flex flex-1 items-center gap-2 px-2 py-1 rounded-lg text-sm transition-colors min-w-0 ${
           isNowPlaying
             ? 'bg-now-playing-surface border-l-[3px] border-primary text-on-surface pl-[5px]'
