@@ -66,30 +66,20 @@ Two pre-aggregated tables capture listening data at write time, making stat quer
 
 **Cut from original plan:** streak calendar visualization, episodes completed milestones.
 
-- [ ] Migration: `listening_daily` + `listening_by_show` tables
-- [ ] Update `POST /api/progress` to upsert into both tables on every save
-- [ ] Update `GET /api/profile`: replace expensive `playback_progress` aggregations for `listeningSeconds` and `streakDays` with queries against new tables (`completedThisWeek` stays on `playback_progress`)
-- [ ] Create `/stats` route
-- [ ] Link from Profile page
+- [x] Migration: `listening_daily` + `listening_by_show` tables
+- [x] Update `POST /api/progress` to upsert into both tables on every save
+- [x] Update `GET /api/profile`: replace expensive `playback_progress` aggregations for `listeningSeconds` and `streakDays` with queries against new tables (`completedThisWeek` stays on `playback_progress`)
+- [x] Create `/stats` route
+- [x] Link from Profile page
 
 ### 7. Skip Intro/Outro
-Configurable per-podcast auto-skip: "skip first N seconds / skip last N seconds." Store in subscription settings; Player reads it on episode load.
-- [ ] Add `intro_skip_seconds` + `outro_skip_seconds` to subscriptions table (migration)
-- [ ] Add UI to podcast detail page to configure per-show skip
-- [ ] Apply auto-seek in Player on episode load
+~~Configurable per-podcast auto-skip.~~ **Deprioritized.** Not meaningfully requested by users; ineffective against dynamically inserted ads (position varies per stream). Only helps with consistent intro jingles — a narrow use case that doesn't justify the settings surface.
 
 ---
 
 ## Medium Wins
 
-### 8. Podcasting 2.0 Transcript Support
-Parse `<podcast:transcript>` tags from RSS feeds (`.srt`, `.vtt`, `.json` formats). Return transcript URL from feed API. Render a scrolling, tap-to-seek transcript panel in the player.
-- [ ] Parse `<podcast:transcript>` in `supabase/functions/podcasts-feed`
-- [ ] Return `transcriptUrl` + `transcriptType` in feed API response
-- [ ] Add transcript panel UI to Player (collapsible, synced scroll, tap-to-seek)
-- [ ] Add i18n strings for transcript UI
-
-### 9. Smart Playlist Filters
+### 8. Smart Playlist Filters
 Extend playlists with optional filter rules that auto-populate episodes: "unplayed from these shows," "under 20 min," "published in last 7 days," etc. Gate on paid tier.
 - [ ] Design filter schema (JSON column on `playlists` table)
 - [ ] Add filter builder UI to playlist creation/edit modal
@@ -97,33 +87,33 @@ Extend playlists with optional filter rules that auto-populate episodes: "unplay
 - [ ] Auto-refresh smart playlists on open
 - [ ] Gate behind paid tier
 
-### 10. Episode Search Across Subscriptions
+### 9. Episode Search Across Subscriptions
 Full-text search over episode titles and descriptions across all subscribed shows. Query `episodes` table filtered to user's `subscriptions`.
 - [ ] Add `tsvector` index on `episodes.title` + `episodes.description`
 - [ ] Create `GET /api/episodes/search?q=` API route (auth-required)
 - [ ] Add search UI (accessible from sidebar or discover page)
 - [ ] Show results grouped by podcast with play/queue actions
 
-### 11. Timestamp Links + Clip Sharing
+### 10. Timestamp Links + Clip Sharing
 Shareable deep-links into a specific moment: `/podcast/[id]?episode=[guid]&t=3600`. The public podcast page reads `?t=` and seeks to that position on load.
 - [ ] Handle `?episode` + `?t` params on podcast detail page — auto-open and seek to timestamp
 - [ ] Add "Share moment" button in player that copies a timestamped URL to clipboard
 - [ ] (Paid) Generate shareable clip card with episode artwork + timestamp
 
-### 12. Year-in-Review / Wrapped Stats
+### 11. Year-in-Review / Wrapped Stats
 Annual or quarterly "Your [Year] in Podcasts" page with shareable card: total hours, top 5 shows, episodes completed, streak record, most-listened genre. Driven by existing `playback_progress` data.
 - [ ] Build stats aggregation query (yearly/quarterly)
 - [ ] Design shareable card UI (canvas or CSS screenshot)
 - [ ] Add entry point from Profile or Stats page
 - [ ] Trigger annually or on demand
 
-### 13. Subscription-Based Recommendations on Discover
+### 12. Subscription-Based Recommendations on Discover
 Use the user's subscribed feeds as seeds for `/api/podcasts/similar` to generate a personalized "Recommended for you" section on the Discover page.
 - [ ] Add `GET /api/podcasts/recommended` — samples N subscribed shows, calls `/similar` for each, deduplicates
 - [ ] Add "Recommended for you" section to Discover page (auth-only, below trending)
 - [ ] Cache per-user, invalidate on `subscriptions-changed`
 
-### 14. PWA / Offline Support
+### 13. PWA / Offline Support
 Service worker with episode audio caching. Lets users listen without connectivity and feels more native on mobile web.
 - [ ] Add `next-pwa` or manual service worker via `public/sw.js`
 - [ ] Cache static assets + episode audio on "Download" action
@@ -134,42 +124,12 @@ Service worker with episode audio caching. Lets users listen without connectivit
 
 ## Hard Wins
 
-### 15. AI-Generated Transcripts (On-Demand)
-For episodes without a Podcasting 2.0 transcript tag, generate transcripts on-demand via Deepgram or Whisper. Cache in Supabase Storage. Gate behind paid tier.
-- [ ] Create `POST /api/episodes/transcript` route — submits audio URL to transcription API
-- [ ] Store result in Supabase Storage keyed by `feed_url + guid`
-- [ ] Return cached transcript if exists, else queue generation
-- [ ] Add "Generate transcript" button in player (paid gate)
-- [ ] Reuse transcript panel UI from item 8
-
-### 16. Transcript Full-Text Search
-Once transcripts exist (items 8 + 15), index them and enable cross-library search: "find every episode where someone mentioned X."
-- [ ] Index transcript content in Postgres `tsvector` or pgvector
-- [ ] Extend episode search (item 10) to include transcript matches
-- [ ] Show matched transcript excerpt + timestamp in results
-- [ ] Tap result to seek to that moment in episode
-
-### 17. AI Episode Summaries + Auto-Chapters
-Pre-listen: "Here's what this 90-minute episode covers in 3 bullets." Auto-chapters from transcript. Requires transcript pipeline (items 8/15).
-- [ ] Generate summary from transcript via LLM (Claude API)
-- [ ] Generate chapter markers from transcript structure
-- [ ] Display summary in episode modal / player before play
-- [ ] Cache summaries in DB; invalidate rarely
-
-### 18. Video Podcast Support
+### 14. Video Podcast Support
 Support video RSS feeds (`<enclosure type="video/mp4">`) and render a video player instead of audio. Needed as YouTube takes 39% of podcast consumption.
 - [ ] Detect video enclosures in feed parser
 - [ ] Add video player component (HTML5 `<video>` with same controls UI)
 - [ ] Handle mixed audio/video podcast feeds
 - [ ] Store `media_type` in `episodes` table
-
-### 19. Social / Follow Graph
-Follow other users, see a listening activity feed, get recommendations from people you trust. Needs critical mass to be useful.
-- [ ] `user_follows` table (follower/following)
-- [ ] Opt-in public listening activity
-- [ ] Activity feed page (who listened to what)
-- [ ] Follow-based recommendation surface on Discover
-- [ ] Privacy controls (public/friends/private)
 
 ---
 
@@ -181,18 +141,15 @@ Follow other users, see a listening activity feed, get recommendations from peop
 | 2 | Per-show speed memory | XS | Medium | ~~Now~~ Done |
 | 3 | Undo accidental skip | XS | Medium | ~~Now~~ Done |
 | 4 | Settings page | S | High | ~~Now~~ Done |
-| 5 | Notification settings UI | S | Medium | Soon |
-| 6 | Stats page | S | High | Soon |
-| 7 | Skip intro/outro | S | High | Soon |
-| 8 | Podcasting 2.0 transcripts | M | Very High | Next sprint |
-| 9 | Smart playlist filters | M | High | Next sprint |
-| 10 | Episode search across subs | M | High | Next sprint |
-| 11 | Timestamp/clip sharing | M | High | Next sprint |
-| 12 | Year-in-review stats | M | High | Seasonal |
-| 13 | Subscription-based recs | M | High | Next sprint |
-| 14 | PWA/offline | L | High | Q2 |
-| 15 | AI transcripts (on-demand) | L | Very High | Q2–Q3 |
-| 16 | Transcript full-text search | L | Very High | After 15 |
-| 17 | AI summaries + chapters | L | High | After 15 |
-| 18 | Video podcast support | XL | Very High | Long-term |
-| 19 | Social follow graph | XL | High | Long-term |
+| 5 | Notification settings UI | S | Medium | ~~Soon~~ Done |
+| 6 | Stats page | S | High | ~~Soon~~ Done |
+| 7 | Skip intro/outro | S | Low | Deprioritized — ineffective against DAI ads; only useful for consistent intro jingles |
+| 8 | Smart playlist filters | M | High | Next sprint |
+| 9 | Episode search across subs | M | High | Next sprint |
+| 10 | Timestamp/clip sharing | M | High | Next sprint |
+| 11 | Year-in-review stats | M | High | Seasonal |
+| 12 | Subscription-based recs | M | High | Next sprint |
+| 13 | PWA/offline | L | High | Q2 |
+| 14 | Video podcast support | XL | Very High | Long-term |
+| — | Transcript pipeline (T1–T4) | M→XL | High | See long-term.md |
+| — | Social follow graph | XL | High | See long-term.md |
