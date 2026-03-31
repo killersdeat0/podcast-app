@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Headphones, CheckCircle, Flame, Radio, Sparkles } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useStrings } from '@/lib/i18n/LocaleContext'
+import { formatDuration } from '@/lib/formatDuration'
 
 interface ProfileData {
   email: string
@@ -24,12 +25,6 @@ interface Subscription {
   episode_filter: string | null
 }
 
-function formatDuration(seconds: number, unitMin: string, unitHr: string): { value: string; unit: string } {
-  if (seconds < 60) return { value: '—', unit: '' }
-  const hours = seconds / 3600
-  if (hours < 1) return { value: `${Math.round(seconds / 60)}${unitMin}`, unit: '' }
-  return { value: hours.toFixed(1), unit: unitHr }
-}
 
 /** Circular SVG ring around an icon. pct is 0–100. */
 function CircularRing({ pct, children }: { pct: number; children: React.ReactNode }) {

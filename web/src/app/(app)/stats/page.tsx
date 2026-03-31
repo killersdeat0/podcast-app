@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Sparkles } from 'lucide-react'
 import { useStrings } from '@/lib/i18n/LocaleContext'
+import { formatDuration } from '@/lib/formatDuration'
 
 interface StatsData {
   tier: 'free' | 'paid'
@@ -18,14 +19,6 @@ interface StatsData {
 }
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-
-function formatDuration(seconds: number, unitMin: string, unitHr: string): { value: string; unit: string } {
-  if (seconds < 60) return { value: '—', unit: '' }
-  const hours = seconds / 3600
-  if (hours < 1) return { value: `${Math.round(seconds / 60)}${unitMin}`, unit: '' }
-  return { value: hours.toFixed(1), unit: unitHr }
-}
-
 
 /** Simple bar chart using plain divs. values is an array of { label, value }. */
 function BarChart({ bars }: { bars: { label: string; value: number }[] }) {
