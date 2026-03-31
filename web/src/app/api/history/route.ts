@@ -38,7 +38,7 @@ export async function GET() {
   const [{ data: episodes }, { data: subscriptions }] = await Promise.all([
     supabase
       .from('episodes')
-      .select('guid, feed_url, title, audio_url, duration, artwork_url, podcast_title')
+      .select('guid, feed_url, title, audio_url, duration, artwork_url, podcast_title, description')
       .in('guid', guids),
     supabase
       .from('subscriptions')

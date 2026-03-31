@@ -77,6 +77,10 @@ function SortableQueueItem({
     id: item.episode_guid,
   })
 
+  useEffect(() => {
+    if (isDragging) setShowDesc(false)
+  }, [isDragging])
+
   const posSeconds = isPlaying ? livePosition : item.position_seconds
   const livePct = isPlaying && liveDuration > 0 ? Math.min(100, Math.round((livePosition / liveDuration) * 100)) : null
   const storedPct = item.position_pct

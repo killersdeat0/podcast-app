@@ -10,6 +10,8 @@ import AddToPlaylistPopover from '@/components/ui/AddToPlaylistPopover'
 import { EpisodeProgressOverlay } from '@/components/ui/EpisodeProgressOverlay'
 import { useUserPlaylists } from '@/hooks/useUserPlaylists'
 import { addEpisodeToPlaylist } from '@/lib/playlists/addEpisodeToPlaylist'
+import { Info } from 'lucide-react'
+import DOMPurify from 'dompurify'
 
 interface HistoryItem {
   episode_guid: string
@@ -24,6 +26,7 @@ interface HistoryItem {
     duration: number | null
     artwork_url: string | null
     podcast_title: string | null
+    description: string | null
   } | null
 }
 
@@ -236,6 +239,7 @@ export default function HistoryPage() {
     })
   }
 
+  const [openDescGuid, setOpenDescGuid] = useState<string | null>(null)
   const totalSeconds = items.reduce((sum, item) => sum + (item.position_seconds || 0), 0)
   const groups = groupByDate(items)
 
@@ -245,54 +249,73 @@ export default function HistoryPage() {
     const posSeconds = isPlaying ? livePosition : item.position_seconds
     const livePct = isPlaying && liveDuration > 0 ? Math.min(100, Math.round((livePosition / liveDuration) * 100)) : null
     const pct = item.completed ? 100 : (livePct ?? item.position_pct ?? (isPlaying ? null : progressPct(posSeconds, item.episode?.duration ?? null, false)))
+    const descOpen = openDescGuid === item.episode_guid
+    const description = item.episode?.description ?? null
     return (
-      <div key={item.episode_guid} className="group relative flex items-center gap-1">
-        <button
-          onClick={() => playItem(item)}
-          disabled={!item.episode}
-          className={`relative flex-1 flex items-center gap-3 text-left rounded-xl px-4 py-3 transition-colors disabled:opacity-50 overflow-hidden ${isPlaying ? 'bg-now-playing-surface hover:bg-now-playing-surface' : 'bg-surface-container-low hover:bg-surface-container'}`}
-        >
-          <EpisodeProgressOverlay pct={pct} isPlaying={isPlaying} />
-          {item.episode?.artwork_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={item.episode.artwork_url}
-              alt=""
-              className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-            />
-          ) : (
-            <div className="w-10 h-10 rounded-lg bg-surface-container-high flex-shrink-0" />
-          )}
-          <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-medium text-on-surface truncate">
-              {item.episode?.title ?? item.episode_guid}
-            </p>
-            <div className="flex gap-2 mt-0.5">
-              {item.episode?.podcast_title && (
-                <span className="text-xs text-on-surface-variant truncate">{item.episode.podcast_title}</span>
-              )}
-              {item.episode?.duration && (
-                <span className="text-xs text-on-surface-dim">{formatDuration(item.episode.duration)}</span>
-              )}
-            </div>
-          </div>
-          <div className="flex-shrink-0 text-right">
-            {(item.completed || (pct !== null && pct >= COMPLETION_THRESHOLD_PCT)) ? (
-              <span className="text-xs text-playback-indicator">Done</span>
+      <div key={item.episode_guid}>
+        <div className="group relative flex items-center gap-1">
+          <button
+            onClick={() => playItem(item)}
+            disabled={!item.episode}
+            className={`relative flex-1 flex items-center gap-3 text-left rounded-xl px-4 py-3 transition-colors disabled:opacity-50 overflow-hidden ${isPlaying ? 'bg-now-playing-surface hover:bg-now-playing-surface' : 'bg-surface-container-low hover:bg-surface-container'}`}
+          >
+            <EpisodeProgressOverlay pct={pct} isPlaying={isPlaying} />
+            {item.episode?.artwork_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={item.episode.artwork_url}
+                alt=""
+                className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+              />
             ) : (
-              <span className="text-xs text-on-surface-dim">
-                {pct !== null ? `${pct}%` : formatProgress(posSeconds, item.episode?.duration ?? null)}
-              </span>
+              <div className="w-10 h-10 rounded-lg bg-surface-container-high flex-shrink-0" />
             )}
-            <p className="text-xs text-on-surface-dim mt-0.5">
-              {new Date(item.updated_at).toLocaleDateString()}
-            </p>
-          </div>
-        </button>
-        {!isGuest && userPlaylists.length > 0 && item.episode && (
-          <AddToPlaylistPopover
-            playlists={userPlaylists}
-            onSelect={(playlistId) => addToPlaylist(playlistId, item)}
+            <div className="flex-1 overflow-hidden">
+              <p className="text-sm font-medium text-on-surface truncate">
+                {item.episode?.title ?? item.episode_guid}
+              </p>
+              <div className="flex gap-2 mt-0.5">
+                {item.episode?.podcast_title && (
+                  <span className="text-xs text-on-surface-variant truncate">{item.episode.podcast_title}</span>
+                )}
+                {item.episode?.duration && (
+                  <span className="text-xs text-on-surface-dim">{formatDuration(item.episode.duration)}</span>
+                )}
+              </div>
+            </div>
+            <div className="flex-shrink-0 text-right">
+              {(item.completed || (pct !== null && pct >= COMPLETION_THRESHOLD_PCT)) ? (
+                <span className="text-xs text-playback-indicator">Done</span>
+              ) : (
+                <span className="text-xs text-on-surface-dim">
+                  {pct !== null ? `${pct}%` : formatProgress(posSeconds, item.episode?.duration ?? null)}
+                </span>
+              )}
+              <p className="text-xs text-on-surface-dim mt-0.5">
+                {new Date(item.updated_at).toLocaleDateString()}
+              </p>
+            </div>
+          </button>
+          {description && (
+            <button
+              onClick={() => setOpenDescGuid(descOpen ? null : item.episode_guid)}
+              title="Show description"
+              className={`p-2 transition-colors ${descOpen ? 'text-primary' : 'text-on-surface-dim hover:text-on-surface-variant'}`}
+            >
+              <Info className="w-4 h-4" />
+            </button>
+          )}
+          {!isGuest && userPlaylists.length > 0 && item.episode && (
+            <AddToPlaylistPopover
+              playlists={userPlaylists}
+              onSelect={(playlistId) => addToPlaylist(playlistId, item)}
+            />
+          )}
+        </div>
+        {descOpen && description && (
+          <div
+            className="pl-16 pr-4 pb-3 pt-1 text-sm text-on-surface-variant max-h-40 overflow-y-auto [&_a]:text-primary [&_a]:underline [&_p]:mb-1"
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(description) }}
           />
         )}
       </div>
