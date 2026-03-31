@@ -59,6 +59,7 @@ function SortableQueueItem({
   playlists,
   onAddToPlaylist,
   isPlaying,
+  isLoaded,
   livePosition,
   liveDuration,
   openDescGuid,
@@ -70,6 +71,7 @@ function SortableQueueItem({
   playlists: Array<{ id: string; name: string }>
   onAddToPlaylist: (playlistId: string, item: QueueItem) => Promise<void>
   isPlaying: boolean
+  isLoaded: boolean
   livePosition: number
   liveDuration: number
   openDescGuid: string | null
@@ -81,7 +83,7 @@ function SortableQueueItem({
   })
 
   const posSeconds = isPlaying ? livePosition : item.position_seconds
-  const livePct = isPlaying && liveDuration > 0 ? Math.min(100, Math.round((livePosition / liveDuration) * 100)) : null
+  const livePct = isLoaded && liveDuration > 0 ? Math.min(100, Math.round((livePosition / liveDuration) * 100)) : null
   const storedPct = item.position_pct
   const durSeconds = item.episode?.duration ?? 0
   const pct = livePct ?? storedPct ?? (isPlaying ? null : (posSeconds > 0 && durSeconds > 0 ? Math.min(100, Math.round((posSeconds / durSeconds) * 100)) : null))
@@ -94,7 +96,7 @@ function SortableQueueItem({
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={isDragging ? 'opacity-50' : ''}
     >
-      <div className="group flex items-center gap-2">
+      <div className="flex items-center gap-2">
         <div
           {...attributes}
           {...listeners}
@@ -103,57 +105,59 @@ function SortableQueueItem({
         >
           ⠿
         </div>
-        <button
-          onClick={() => onPlay(item)}
-          disabled={!item.episode}
-          className={`relative flex-1 flex items-center gap-3 text-left rounded-xl px-4 py-3 transition-colors disabled:opacity-50 overflow-hidden ${isPlaying ? 'bg-now-playing-surface hover:bg-now-playing-surface' : 'bg-surface-container-low hover:bg-surface-container'}`}
-        >
+        <div className={`group relative flex-1 flex items-center gap-3 px-4 py-3 rounded-xl transition-colors overflow-hidden ${isPlaying ? 'bg-now-playing-surface' : 'bg-surface-container-low hover:bg-surface-container'}`}>
           <EpisodeProgressOverlay pct={pct} isPlaying={isPlaying} />
-          {item.episode?.artwork_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={item.episode.artwork_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-          ) : (
-            <div className="w-10 h-10 rounded-lg bg-surface-container-high flex-shrink-0" />
-          )}
-          <div className="overflow-hidden">
-            <p className="text-sm font-medium text-on-surface truncate">
-              {item.episode?.title ?? item.episode_guid}
-            </p>
-            <div className="flex gap-2 mt-0.5">
-              {item.episode?.podcast_title && (
-                <span className="text-xs text-on-surface-variant truncate">{item.episode.podcast_title}</span>
-              )}
-              {item.episode?.duration && (
-                <span className="text-xs text-on-surface-dim">{formatDuration(item.episode.duration)}</span>
-              )}
-            </div>
-          </div>
-        </button>
-        {description && (
           <button
-            onClick={() => onToggleDesc(item.episode_guid)}
-            title="Show description"
-            className={`p-2 transition-colors ${showDesc ? 'text-primary' : 'text-on-surface-dim hover:text-on-surface-variant'}`}
+            onClick={() => onPlay(item)}
+            disabled={!item.episode}
+            className="flex items-center gap-3 flex-1 min-w-0 text-left disabled:opacity-50"
           >
-            <Info className="w-4 h-4" />
+            {item.episode?.artwork_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={item.episode.artwork_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+            ) : (
+              <div className="w-10 h-10 rounded-lg bg-surface-container-high flex-shrink-0" />
+            )}
+            <div className="overflow-hidden">
+              <p className="text-sm font-medium text-on-surface truncate">
+                {item.episode?.title ?? item.episode_guid}
+              </p>
+              <div className="flex gap-2 mt-0.5">
+                {item.episode?.podcast_title && (
+                  <span className="text-xs text-on-surface-variant truncate">{item.episode.podcast_title}</span>
+                )}
+                {item.episode?.duration && (
+                  <span className="text-xs text-on-surface-dim">{formatDuration(item.episode.duration)}</span>
+                )}
+              </div>
+            </div>
           </button>
-        )}
-        <button
-          onClick={async () => { setRemoving(true); try { await onRemove(item.episode_guid) } finally { setRemoving(false) } }}
-          disabled={removing}
-          title="Remove from queue"
-          className="p-3 text-on-surface-dim hover:text-error transition-colors disabled:opacity-50"
-        >
-          {removing
-            ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin block" />
-            : '✕'}
-        </button>
-        {playlists.length > 0 && (
-          <AddToPlaylistPopover
-            playlists={playlists}
-            onSelect={(playlistId) => onAddToPlaylist(playlistId, item)}
-          />
-        )}
+          {description && (
+            <button
+              onClick={() => onToggleDesc(item.episode_guid)}
+              title="Show description"
+              className={`p-2 transition ${showDesc ? 'opacity-100 text-primary' : 'opacity-0 group-hover:opacity-100 text-on-surface-dim hover:text-on-surface-variant'}`}
+            >
+              <Info className="w-4 h-4" />
+            </button>
+          )}
+          <button
+            onClick={async () => { setRemoving(true); try { await onRemove(item.episode_guid) } finally { setRemoving(false) } }}
+            disabled={removing}
+            title="Remove from queue"
+            className="p-2 transition opacity-0 group-hover:opacity-100 text-on-surface-dim hover:text-error disabled:opacity-50"
+          >
+            {removing
+              ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin block" />
+              : '✕'}
+          </button>
+          {playlists.length > 0 && (
+            <AddToPlaylistPopover
+              playlists={playlists}
+              onSelect={(playlistId) => onAddToPlaylist(playlistId, item)}
+            />
+          )}
+        </div>
       </div>
       {description && (
         <div className={`overflow-hidden transition-all duration-200 ease-in-out ${showDesc ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
@@ -386,6 +390,7 @@ export default function QueuePage() {
                   playlists={userPlaylists}
                   onAddToPlaylist={addItemToPlaylist}
                   isPlaying={nowPlaying?.guid === item.episode_guid && playing}
+                  isLoaded={nowPlaying?.guid === item.episode_guid}
                   livePosition={livePosition}
                   liveDuration={liveDuration}
                   openDescGuid={openDescGuid}

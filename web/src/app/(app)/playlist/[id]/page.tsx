@@ -141,6 +141,7 @@ function SortableEpisodeRow({
   isOwner,
   inQueue,
   isPlaying,
+  isLoaded,
   livePosition,
   liveDuration,
   onPlay,
@@ -151,6 +152,7 @@ function SortableEpisodeRow({
   isOwner: boolean
   inQueue: boolean
   isPlaying: boolean
+  isLoaded: boolean
   livePosition: number
   liveDuration: number
   onPlay: (item: PlaylistEpisode) => void
@@ -164,7 +166,7 @@ function SortableEpisodeRow({
   })
 
   const posSeconds = isPlaying ? livePosition : item.position_seconds
-  const livePct = isPlaying && liveDuration > 0 ? Math.min(100, Math.round((livePosition / liveDuration) * 100)) : null
+  const livePct = isLoaded && liveDuration > 0 ? Math.min(100, Math.round((livePosition / liveDuration) * 100)) : null
   const storedPct = item.position_pct
   const durSeconds = item.episode?.duration ?? 0
   const pct = item.completed ? 100 : (livePct ?? storedPct ?? (isPlaying ? null : (posSeconds > 0 && durSeconds > 0 ? Math.min(100, Math.round((posSeconds / durSeconds) * 100)) : null)))
@@ -216,7 +218,7 @@ function SortableEpisodeRow({
           <button
             onClick={() => setShowDesc((v) => !v)}
             title="Show description"
-            className={`p-2 transition-colors ${showDesc ? 'text-primary' : 'text-on-surface-dim hover:text-on-surface-variant'}`}
+            className={`p-2 transition ${showDesc ? 'opacity-100 text-primary' : 'opacity-0 group-hover:opacity-100 text-on-surface-dim hover:text-on-surface-variant'}`}
           >
             <Info className="w-4 h-4" />
           </button>
@@ -703,6 +705,7 @@ export default function PlaylistDetailPage() {
                   isOwner={isOwner}
                   inQueue={queuedGuids.has(ep.episode_guid)}
                   isPlaying={nowPlaying?.guid === ep.episode_guid && playing}
+                  isLoaded={nowPlaying?.guid === ep.episode_guid}
                   livePosition={livePosition}
                   liveDuration={liveDuration}
                   onPlay={handlePlayEpisode}

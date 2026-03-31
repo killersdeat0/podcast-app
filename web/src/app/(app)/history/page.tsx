@@ -43,25 +43,12 @@ function formatDuration(s: number | null) {
   return `${m}m`
 }
 
-function formatProgress(positionSeconds: number, duration: number | null) {
-  if (!duration) return formatDuration(positionSeconds) + ' played'
-  const pct = Math.min(100, Math.round((positionSeconds / duration) * 100))
-  return `${pct}%`
-}
-
 function progressPct(positionSeconds: number, duration: number | null, completed: boolean): number | null {
   if (completed) return 100
   if (!duration) return null
   return Math.min(100, Math.round((positionSeconds / duration) * 100))
 }
 
-function formatTotalListened(totalSeconds: number): string {
-  const h = Math.floor(totalSeconds / 3600)
-  const m = Math.floor((totalSeconds % 3600) / 60)
-  if (h > 0) return `${h}h ${m}m listened`
-  if (m > 0) return `${m}m listened`
-  return 'Less than a minute listened'
-}
 
 function getCalendarDay(date: Date): string {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
@@ -241,26 +228,26 @@ export default function HistoryPage() {
   }
 
   const [openDescGuid, setOpenDescGuid] = useState<string | null>(null)
-  const totalSeconds = items.reduce((sum, item) => sum + (item.position_seconds || 0), 0)
   const groups = groupByDate(items)
 
   function renderEpisodeRow(item: HistoryItem) {
     const isLoaded = nowPlaying?.guid === item.episode_guid
     const isPlaying = isLoaded && playing
     const posSeconds = isPlaying ? livePosition : item.position_seconds
-    const livePct = isPlaying && liveDuration > 0 ? Math.min(100, Math.round((livePosition / liveDuration) * 100)) : null
+    const livePct = isLoaded && liveDuration > 0 ? Math.min(100, Math.round((livePosition / liveDuration) * 100)) : null
     const pct = item.completed ? 100 : (livePct ?? item.position_pct ?? (isPlaying ? null : progressPct(posSeconds, item.episode?.duration ?? null, false)))
+    const isPlayed = item.completed || (pct !== null && pct >= COMPLETION_THRESHOLD_PCT)
     const descOpen = openDescGuid === item.episode_guid
     const description = item.episode?.description ?? null
     return (
       <div key={item.episode_guid}>
-        <div className="group relative flex items-center gap-1">
+        <div className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl transition-colors overflow-hidden ${isPlaying ? 'bg-now-playing-surface' : 'bg-surface-container-low hover:bg-surface-container'}`}>
+          <EpisodeProgressOverlay pct={pct} isPlaying={isPlaying} />
           <button
             onClick={() => playItem(item)}
             disabled={!item.episode}
-            className={`relative flex-1 flex items-center gap-3 text-left rounded-xl px-4 py-3 transition-colors disabled:opacity-50 overflow-hidden ${isPlaying ? 'bg-now-playing-surface hover:bg-now-playing-surface' : 'bg-surface-container-low hover:bg-surface-container'}`}
+            className="flex items-center gap-3 flex-1 min-w-0 text-left disabled:opacity-50"
           >
-            <EpisodeProgressOverlay pct={pct} isPlaying={isPlaying} />
             {item.episode?.artwork_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -275,33 +262,24 @@ export default function HistoryPage() {
               <p className="text-sm font-medium text-on-surface truncate">
                 {item.episode?.title ?? item.episode_guid}
               </p>
-              <div className="flex gap-2 mt-0.5">
+              <div className="flex items-center gap-2 mt-0.5">
                 {item.episode?.podcast_title && (
                   <span className="text-xs text-on-surface-variant truncate">{item.episode.podcast_title}</span>
                 )}
                 {item.episode?.duration && (
                   <span className="text-xs text-on-surface-dim">{formatDuration(item.episode.duration)}</span>
                 )}
+                {isPlayed && (
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant">✓ Played</span>
+                )}
               </div>
-            </div>
-            <div className="flex-shrink-0 text-right">
-              {(item.completed || (pct !== null && pct >= COMPLETION_THRESHOLD_PCT)) ? (
-                <span className="text-xs text-playback-indicator">Done</span>
-              ) : (
-                <span className="text-xs text-on-surface-dim">
-                  {pct !== null ? `${pct}%` : formatProgress(posSeconds, item.episode?.duration ?? null)}
-                </span>
-              )}
-              <p className="text-xs text-on-surface-dim mt-0.5">
-                {new Date(item.updated_at).toLocaleDateString()}
-              </p>
             </div>
           </button>
           {description && (
             <button
               onClick={() => setOpenDescGuid(descOpen ? null : item.episode_guid)}
               title="Show description"
-              className={`p-2 transition-colors ${descOpen ? 'text-primary' : 'text-on-surface-dim hover:text-on-surface-variant'}`}
+              className={`p-2 transition ${descOpen ? 'opacity-100 text-primary' : 'opacity-0 group-hover:opacity-100 text-on-surface-dim hover:text-on-surface-variant'}`}
             >
               <Info className="w-4 h-4" />
             </button>

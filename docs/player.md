@@ -209,7 +209,9 @@ Fired from `Player.tsx` at the 98% completion threshold and by `completeAndAdvan
 
 Queue, history, playlist, and the podcast episode list all show playback progress. When changing how progress is fetched or displayed, **update all four together**.
 
-All use the same priority chain: `livePct` (from live audio while playing) → `position_pct` (stored in DB, accurate) → RSS-math fallback (inaccurate for ad-heavy podcasts due to dynamic ad insertion).
+All use the same priority chain: `livePct` (from live audio while loaded) → `position_pct` (stored in DB, accurate) → RSS-math fallback (inaccurate for ad-heavy podcasts due to dynamic ad insertion).
+
+**`livePct` uses `isLoaded` (not `isPlaying`)** — `isLoaded` is true whenever the episode is the current `nowPlaying`, whether playing or paused. This means the progress bar reflects seek position immediately after scrubbing even while paused, without waiting for the next DB save. `isPlaying` (`isLoaded && playing`) is still used separately to control the animated overlay (shimmer, pulsing bottom bar) and `bg-now-playing-surface` background.
 
 Live position state resets via `useLayoutEffect` (not `useEffect`) on episode change — this prevents the previous episode's position from showing on the newly-playing row before the browser paints.
 
