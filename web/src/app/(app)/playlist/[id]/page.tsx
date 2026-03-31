@@ -20,7 +20,8 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Play, List, Globe, Lock, Link as LinkIcon, GripVertical, Trash2, Check, Pencil, ListMusic } from 'lucide-react'
+import { Play, List, Globe, Lock, Link as LinkIcon, GripVertical, Trash2, Check, Pencil, ListMusic, Info } from 'lucide-react'
+import DOMPurify from 'dompurify'
 import { toast } from 'sonner'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
@@ -157,6 +158,7 @@ function SortableEpisodeRow({
   onAddToQueue: (item: PlaylistEpisode) => void
 }) {
   const strings = useStrings()
+  const [showDesc, setShowDesc] = useState(false)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.episode_guid,
   })
@@ -166,64 +168,82 @@ function SortableEpisodeRow({
   const storedPct = item.position_pct
   const durSeconds = item.episode?.duration ?? 0
   const pct = item.completed ? 100 : (livePct ?? storedPct ?? (isPlaying ? null : (posSeconds > 0 && durSeconds > 0 ? Math.min(100, Math.round((posSeconds / durSeconds) * 100)) : null)))
+  const description = item.episode?.description ?? null
 
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex items-center gap-2 ${isDragging ? 'opacity-50' : ''}`}
+      className={isDragging ? 'opacity-50' : ''}
     >
-      {isOwner && (
-        <div
-          {...attributes}
-          {...listeners}
-          className="p-2 text-on-surface-dim hover:text-on-surface-variant cursor-grab active:cursor-grabbing touch-none"
-        >
-          <GripVertical className="w-4 h-4" />
-        </div>
-      )}
-      <button
-        onClick={() => onPlay(item)}
-        disabled={!item.episode}
-        className={`relative flex-1 flex items-center gap-3 text-left rounded-xl px-4 py-3 transition-colors disabled:opacity-50 overflow-hidden ${isPlaying ? 'bg-now-playing-surface hover:bg-now-playing-surface' : 'bg-surface-container-low hover:bg-surface-container'}`}
-      >
-        <EpisodeProgressOverlay pct={pct} isPlaying={isPlaying} />
-        {item.episode?.artwork_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.episode.artwork_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-        ) : (
-          <div className="w-10 h-10 rounded-lg bg-surface-container-high flex-shrink-0" />
-        )}
-        <div className="overflow-hidden flex-1">
-          <p className="text-sm font-medium text-on-surface truncate">
-            {item.episode?.title ?? item.episode_guid}
-          </p>
-          <div className="flex gap-2 mt-0.5">
-            {item.episode?.podcast_title && (
-              <span className="text-xs text-on-surface-variant truncate">{item.episode.podcast_title}</span>
-            )}
-            {item.episode?.duration && (
-              <span className="text-xs text-on-surface-dim flex-shrink-0">{formatDuration(item.episode.duration)}</span>
-            )}
+      <div className="flex items-center gap-2">
+        {isOwner && (
+          <div
+            {...attributes}
+            {...listeners}
+            className="p-2 text-on-surface-dim hover:text-on-surface-variant cursor-grab active:cursor-grabbing touch-none"
+          >
+            <GripVertical className="w-4 h-4" />
           </div>
-        </div>
-      </button>
-      <button
-        onClick={() => onAddToQueue(item)}
-        disabled={!item.episode}
-        title={strings.playlists.add_to_queue}
-        className={`p-2 transition-colors disabled:opacity-30 ${inQueue ? 'text-primary hover:text-error' : 'text-on-surface-variant hover:text-primary'}`}
-      >
-        {inQueue ? <Check className="w-4 h-4" /> : <List className="w-4 h-4" />}
-      </button>
-      {isOwner && (
+        )}
         <button
-          onClick={() => onRemove(item.episode_guid)}
-          title={strings.playlists.remove_episode}
-          className="p-2 text-on-surface-dim hover:text-error transition-colors"
+          onClick={() => onPlay(item)}
+          disabled={!item.episode}
+          className={`relative flex-1 flex items-center gap-3 text-left rounded-xl px-4 py-3 transition-colors disabled:opacity-50 overflow-hidden ${isPlaying ? 'bg-now-playing-surface hover:bg-now-playing-surface' : 'bg-surface-container-low hover:bg-surface-container'}`}
         >
-          <Trash2 className="w-4 h-4" />
+          <EpisodeProgressOverlay pct={pct} isPlaying={isPlaying} />
+          {item.episode?.artwork_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.episode.artwork_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+          ) : (
+            <div className="w-10 h-10 rounded-lg bg-surface-container-high flex-shrink-0" />
+          )}
+          <div className="overflow-hidden flex-1">
+            <p className="text-sm font-medium text-on-surface truncate">
+              {item.episode?.title ?? item.episode_guid}
+            </p>
+            <div className="flex gap-2 mt-0.5">
+              {item.episode?.podcast_title && (
+                <span className="text-xs text-on-surface-variant truncate">{item.episode.podcast_title}</span>
+              )}
+              {item.episode?.duration && (
+                <span className="text-xs text-on-surface-dim flex-shrink-0">{formatDuration(item.episode.duration)}</span>
+              )}
+            </div>
+          </div>
         </button>
+        {description && (
+          <button
+            onClick={() => setShowDesc((v) => !v)}
+            title="Show description"
+            className={`p-2 transition-colors ${showDesc ? 'text-primary' : 'text-on-surface-dim hover:text-on-surface-variant'}`}
+          >
+            <Info className="w-4 h-4" />
+          </button>
+        )}
+        <button
+          onClick={() => onAddToQueue(item)}
+          disabled={!item.episode}
+          title={strings.playlists.add_to_queue}
+          className={`p-2 transition-colors disabled:opacity-30 ${inQueue ? 'text-primary hover:text-error' : 'text-on-surface-variant hover:text-primary'}`}
+        >
+          {inQueue ? <Check className="w-4 h-4" /> : <List className="w-4 h-4" />}
+        </button>
+        {isOwner && (
+          <button
+            onClick={() => onRemove(item.episode_guid)}
+            title={strings.playlists.remove_episode}
+            className="p-2 text-on-surface-dim hover:text-error transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+      {showDesc && description && (
+        <div
+          className="pl-16 pr-4 pb-3 pt-1 text-sm text-on-surface-variant max-h-40 overflow-y-auto [&_a]:text-primary [&_a]:underline [&_p]:mb-1"
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(description) }}
+        />
       )}
     </div>
   )

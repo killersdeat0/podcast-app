@@ -10,7 +10,7 @@ import { useUser } from '@/lib/auth/UserContext'
 import { toast } from 'sonner'
 import { useUserPlaylists } from '@/hooks/useUserPlaylists'
 import { addEpisodeToPlaylist } from '@/lib/playlists/addEpisodeToPlaylist'
-import { Play, Plus, Check, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Play, Plus, Check, RefreshCw, ChevronLeft, ChevronRight, Info } from 'lucide-react'
 import { LIVE_POSITION_INTERVAL_MS } from '@/lib/player/constants'
 import DOMPurify from 'dompurify'
 import { computeNewEpisodes } from '@/lib/subscriptions/computeNewEpisodes'
@@ -109,6 +109,7 @@ export default function PodcastPage() {
   const [episodeProgress, setEpisodeProgress] = useState<Map<string, { positionSeconds: number; positionPct: number | null; completed: boolean }>>(new Map())
   const [livePosition, setLivePosition] = useState(0)
   const [liveDuration, setLiveDuration] = useState(0)
+  const [openDescGuid, setOpenDescGuid] = useState<string | null>(null)
 
   // Navigation warning modal state
   const [navWarningOpen, setNavWarningOpen] = useState(false)
@@ -712,63 +713,87 @@ export default function PodcastPage() {
     // When the episode is loaded but livePct isn't ready yet (audio still seeking),
     // show nothing rather than the stale DB positionPct to avoid a visual jump.
     const pct = isPlayed ? 100 : (livePct ?? prog?.positionPct ?? null)
+    const descOpen = openDescGuid === ep.guid
     return (
-      <div key={ep.guid} className={`group relative flex items-center gap-3 px-4 py-2 rounded-lg transition-all overflow-hidden ${isCurrentlyPlaying ? 'bg-now-playing-surface' : 'hover:bg-surface-container-high/30'} ${isPlayed && !isCurrentlyPlaying ? 'opacity-60 hover:opacity-100' : ''}`}>
-        <EpisodeProgressOverlay pct={pct} isPlaying={isCurrentlyPlaying} />
-        {/* New dot */}
-        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isNew ? 'bg-brand' : 'opacity-0'}`} />
+      <div key={ep.guid}>
+        <div className={`group relative flex items-center gap-3 px-4 py-2 rounded-lg transition-all overflow-hidden ${isCurrentlyPlaying ? 'bg-now-playing-surface' : 'hover:bg-surface-container-high/30'} ${isPlayed && !isCurrentlyPlaying ? 'opacity-60 hover:opacity-100' : ''}`}>
+          <EpisodeProgressOverlay pct={pct} isPlaying={isCurrentlyPlaying} />
+          {/* New dot */}
+          <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isNew ? 'bg-brand' : 'opacity-0'}`} />
 
-        {/* Equalizer bars when loaded, play button otherwise */}
-        {isLoaded ? (
-          <button
-            onClick={() => playEpisode(ep)}
-            title={isCurrentlyPlaying ? 'Pause' : 'Play'}
-            className="flex-shrink-0 w-8 h-8 flex items-end justify-center gap-0.5 pb-1.5 rounded-full transition-all hover:bg-brand/20"
-          >
-            {[{ d: '0.6s', delay: '0ms' }, { d: '0.85s', delay: '160ms' }, { d: '0.7s', delay: '80ms' }, { d: '0.95s', delay: '240ms' }].map((bar, i) => (
-              <span key={i} className={`eq-bar${isCurrentlyPlaying ? ' playing' : ''}`} style={{ animationDuration: bar.d, animationDelay: bar.delay }} />
-            ))}
+          {/* Equalizer bars when loaded, play button otherwise */}
+          {isLoaded ? (
+            <button
+              onClick={() => playEpisode(ep)}
+              title={isCurrentlyPlaying ? 'Pause' : 'Play'}
+              className="flex-shrink-0 w-8 h-8 flex items-end justify-center gap-0.5 pb-1.5 rounded-full transition-all hover:bg-brand/20"
+            >
+              {[{ d: '0.6s', delay: '0ms' }, { d: '0.85s', delay: '160ms' }, { d: '0.7s', delay: '80ms' }, { d: '0.95s', delay: '240ms' }].map((bar, i) => (
+                <span key={i} className={`eq-bar${isCurrentlyPlaying ? ' playing' : ''}`} style={{ animationDuration: bar.d, animationDelay: bar.delay }} />
+              ))}
+            </button>
+          ) : (
+            <button
+              onClick={() => playEpisode(ep)}
+              title="Play"
+              className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all text-on-surface-variant/30 bg-transparent group-hover:bg-brand group-hover:text-on-surface"
+            >
+              <Play className="w-3.5 h-3.5 ml-0.5" fill="currentColor" />
+            </button>
+          )}
+
+          {/* Title + metadata */}
+          <button onClick={() => playEpisode(ep)} className="flex-1 text-left min-w-0">
+            <p className={`text-sm font-medium truncate ${isPlayed ? 'text-on-surface-variant' : 'text-on-surface'}`}>{ep.title}</p>
+            <div className="flex items-center gap-1 mt-0.5">
+              <span className="text-xs text-on-surface-dim">{new Date(ep.pubDate).toLocaleDateString()}</span>
+              {ep.duration && <><span className="text-xs text-on-surface-dim">·</span><span className="text-xs text-on-surface-dim">{formatDuration(ep.duration)}</span></>}
+              {isNew && <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">New</span>}
+              {isPlayed && !isNew && <span className="text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant">✓ Played</span>}
+            </div>
           </button>
-        ) : (
+
+          {/* Description toggle */}
+          {ep.description && (
+            <button
+              onClick={() => setOpenDescGuid(descOpen ? null : ep.guid)}
+              title="Show description"
+              className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all ${
+                descOpen
+                  ? 'text-primary'
+                  : 'text-on-surface-variant/30 hover:text-on-surface hover:bg-surface-container-high opacity-0 group-hover:opacity-100'
+              }`}
+            >
+              <Info className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {/* Queue button — hidden until hover, stays visible when queued */}
           <button
-            onClick={() => playEpisode(ep)}
-            title="Play"
-            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all text-on-surface-variant/30 bg-transparent group-hover:bg-brand group-hover:text-on-surface"
+            onClick={() => toggleQueue(ep)}
+            disabled={togglingQueueGuid === ep.guid}
+            title={inQueue ? s.podcast_page.remove_from_queue : s.podcast_page.add_to_queue}
+            className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all ${
+              inQueue
+                ? 'text-primary hover:text-error bg-primary/10'
+                : `text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high ${togglingQueueGuid === ep.guid ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`
+            }`}
           >
-            <Play className="w-3.5 h-3.5 ml-0.5" fill="currentColor" />
+            {togglingQueueGuid === ep.guid
+              ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin block" />
+              : inQueue ? <Check className="w-3.5 h-3.5" strokeWidth={2.5} /> : <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />}
           </button>
-        )}
-
-        {/* Title + metadata */}
-        <button onClick={() => playEpisode(ep)} className="flex-1 text-left min-w-0">
-          <p className={`text-sm font-medium truncate ${isPlayed ? 'text-on-surface-variant' : 'text-on-surface'}`}>{ep.title}</p>
-          <div className="flex items-center gap-1 mt-0.5">
-            <span className="text-xs text-on-surface-dim">{new Date(ep.pubDate).toLocaleDateString()}</span>
-            {ep.duration && <><span className="text-xs text-on-surface-dim">·</span><span className="text-xs text-on-surface-dim">{formatDuration(ep.duration)}</span></>}
-            {isNew && <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">New</span>}
-            {isPlayed && !isNew && <span className="text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant">✓ Played</span>}
-          </div>
-        </button>
-
-        {/* Queue button — hidden until hover, stays visible when queued */}
-        <button
-          onClick={() => toggleQueue(ep)}
-          disabled={togglingQueueGuid === ep.guid}
-          title={inQueue ? s.podcast_page.remove_from_queue : s.podcast_page.add_to_queue}
-          className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all ${
-            inQueue
-              ? 'text-primary hover:text-error bg-primary/10'
-              : `text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high ${togglingQueueGuid === ep.guid ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`
-          }`}
-        >
-          {togglingQueueGuid === ep.guid
-            ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin block" />
-            : inQueue ? <Check className="w-3.5 h-3.5" strokeWidth={2.5} /> : <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />}
-        </button>
-        {!isGuest && userPlaylists.length > 0 && (
-          <AddToPlaylistPopover
-            playlists={userPlaylists}
-            onSelect={(playlistId) => addToPlaylist(playlistId, ep)}
+          {!isGuest && userPlaylists.length > 0 && (
+            <AddToPlaylistPopover
+              playlists={userPlaylists}
+              onSelect={(playlistId) => addToPlaylist(playlistId, ep)}
+            />
+          )}
+        </div>
+        {descOpen && ep.description && (
+          <div
+            className="px-14 pb-3 pt-1 text-sm text-on-surface-variant max-h-40 overflow-y-auto [&_a]:text-primary [&_a]:underline [&_p]:mb-1"
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(ep.description) }}
           />
         )}
       </div>
