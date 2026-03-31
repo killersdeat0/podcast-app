@@ -188,58 +188,60 @@ function SortableEpisodeRow({
             <GripVertical className="w-4 h-4" />
           </div>
         )}
-        <button
-          onClick={() => onPlay(item)}
-          disabled={!item.episode}
-          className={`relative flex-1 flex items-center gap-3 text-left rounded-xl px-4 py-3 transition-colors disabled:opacity-50 overflow-hidden ${isPlaying ? 'bg-now-playing-surface hover:bg-now-playing-surface' : 'bg-surface-container-low hover:bg-surface-container'}`}
-        >
+        <div className={`group relative flex-1 flex items-center gap-3 px-4 py-3 rounded-xl transition-colors overflow-hidden ${isPlaying ? 'bg-now-playing-surface' : 'bg-surface-container-low hover:bg-surface-container'}`}>
           <EpisodeProgressOverlay pct={pct} isPlaying={isPlaying} />
-          {item.episode?.artwork_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={item.episode.artwork_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-          ) : (
-            <div className="w-10 h-10 rounded-lg bg-surface-container-high flex-shrink-0" />
-          )}
-          <div className="overflow-hidden flex-1">
-            <p className="text-sm font-medium text-on-surface truncate">
-              {item.episode?.title ?? item.episode_guid}
-            </p>
-            <div className="flex gap-2 mt-0.5">
-              {item.episode?.podcast_title && (
-                <span className="text-xs text-on-surface-variant truncate">{item.episode.podcast_title}</span>
-              )}
-              {item.episode?.duration && (
-                <span className="text-xs text-on-surface-dim flex-shrink-0">{formatDuration(item.episode.duration)}</span>
-              )}
+          <button
+            onClick={() => onPlay(item)}
+            disabled={!item.episode}
+            className="flex items-center gap-3 flex-1 min-w-0 text-left disabled:opacity-50"
+          >
+            {item.episode?.artwork_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={item.episode.artwork_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+            ) : (
+              <div className="w-10 h-10 rounded-lg bg-surface-container-high flex-shrink-0" />
+            )}
+            <div className="overflow-hidden flex-1">
+              <p className="text-sm font-medium text-on-surface truncate">
+                {item.episode?.title ?? item.episode_guid}
+              </p>
+              <div className="flex gap-2 mt-0.5">
+                {item.episode?.podcast_title && (
+                  <span className="text-xs text-on-surface-variant truncate">{item.episode.podcast_title}</span>
+                )}
+                {item.episode?.duration && (
+                  <span className="text-xs text-on-surface-dim flex-shrink-0">{formatDuration(item.episode.duration)}</span>
+                )}
+              </div>
             </div>
-          </div>
-        </button>
-        {description && (
-          <button
-            onClick={() => setShowDesc((v) => !v)}
-            title="Show description"
-            className={`p-2 transition ${showDesc ? 'opacity-100 text-primary' : 'opacity-0 group-hover:opacity-100 text-on-surface-dim hover:text-on-surface-variant'}`}
-          >
-            <Info className="w-4 h-4" />
           </button>
-        )}
-        <button
-          onClick={() => onAddToQueue(item)}
-          disabled={!item.episode}
-          title={strings.playlists.add_to_queue}
-          className={`p-2 transition-colors disabled:opacity-30 ${inQueue ? 'text-primary hover:text-error' : 'text-on-surface-variant hover:text-primary'}`}
-        >
-          {inQueue ? <Check className="w-4 h-4" /> : <List className="w-4 h-4" />}
-        </button>
-        {isOwner && (
+          {description && (
+            <button
+              onClick={() => setShowDesc((v) => !v)}
+              title="Show description"
+              className={`p-2 transition ${showDesc ? 'opacity-100 text-primary' : 'opacity-0 group-hover:opacity-100 text-on-surface-dim hover:text-on-surface-variant'}`}
+            >
+              <Info className="w-4 h-4" />
+            </button>
+          )}
           <button
-            onClick={() => onRemove(item.episode_guid)}
-            title={strings.playlists.remove_episode}
-            className="p-2 text-on-surface-dim hover:text-error transition-colors"
+            onClick={() => onAddToQueue(item)}
+            disabled={!item.episode}
+            title={strings.playlists.add_to_queue}
+            className={`p-2 transition disabled:opacity-30 ${inQueue ? 'text-primary hover:text-error' : 'opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-primary'}`}
           >
-            <Trash2 className="w-4 h-4" />
+            {inQueue ? <Check className="w-4 h-4" /> : <List className="w-4 h-4" />}
           </button>
-        )}
+          {isOwner && (
+            <button
+              onClick={() => onRemove(item.episode_guid)}
+              title={strings.playlists.remove_episode}
+              className="p-2 transition opacity-0 group-hover:opacity-100 text-on-surface-dim hover:text-error"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
       {description && (
         <div className={`overflow-hidden transition-all duration-200 ease-in-out ${showDesc ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
