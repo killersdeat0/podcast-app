@@ -89,7 +89,7 @@ export default function PodcastPage() {
   const [feed, setFeed] = useState<PodcastFeed | null>(null)
   const [descExpanded, setDescExpanded] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
+  const [feedError, setFeedError] = useState<'unavailable' | 'expired' | null>(null)
   const [subscribed, setSubscribed] = useState(false)
   const [subscribing, setSubscribing] = useState(false)
   const [queuedGuids, setQueuedGuids] = useState<Set<string>>(new Set())
@@ -144,19 +144,26 @@ export default function PodcastPage() {
   useEffect(() => {
     if (!feedUrl) return
     setLoading(true)
-    setError(false)
+    setFeedError(null)
     const url = `/api/podcasts/feed?url=${encodeURIComponent(feedUrl)}&limit=${episodeLimit}${feedRefreshKey > 0 ? '&nocache=1' : ''}`
     fetch(url)
-      .then((r) => {
-        if (!r.ok) throw new Error()
-        return r.json()
-      })
-      .then((data: PodcastFeed) => {
+      .then(async (r) => {
+        const data = await r.json()
+        if (!r.ok) {
+          const upstreamStatus = data?.upstreamStatus
+          if (upstreamStatus === 401 || upstreamStatus === 403) {
+            setFeedError('expired')
+          } else {
+            setFeedError('unavailable')
+          }
+          return
+        }
+        setFeedError(null)
         setFeed(data)
         if (!title && data.title) setTitle(data.title)
         if (!artwork && data.artworkUrl) setArtwork(data.artworkUrl)
       })
-      .catch(() => setError(true))
+      .catch(() => setFeedError('unavailable'))
       .finally(() => setLoading(false))
   }, [feedUrl, feedRefreshKey, episodeLimit]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -916,12 +923,26 @@ export default function PodcastPage() {
 
       {/* Content */}
       <div className="px-4 md:px-8 pb-8">
-        {error ? (
-          <div className="text-center py-12">
-            <p className="text-on-surface-variant mb-3">Failed to load episodes.</p>
-            <button onClick={() => window.location.reload()} className="text-primary hover:text-primary text-sm">
-              Try again
-            </button>
+        {feedError ? (
+          <div className="text-center py-12 px-4">
+            {feedError === 'expired' ? (
+              <>
+                <p className="text-on-surface-variant mb-1">This feed couldn&apos;t be loaded.</p>
+                <p className="text-on-surface-variant text-sm mb-4">If this is a private feed, your access link may have expired — check your Patreon or provider account for an updated URL.</p>
+                {subscribed && (
+                  <button onClick={toggleSubscribe} className="text-error text-sm underline">
+                    Unsubscribe
+                  </button>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="text-on-surface-variant mb-3">Failed to load episodes.</p>
+                <button onClick={() => window.location.reload()} className="text-primary text-sm">
+                  Try again
+                </button>
+              </>
+            )}
           </div>
         ) : loading ? (
           <div className="space-y-1 mt-2">
