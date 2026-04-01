@@ -153,6 +153,12 @@ input[type=range]:hover {
   100%  { transform: translateX(-100%); opacity: 0; }
 }
 
+/* ─── Marquee scroll for overflowing text ────────────────────────────────── */
+@keyframes marquee-scroll {
+  0%, 15%   { transform: translateX(0); }
+  85%, 100% { transform: translateX(var(--marquee-offset, 0px)); }
+}
+
 /* ─── Equalizer bars animation ───────────────────────────────────────────── */
 @keyframes eq-bounce {
   0%, 100% { transform: scaleY(0.2); }

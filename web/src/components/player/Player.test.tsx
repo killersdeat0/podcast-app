@@ -1,5 +1,5 @@
 /**
- * Player.test.tsx — unit tests for the undo accidental skip feature.
+ * Player.test.tsx — unit tests for the Player component.
  *
  * Tests cover:
  * - skipToNext: snapshot saved before advancing, toast shown when next exists
@@ -8,8 +8,11 @@
  * - completeAndAdvance: no toast when queue is empty
  * - Guest onEnded path: snapshot and toast shown
  * - restorePreviousEpisode (via Undo button): previous episode restored and seek applied
+ * - Artwork link: clicking artwork navigates to the podcast detail page
+ * - ScrollingText: renders text; applies marquee animation when text overflows container
  */
 
+import '@testing-library/jest-dom'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, act, fireEvent, waitFor } from '@testing-library/react'
 import React from 'react'
@@ -510,6 +513,123 @@ describe('restorePreviousEpisode — Undo action restores previous episode', () 
     expect(nowPlayingWrite).toBeDefined()
     const restored = JSON.parse(nowPlayingWrite![1])
     expect(restored.guid).toBe(EP1.guid)
+
+    unmount()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Tests: Artwork link
+// ---------------------------------------------------------------------------
+
+const EP_WITH_ART = {
+  ...EP1,
+  artworkUrl: 'https://cdn.example.com/art.jpg',
+}
+
+describe('artwork link', () => {
+  it('renders a link to the podcast detail page when artworkUrl is set', async () => {
+    vi.stubGlobal('localStorage', {
+      getItem: (k: string) => (k === 'nowPlaying' ? JSON.stringify(EP_WITH_ART) : null),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+    })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve([]) }))
+
+    const { unmount } = renderPlayer()
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)) })
+
+    const link = document.querySelector(`a[href="/podcast/${encodeURIComponent(EP_WITH_ART.feedUrl)}"]`)
+    expect(link).not.toBeNull()
+
+    unmount()
+  })
+
+  it('does not render an artwork link when artworkUrl is empty', async () => {
+    vi.stubGlobal('localStorage', {
+      getItem: (k: string) => (k === 'nowPlaying' ? JSON.stringify(EP1) : null),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+    })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve([]) }))
+
+    const { unmount } = renderPlayer()
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)) })
+
+    const link = document.querySelector(`a[href="/podcast/${encodeURIComponent(EP1.feedUrl)}"]`)
+    expect(link).toBeNull()
+
+    unmount()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Tests: ScrollingText
+// ---------------------------------------------------------------------------
+
+describe('ScrollingText', () => {
+  it('renders the episode title and podcast name', async () => {
+    vi.stubGlobal('localStorage', {
+      getItem: (k: string) => (k === 'nowPlaying' ? JSON.stringify(EP_WITH_ART) : null),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+    })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve([]) }))
+
+    const { unmount } = renderPlayer()
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)) })
+
+    expect(screen.getByText(EP_WITH_ART.title)).toBeInTheDocument()
+    expect(screen.getByText(EP_WITH_ART.podcastTitle)).toBeInTheDocument()
+
+    unmount()
+  })
+
+  it('applies truncate style when text fits (no overflow)', async () => {
+    // jsdom reports scrollWidth=0 and clientWidth=0 by default — no overflow detected
+    vi.stubGlobal('localStorage', {
+      getItem: (k: string) => (k === 'nowPlaying' ? JSON.stringify(EP_WITH_ART) : null),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+    })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve([]) }))
+
+    const { unmount } = renderPlayer()
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)) })
+
+    const titleEl = screen.getByText(EP_WITH_ART.title)
+    expect(titleEl).toHaveStyle({ textOverflow: 'ellipsis' })
+    expect(titleEl).not.toHaveStyle({ animation: 'marquee-scroll 14s ease-in-out infinite' })
+
+    unmount()
+  })
+
+  it('applies marquee animation when text overflows the container', async () => {
+    // Mock layout: text element reports scrollWidth > container clientWidth
+    Object.defineProperty(HTMLElement.prototype, 'scrollWidth', { get: () => 400, configurable: true })
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', { get: () => 100, configurable: true })
+
+    vi.stubGlobal('localStorage', {
+      getItem: (k: string) => (k === 'nowPlaying' ? JSON.stringify(EP_WITH_ART) : null),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+    })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve([]) }))
+
+    const { unmount } = renderPlayer()
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)) })
+
+    const titleEl = screen.getByText(EP_WITH_ART.title)
+    expect(titleEl).toHaveStyle({ animation: 'marquee-scroll 14s ease-in-out infinite' })
+
+    // Restore prototype properties
+    delete (HTMLElement.prototype as unknown as Record<string, unknown>).scrollWidth
+    delete (HTMLElement.prototype as unknown as Record<string, unknown>).clientWidth
 
     unmount()
   })

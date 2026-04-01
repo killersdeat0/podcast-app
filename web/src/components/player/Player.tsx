@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react'
+import Link from 'next/link'
 import { Volume1, Volume2, VolumeX, SkipForward } from 'lucide-react'
 import { toast } from 'sonner'
 import { usePlayer, NowPlaying, PlaylistEpisodeRef } from './PlayerContext'
@@ -22,6 +23,34 @@ function formatTime(s: number) {
   const sec = Math.floor(s % 60)
   if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
   return `${m}:${String(sec).padStart(2, '0')}`
+}
+
+function ScrollingText({ text, className }: { text: string; className?: string }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const textRef = useRef<HTMLSpanElement>(null)
+  const [offset, setOffset] = useState(0)
+
+  useLayoutEffect(() => {
+    const container = containerRef.current
+    const textEl = textRef.current
+    if (!container || !textEl) return
+    const overflow = textEl.scrollWidth - container.clientWidth
+    setOffset(overflow > 0 ? overflow : 0)
+  }, [text])
+
+  return (
+    <div ref={containerRef} className="overflow-hidden min-w-0">
+      <span
+        ref={textRef}
+        className={className}
+        style={offset > 0
+          ? { display: 'inline-block', whiteSpace: 'nowrap', animation: 'marquee-scroll 14s ease-in-out infinite', ['--marquee-offset' as string]: `-${offset}px` }
+          : { display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+      >
+        {text}
+      </span>
+    </div>
+  )
 }
 
 export default function Player({ isFreeTier = false }: { isFreeTier?: boolean }) {
@@ -578,17 +607,19 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
         {/* Artwork + info */}
         <div className="flex items-center gap-3 min-w-0 flex-shrink max-w-[40%] md:max-w-none md:w-56 md:flex-shrink-0">
           {nowPlaying.artworkUrl && !artworkError && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={nowPlaying.artworkUrl}
-              alt=""
-              className="w-10 h-10 md:w-12 md:h-12 rounded-lg object-cover flex-shrink-0"
-              onError={() => setArtworkError(true)}
-            />
+            <Link href={`/podcast/${encodeURIComponent(nowPlaying.feedUrl)}`} className="flex-shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={nowPlaying.artworkUrl}
+                alt=""
+                className="w-10 h-10 md:w-12 md:h-12 rounded-lg object-cover hover:opacity-80 transition-opacity"
+                onError={() => setArtworkError(true)}
+              />
+            </Link>
           )}
           <div className="overflow-hidden min-w-0 hidden sm:block">
-            <p className="text-sm font-medium text-on-surface truncate">{nowPlaying.title}</p>
-            <p className="text-xs text-on-surface-variant truncate">{nowPlaying.podcastTitle}</p>
+            <ScrollingText text={nowPlaying.title} className="text-sm font-medium text-on-surface" />
+            <ScrollingText text={nowPlaying.podcastTitle} className="text-xs text-on-surface-variant" />
           </div>
         </div>
 

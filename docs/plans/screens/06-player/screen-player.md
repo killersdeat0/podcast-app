@@ -8,8 +8,8 @@ Audio playback UI in two modes: a persistent mini player bar docked at the botto
 ## Contents
 
 ### Mini Player (always visible when `nowPlaying != null`)
-- Artwork thumbnail
-- Episode title (truncated)
+- Artwork thumbnail — tapping navigates to the Podcast Detail screen for the currently playing show
+- Episode title — scrolls (marquee) when the text overflows the available width; truncates with ellipsis when it fits
 - Play / Pause button
 - Skip forward 15 s button
 
