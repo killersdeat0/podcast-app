@@ -188,10 +188,13 @@ export default function PodcastPage() {
       .then((r) => r.json())
       .then((subs: SubscriptionRow[]) => {
         setAllSubscriptions(subs.map((s) => ({ feedUrl: s.feed_url })))
-        // Match by feed URL param (discover links), iTunes collection ID, or encoded feed URL
+        // Match by feed URL param (discover links), iTunes collection ID, or encoded/decoded feed URL
+        // Note: Next.js decodes dynamic route params, so id may be decoded even if the sidebar
+        // navigated with an encoded feed URL. Check both forms.
         const sub = subs.find((s) => {
           if (paramFeedUrl && s.feed_url === paramFeedUrl) return true
           if (s.collection_id && s.collection_id === id) return true
+          if (s.feed_url === id) return true
           if (encodeURIComponent(s.feed_url) === id) return true
           return false
         }) ?? null

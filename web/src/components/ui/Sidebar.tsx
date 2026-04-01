@@ -51,7 +51,7 @@ function SortableSub({ sub, active, isNowPlaying, playing }: { sub: Subscription
 
   const href = sub.collection_id
     ? `/podcast/${sub.collection_id}`
-    : `/podcast/${encodeURIComponent(sub.feed_url)}`
+    : `/podcast/${encodeURIComponent(sub.feed_url)}?feed=${encodeURIComponent(sub.feed_url)}`
 
   return (
     <div
