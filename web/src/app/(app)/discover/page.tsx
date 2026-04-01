@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
-import { Search } from 'lucide-react'
+import { Search, ChevronDown } from 'lucide-react'
 import type { ItunesResult } from '@/lib/itunes/search'
 import { PODCAST_GENRES } from '@/lib/itunes/trending'
 import { SkeletonPodcastCard } from '@/components/ui/Skeleton'
@@ -83,6 +83,208 @@ function ContinueListeningSkeleton() {
       <div className="w-36 h-36 rounded-xl bg-surface-container animate-pulse" />
       <div className="h-3 rounded bg-surface-container animate-pulse w-full" />
       <div className="h-3 rounded bg-surface-container animate-pulse w-3/4" />
+    </div>
+  )
+}
+
+interface FeedPreview {
+  title: string
+  artworkUrl: string
+  feedUrl: string
+}
+
+function AddByUrl() {
+  const strings = useStrings()
+  const { isGuest } = useUser()
+
+  const [expanded, setExpanded] = useState(false)
+  const [urlInput, setUrlInput] = useState('')
+  const [fetching, setFetching] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+  const [preview, setPreview] = useState<FeedPreview | null>(null)
+  const [subscribing, setSubscribing] = useState(false)
+  const [subscribed, setSubscribed] = useState(false)
+  const [subscriptions, setSubscriptions] = useState<string[] | null>(null)
+
+  // Lazily load subscriptions when the section is expanded (authenticated users only)
+  useEffect(() => {
+    if (!expanded || isGuest || subscriptions !== null) return
+    fetch('/api/subscriptions')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: Array<{ feed_url: string }>) => {
+        setSubscriptions((data ?? []).map((s) => s.feed_url))
+      })
+      .catch(() => setSubscriptions([]))
+  }, [expanded, isGuest, subscriptions])
+
+  function resetPreview() {
+    setPreview(null)
+    setFetchError(null)
+    setSubscribed(false)
+  }
+
+  async function handleFetch(e: React.FormEvent) {
+    e.preventDefault()
+    resetPreview()
+
+    const trimmed = urlInput.trim()
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      setFetchError(strings.discover.add_by_url_error_invalid_url)
+      return
+    }
+
+    setFetching(true)
+    try {
+      const res = await fetch(`/api/podcasts/feed?url=${encodeURIComponent(trimmed)}&limit=1`)
+      if (!res.ok) {
+        setFetchError(strings.discover.add_by_url_error_fetch_failed)
+        return
+      }
+      const data = await res.json()
+      if (!data.title) {
+        setFetchError(strings.discover.add_by_url_error_fetch_failed)
+        return
+      }
+      setPreview({ title: data.title, artworkUrl: data.artworkUrl ?? '', feedUrl: trimmed })
+    } catch {
+      setFetchError(strings.discover.add_by_url_error_fetch_failed)
+    } finally {
+      setFetching(false)
+    }
+  }
+
+  async function handleSubscribe() {
+    if (!preview) return
+
+    if (isGuest) {
+      setFetchError(strings.discover.add_by_url_error_sign_in)
+      return
+    }
+
+    if (subscriptions && subscriptions.includes(preview.feedUrl)) {
+      setFetchError(strings.discover.add_by_url_error_already_subscribed)
+      return
+    }
+
+    setSubscribing(true)
+    setFetchError(null)
+    try {
+      const res = await fetch('/api/subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          feedUrl: preview.feedUrl,
+          title: preview.title,
+          artworkUrl: preview.artworkUrl,
+        }),
+      })
+
+      if (res.status === 409 || res.status === 403) {
+        const data = await res.json()
+        if (data?.error?.toLowerCase().includes('already') || res.status === 409) {
+          setFetchError(strings.discover.add_by_url_error_already_subscribed)
+          return
+        }
+        setFetchError(data?.error ?? strings.discover.add_by_url_error_fetch_failed)
+        return
+      }
+
+      if (!res.ok) {
+        setFetchError(strings.discover.add_by_url_error_fetch_failed)
+        return
+      }
+
+      setSubscribed(true)
+      setSubscriptions((prev) => (prev ? [...prev, preview.feedUrl] : [preview.feedUrl]))
+      window.dispatchEvent(new Event('subscriptions-changed'))
+
+      // Clear after a short delay
+      setTimeout(() => {
+        setUrlInput('')
+        setPreview(null)
+        setSubscribed(false)
+      }, 2000)
+    } finally {
+      setSubscribing(false)
+    }
+  }
+
+  return (
+    <div className="mb-6">
+      <button
+        type="button"
+        onClick={() => {
+          setExpanded((v) => !v)
+          if (expanded) resetPreview()
+        }}
+        className="flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-on-surface transition-colors"
+      >
+        <ChevronDown
+          size={15}
+          className={`transition-transform ${expanded ? 'rotate-180' : ''}`}
+        />
+        {strings.discover.add_by_url_toggle}
+      </button>
+
+      {expanded && (
+        <div className="mt-3 p-4 rounded-xl bg-surface-container border border-outline-variant">
+          <form onSubmit={handleFetch} className="flex gap-2">
+            <input
+              type="text"
+              value={urlInput}
+              onChange={(e) => {
+                setUrlInput(e.target.value)
+                resetPreview()
+              }}
+              placeholder={strings.discover.add_by_url_placeholder}
+              className="flex-1 bg-surface text-on-surface rounded-lg px-3 py-2 text-sm outline-none border border-outline-variant focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all min-w-0"
+            />
+            <button
+              type="submit"
+              disabled={fetching || !urlInput.trim()}
+              className="px-4 py-2 rounded-lg bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors shrink-0"
+            >
+              {fetching
+                ? strings.discover.add_by_url_fetching
+                : strings.discover.add_by_url_fetch}
+            </button>
+          </form>
+
+          {fetchError && (
+            <p className="mt-2 text-sm text-error">{fetchError}</p>
+          )}
+
+          {preview && !fetchError && (
+            <div className="mt-3 flex items-center gap-3 p-3 rounded-lg bg-surface-container-low">
+              {preview.artworkUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={preview.artworkUrl}
+                  alt={preview.title}
+                  className="w-12 h-12 rounded-md object-cover flex-shrink-0"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-md bg-surface-container-high flex-shrink-0" />
+              )}
+              <p className="flex-1 text-sm font-medium text-on-surface line-clamp-2 min-w-0">
+                {preview.title}
+              </p>
+              <button
+                type="button"
+                onClick={handleSubscribe}
+                disabled={subscribing || subscribed}
+                className="px-3 py-1.5 rounded-lg bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
+              >
+                {subscribed
+                  ? strings.discover.add_by_url_subscribed
+                  : subscribing
+                    ? strings.discover.add_by_url_subscribing
+                    : strings.discover.add_by_url_subscribe}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -322,6 +524,9 @@ export default function DiscoverPage() {
       {error && (
         <p className="text-error text-sm mb-4">{error}</p>
       )}
+
+      {/* Subscribe by URL */}
+      <AddByUrl />
 
       {/* Genre pills — shown when browsing trending */}
       {showTrending && (
