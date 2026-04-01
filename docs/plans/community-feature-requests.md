@@ -192,6 +192,8 @@ Sorted by combined score of **demand**, **effort**, and **how much existing infr
 
 Feasibility key: ✅ Fully unblocked · ⚠️ Minor unknowns · 🔶 Needs design/dependencies · ❌ Blocked (CORS)
 
+Whenever completed implementing one of these, update any future facing mobile plan docs as well.
+
 | Rank | # | Feature | Effort | Feasibility | Notes |
 |------|---|---------|--------|-------------|-------|
 | 1 | 4 | Configurable skip interval | XS | ✅ | ~~One Settings field; Player reads it on mount. Zero dependencies.~~ **Shipped.** |
