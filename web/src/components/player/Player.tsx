@@ -616,7 +616,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
     <>
       <audio ref={audioRef} preload="metadata" />
       {!nowPlaying ? null : (
-    <div className="bg-surface-container-low border-t border-outline-variant px-3 md:px-6 py-3 flex-shrink-0">
+    <div className="bg-surface-container-low border-t border-outline-variant px-3 md:px-6 py-3 flex-shrink-0 shadow-[0_-12px_48px_rgba(0,0,0,0.8)]">
 
       <div className="max-w-screen-xl mx-auto flex items-center gap-3 md:gap-6">
         {/* Artwork + info */}
