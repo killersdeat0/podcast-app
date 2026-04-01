@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
-import { Search, ChevronDown } from 'lucide-react'
+import { Search, Rss, CheckCircle2 } from 'lucide-react'
 import type { ItunesResult } from '@/lib/itunes/search'
 import { PODCAST_GENRES } from '@/lib/itunes/trending'
 import { SkeletonPodcastCard } from '@/components/ui/Skeleton'
@@ -198,7 +198,6 @@ function AddByUrl() {
       setSubscriptions((prev) => (prev ? [...prev, preview.feedUrl] : [preview.feedUrl]))
       window.dispatchEvent(new Event('subscriptions-changed'))
 
-      // Clear after a short delay
       setTimeout(() => {
         setUrlInput('')
         setPreview(null)
@@ -210,24 +209,26 @@ function AddByUrl() {
   }
 
   return (
-    <div className="mb-6">
+    <div className="mt-10 border-t border-outline-variant pt-8">
       <button
         type="button"
         onClick={() => {
           setExpanded((v) => !v)
           if (expanded) resetPreview()
         }}
-        className="flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-on-surface transition-colors"
+        className="flex items-center gap-2 group w-full"
       >
-        <ChevronDown
-          size={15}
-          className={`transition-transform ${expanded ? 'rotate-180' : ''}`}
-        />
-        {strings.discover.add_by_url_toggle}
+        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-container group-hover:bg-surface-container-high transition-colors shrink-0">
+          <Rss size={15} className="text-on-surface-variant" />
+        </div>
+        <div className="text-left">
+          <p className="text-sm font-medium text-on-surface">{strings.discover.add_by_url_toggle}</p>
+          <p className="text-xs text-on-surface-variant">{strings.discover.add_by_url_subtitle}</p>
+        </div>
       </button>
 
       {expanded && (
-        <div className="mt-3 p-4 rounded-xl bg-surface-container border border-outline-variant">
+        <div className="mt-4">
           <form onSubmit={handleFetch} className="flex gap-2">
             <input
               type="text"
@@ -237,16 +238,15 @@ function AddByUrl() {
                 resetPreview()
               }}
               placeholder={strings.discover.add_by_url_placeholder}
-              className="flex-1 bg-surface text-on-surface rounded-lg px-3 py-2 text-sm outline-none border border-outline-variant focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all min-w-0"
+              autoFocus
+              className="flex-1 bg-surface-container text-on-surface rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/50 transition-all min-w-0 placeholder:text-on-surface-variant"
             />
             <button
               type="submit"
               disabled={fetching || !urlInput.trim()}
-              className="px-4 py-2 rounded-lg bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors shrink-0"
+              className="px-4 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 disabled:opacity-40 transition-colors shrink-0"
             >
-              {fetching
-                ? strings.discover.add_by_url_fetching
-                : strings.discover.add_by_url_fetch}
+              {fetching ? strings.discover.add_by_url_fetching : strings.discover.add_by_url_fetch}
             </button>
           </form>
 
@@ -255,26 +255,27 @@ function AddByUrl() {
           )}
 
           {preview && !fetchError && (
-            <div className="mt-3 flex items-center gap-3 p-3 rounded-lg bg-surface-container-low">
+            <div className="mt-3 flex items-center gap-3 p-3 rounded-xl bg-surface-container">
               {preview.artworkUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={preview.artworkUrl}
                   alt={preview.title}
-                  className="w-12 h-12 rounded-md object-cover flex-shrink-0"
+                  className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
                 />
               ) : (
-                <div className="w-12 h-12 rounded-md bg-surface-container-high flex-shrink-0" />
+                <div className="w-14 h-14 rounded-lg bg-surface-container-high flex-shrink-0" />
               )}
-              <p className="flex-1 text-sm font-medium text-on-surface line-clamp-2 min-w-0">
-                {preview.title}
-              </p>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-on-surface line-clamp-2">{preview.title}</p>
+              </div>
               <button
                 type="button"
                 onClick={handleSubscribe}
                 disabled={subscribing || subscribed}
-                className="px-3 py-1.5 rounded-lg bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 disabled:opacity-60 transition-all shrink-0"
               >
+                {subscribed && <CheckCircle2 size={14} />}
                 {subscribed
                   ? strings.discover.add_by_url_subscribed
                   : subscribing
@@ -525,9 +526,6 @@ export default function DiscoverPage() {
         <p className="text-error text-sm mb-4">{error}</p>
       )}
 
-      {/* Subscribe by URL */}
-      <AddByUrl />
-
       {/* Genre pills — shown when browsing trending */}
       {showTrending && (
         <>
@@ -635,6 +633,9 @@ export default function DiscoverPage() {
           description={strings.discover.no_results_description}
         />
       )}
+
+      {/* Private feed — add by URL */}
+      <AddByUrl />
     </div>
   )
 }
