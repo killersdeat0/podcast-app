@@ -199,10 +199,10 @@ Whenever completed implementing one of these, update any future facing mobile pl
 | 1 | 4 | Configurable skip interval | XS | ✅ | ~~One Settings field; Player reads it on mount. Zero dependencies.~~ **Shipped.** |
 | 2 | 8 | Persistent filter/sort state | XS | ✅ | ~~Save to localStorage keyed by feedUrl. One `useEffect`.~~ **Shipped.** |
 | 3 | 16 | All in-progress episodes view | XS | ✅ | ~~Filter toggle on existing history query (`0 < position_pct < 0.98`).~~ **Shipped.** |
-| 4 | 7 | Sleep timer | S | ✅ | Client-side only. Countdown → pause audio. No DB or API needed. |
-| 5 | 5 | OPML export | S | ✅ | One new API route; serialize subscriptions to XML. Import adds ~1 day. |
-| 6 | 15 | Chapter navigation | M | ⚠️ | Parse `<podcast:chapters>` in feed Edge Function; render chapter list in Player. Ties into roadmap #8. |
-| 7 | 6 | Private RSS feed support | M | ⚠️ | Already fetch RSS. Need to store auth credentials per subscription and thread them through feed Edge Function. Patreon users immediately unlocked. |
+| 4 | 7 | Sleep timer | S | ✅ | ~~Client-side only. Countdown → pause audio. No DB or API needed.~~ **Shipped.** |
+| 5 | 5 | OPML export | S | ✅ | ~~One new API route; serialize subscriptions to XML. Import adds ~1 day.~~ **Shipped.** |
+| 6 | 15 | Chapter navigation | M | ⚠️ | ~~Parse `<podcast:chapters>` in feed Edge Function; render chapter list in Player. Ties into roadmap #8.~~ **Shipped.** |
+| 7 | 6 | Private RSS feed support | M | ⚠️ | ~~Already fetch RSS. Need to store auth credentials per subscription and thread them through feed Edge Function. Patreon users immediately unlocked.~~ **Shipped.** |
 | 8 | 3 | Bookmarks with timestamped notes | M | ⚠️ | New DB table + bookmark button in Player + episode detail list. Well-scoped but touches several layers. |
 | 9 | 9 | PKM / Readwise integration | M | 🔶 | Depends on bookmarks (#8) being done first. Then a webhook/export endpoint. Strong paid-tier differentiator. |
 | 10 | 10 | Inbox / triage mode | L | 🔶 | Requires rethinking queue UX. Ex-Castro audience is loyal but niche. |
