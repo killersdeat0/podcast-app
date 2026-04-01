@@ -27,7 +27,7 @@ and `<Feature>ViewModel.kt` (androidMain).
 
 | Screen | Contents |
 |--------|----------|
-| **Discover** | "Discover" title; search bar ("Search podcasts, episodes..."); genre filter chips (horizontally scrollable); Trending section (large 2-col artwork cards); podcast result grid (when searching); mini player bar |
+| **Discover** | "Discover" title; search bar ("Search podcasts, episodes..."); "Have a private feed? Add by URL" collapsed toggle (expands URL input → fetch preview → subscribe); genre filter chips (horizontally scrollable); Trending section (large 2-col artwork cards); podcast result grid (when searching); mini player bar |
 | **Library** | "Library" title; "Subscriptions" section heading (drag-to-reorder with handle on right); "Downloads" section heading (paid: "Unlimited" purple pill); downloaded episode rows with play overlay, "Downloaded ✓" badge + MB + duration, three-dot menu; guest empty state (cloud-off icon, "Sign in to save podcasts", Sign In button); mini player bar |
 | **Queue** | Screen title "Up Next" (tab label stays "Queue"); free-tier "X / 10 Free" pill badge; paid "Unlimited" purple pill (replaces free badge); episode rows with drag handle (left), artwork, title/podcast/time, trash + three-dot (right); inline upgrade card shown proactively near cap: heading "Queue Limit Reached Soon", body about 10-episode limit, "View Plans" full-width button; mini player bar |
 | **Profile** | "Profile" title + gear icon (→ Settings); guest state: avatar placeholder + "Sign In / Sign Up" button + Premium card; logged-in state: avatar, name, email, tier badge ("FREE PLAN"/"PRO"), subscriptions horizontal scroll + "View All", Upgrade card (free only), Listening Stats section |
@@ -148,6 +148,7 @@ Free-tier gates generally show an **Upgrade Sheet** (bottom sheet). Exception: t
       Apple sign-in for iOS (expect/actual OAuth handler)
 - [ ] Podcast search + subscribe — `SearchFeature` + `SearchScreen`; calls Supabase Edge Function
       (`/functions/v1/podcasts-search`); results rendered in lazy column
+- [ ] Subscribe by URL — collapsed "Add by URL" section on Discover screen; calls `/api/podcasts/feed?url=...&limit=1` for preview then `POST /api/subscriptions`; handles 401/403 upstream errors with "access link may have expired" messaging; web reference: `web/src/app/(app)/discover/page.tsx` `AddByUrl` component
 - [ ] Episode list + playback — `EpisodeListFeature` + `PlayerFeature`; audio via `Media3` (Android)
       / `AVPlayer` (iOS) behind expect/actual `AudioPlayer` interface
 - [ ] Background audio playback — Android: `MediaSessionService` (Media3); iOS: `AVAudioSession`
