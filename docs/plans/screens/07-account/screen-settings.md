@@ -11,7 +11,11 @@ App-wide settings and account management, reachable from the Profile screen.
 
 **PREFERENCES section**
 - Notification Settings row (bell icon, chevron →)
-- Playback Defaults row (sliders icon, chevron →)
+- Playback Defaults row (sliders icon, chevron →) — contains:
+  - Default speed (free: 1x/2x only; paid: 0.5x–3x)
+  - Default volume
+  - **Default jump back** — duration selector (5s–90s); stored in `skip-back-seconds`
+  - **Default jump forward** — duration selector (5s–90s); stored in `skip-forward-seconds`
 
 **DATA & ACCOUNT section**
 - OPML Import/Export row (file icon, lock icon to indicate paid-only, chevron →)

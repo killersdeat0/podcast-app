@@ -16,8 +16,10 @@ Full podcast page with artwork hero, follow toggle, and scrollable episode list.
   - **"▶ Play Latest"** — primary filled button (purple); plays the most recent episode immediately
   - **"+ Follow" / "Unfollow"** — outline button for subscribe/unsubscribe (label is "Follow", not "Subscribe")
 - New-episode dot badge (unplayed count)
-- **"Episodes"** section heading with a **"Sort"** button (top-right of section)
-- Episode filter pill (paid — appears near the Sort control)
+- **"Episodes"** section heading with sort and filter controls (top-right of section):
+  - **Sort toggle** — "Newest ↓" / "Oldest ↑"; persisted to local storage keyed by feedUrl (`podcast-sort-{feedUrl}`)
+  - **"Unfinished" filter** — toggles to show only episodes that haven't been completed; highlighted when active; persisted as `podcast-filter-{feedUrl}` = `'unfinished'`
+- Episode filter pill (paid — notification filter, separate from the sort/unfinished display filter)
 - Episode rows:
   - Episode title (bold)
   - Description snippet (2 lines)
