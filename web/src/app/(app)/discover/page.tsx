@@ -11,6 +11,7 @@ import { useStrings } from '@/lib/i18n/LocaleContext'
 import { PodcastCard } from '@/components/podcasts/PodcastCard'
 import { useUser } from '@/lib/auth/UserContext'
 import { usePlayer } from '@/components/player/PlayerContext'
+import { isInProgress } from '@/lib/player/constants'
 
 interface HistoryItem {
   episode_guid: string
@@ -128,14 +129,7 @@ export default function DiscoverPage() {
       .then((res) => res.json())
       .then((data: HistoryItem[]) => {
         if (cancelled) return
-        const items = (data ?? [])
-          .filter(
-            (item) =>
-              !item.completed &&
-              item.position_seconds > 30 &&
-              item.position_pct !== null
-          )
-          .slice(0, 10)
+        const items = (data ?? []).filter(isInProgress).slice(0, 10)
         setContinueItems(items)
       })
       .catch(() => {
@@ -410,9 +404,14 @@ export default function DiscoverPage() {
       {/* Continue Listening section */}
       {showContinueSection && (
         <section className="mt-8">
-          <h2 className="text-lg font-semibold text-on-surface mb-3">
-            {strings.discover.continue_listening}
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-on-surface">
+              {strings.discover.continue_listening}
+            </h2>
+            <Link href="/history?filter=in_progress" className="text-sm text-primary hover:underline">
+              See all →
+            </Link>
+          </div>
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
             {showContinueSkeleton
               ? Array.from({ length: 3 }).map((_, i) => (

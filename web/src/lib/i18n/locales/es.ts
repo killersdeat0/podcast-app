@@ -26,6 +26,10 @@ const es = {
     empty_title: 'Nada escuchado aún 📻',
     empty_description: 'Los episodios que hayas reproducido aparecerán aquí para que puedas retomarlo.',
     empty_cta: 'Empezar a escuchar',
+    filter_all: 'Todo',
+    filter_in_progress: 'En progreso',
+    in_progress_empty_title: 'Nada en progreso 🎧',
+    in_progress_empty_description: 'Los episodios que hayas empezado pero no terminado aparecerán aquí.',
   },
   sidebar: {
     my_podcasts: 'Mis podcasts',

@@ -26,6 +26,10 @@ const en = {
     empty_title: 'No listens yet 📻',
     empty_description: 'Episodes you\'ve played will show up here so you can pick up where you left off.',
     empty_cta: 'Start listening',
+    filter_all: 'All',
+    filter_in_progress: 'In Progress',
+    in_progress_empty_title: 'Nothing in progress 🎧',
+    in_progress_empty_description: 'Episodes you\'ve started but haven\'t finished will appear here.',
   },
   sidebar: {
     my_podcasts: 'My Podcasts',

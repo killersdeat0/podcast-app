@@ -1,11 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { usePlayer } from '@/components/player/PlayerContext'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
-import { COMPLETION_THRESHOLD_PCT, LIVE_POSITION_INTERVAL_MS } from '@/lib/player/constants'
+import { COMPLETION_THRESHOLD_PCT, LIVE_POSITION_INTERVAL_MS, isInProgress } from '@/lib/player/constants'
 import AddToPlaylistPopover from '@/components/ui/AddToPlaylistPopover'
 import { EpisodeProgressOverlay } from '@/components/ui/EpisodeProgressOverlay'
 import { useUserPlaylists } from '@/hooks/useUserPlaylists'
@@ -100,6 +101,10 @@ export default function HistoryPage() {
   const { isGuest } = useUser()
   const userPlaylists = useUserPlaylists(isGuest)
   const strings = useStrings()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const filterParam = searchParams.get('filter')
+  const showInProgress = filterParam === 'in_progress'
 
   const fetchHistory = useCallback(() => {
     fetch('/api/history')
@@ -228,6 +233,8 @@ export default function HistoryPage() {
   }
 
   const [openDescGuid, setOpenDescGuid] = useState<string | null>(null)
+
+  const inProgressItems = items.filter(isInProgress)
   const groups = groupByDate(items)
 
   function renderEpisodeRow(item: HistoryItem) {
@@ -303,9 +310,22 @@ export default function HistoryPage() {
     )
   }
 
+  const pillClass = (active: boolean) =>
+    `px-3 py-1 rounded-full text-sm font-medium transition-colors ${active ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:text-on-surface'}`
+
   return (
     <div className="p-4 md:p-8">
-      <h1 className="text-2xl font-bold mb-6">{strings.history.heading}</h1>
+      <div className="flex items-center gap-4 mb-6">
+        <h1 className="text-2xl font-bold">{strings.history.heading}</h1>
+        <div className="flex gap-1">
+          <button className={pillClass(!showInProgress)} onClick={() => router.push('/history')}>
+            {strings.history.filter_all}
+          </button>
+          <button className={pillClass(showInProgress)} onClick={() => router.push('/history?filter=in_progress')}>
+            {strings.history.filter_in_progress}
+          </button>
+        </div>
+      </div>
 
       {loading ? (
         <div className="space-y-2">
@@ -313,6 +333,17 @@ export default function HistoryPage() {
             <div key={i} className="h-16 bg-surface-container rounded-xl animate-pulse" />
           ))}
         </div>
+      ) : showInProgress ? (
+        inProgressItems.length === 0 ? (
+          <EmptyState
+            title={strings.history.in_progress_empty_title}
+            description={strings.history.in_progress_empty_description}
+          />
+        ) : (
+          <div className="space-y-2">
+            {inProgressItems.map((item) => renderEpisodeRow(item))}
+          </div>
+        )
       ) : items.length === 0 ? (
         <EmptyState
           title={strings.history.empty_title}
