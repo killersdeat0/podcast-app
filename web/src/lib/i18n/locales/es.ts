@@ -143,6 +143,10 @@ const es = {
     similar_heading: 'También te podría gustar 🎧',
     per_show_speed_label: 'Velocidad de reproducción',
     per_show_speed_follow_global: 'Seguir global',
+    sort_newest: 'Más recientes',
+    sort_oldest: 'Más antiguos',
+    filter_all: 'Todos',
+    filter_unplayed: 'No escuchados',
   },
   auth: {
     login_heading: 'Bienvenido de vuelta',

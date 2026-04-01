@@ -143,6 +143,10 @@ const en = {
     similar_heading: 'You might also like 🎧',
     per_show_speed_label: 'Playback speed',
     per_show_speed_follow_global: 'Follow global',
+    sort_newest: 'Newest',
+    sort_oldest: 'Oldest',
+    filter_all: 'All',
+    filter_unplayed: 'Unplayed',
   },
   auth: {
     login_heading: 'Welcome back',

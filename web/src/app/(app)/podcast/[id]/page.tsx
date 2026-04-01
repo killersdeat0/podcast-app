@@ -98,6 +98,8 @@ export default function PodcastPage() {
   const [subscription, setSubscription] = useState<SubscriptionRow | null>(null)
   const [oldLastVisitedAt, setOldLastVisitedAt] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
+  const [showUnplayedOnly, setShowUnplayedOnly] = useState(false)
   const [episodeFilter, setEpisodeFilter] = useState('')
   const [savingFilter, setSavingFilter] = useState(false)
   const [filterModalOpen, setFilterModalOpen] = useState(false)
@@ -157,6 +159,15 @@ export default function PodcastPage() {
       .catch(() => setError(true))
       .finally(() => setLoading(false))
   }, [feedUrl, feedRefreshKey, episodeLimit]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Restore sort/filter prefs from localStorage when feedUrl is known
+  useEffect(() => {
+    if (!feedUrl) return
+    const sort = localStorage.getItem(`podcast-sort-${feedUrl}`)
+    if (sort === 'oldest') setSortOrder('oldest')
+    const filter = localStorage.getItem(`podcast-filter-${feedUrl}`)
+    if (filter === 'unplayed') setShowUnplayedOnly(true)
+  }, [feedUrl])
 
   // Check subscription status + current queue + tier
   useEffect(() => {
@@ -389,12 +400,17 @@ export default function PodcastPage() {
   }, [searchQuery, collectionId, itunesEpisodes, feed])
 
   const PAGE_SIZE = 20
-  const totalPages = Math.ceil((feed?.episodes.length ?? 0) / PAGE_SIZE)
-  const pagedEpisodes = useMemo(() => {
-    const all = feed?.episodes ?? []
-    const paged = all.slice(episodePage * PAGE_SIZE, (episodePage + 1) * PAGE_SIZE)
-    return paged
-  }, [feed, episodePage])
+  const filteredEpisodes = useMemo(() => {
+    let eps = feed?.episodes ?? []
+    if (showUnplayedOnly) eps = eps.filter((ep) => !episodeProgress.get(ep.guid)?.completed)
+    if (sortOrder === 'oldest') eps = [...eps].reverse()
+    return eps
+  }, [feed, sortOrder, showUnplayedOnly, episodeProgress])
+  const totalPages = Math.ceil(filteredEpisodes.length / PAGE_SIZE)
+  const pagedEpisodes = useMemo(
+    () => filteredEpisodes.slice(episodePage * PAGE_SIZE, (episodePage + 1) * PAGE_SIZE),
+    [filteredEpisodes, episodePage],
+  )
 
   const searchTotalPages = Math.ceil(searchResults.length / PAGE_SIZE)
   const pagedSearchResults = useMemo(
@@ -1216,6 +1232,31 @@ export default function PodcastPage() {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-dim">All Episodes</span>
                     <div className="flex-1 h-px bg-outline-variant/60" />
+                    {/* Sort toggle */}
+                    <button
+                      onClick={() => {
+                        const next = sortOrder === 'newest' ? 'oldest' : 'newest'
+                        setSortOrder(next)
+                        setEpisodePage(0)
+                        if (feedUrl) localStorage.setItem(`podcast-sort-${feedUrl}`, next)
+                      }}
+                      className="text-xs text-on-surface-variant hover:text-on-surface transition-colors px-1.5 py-0.5 rounded"
+                      title={sortOrder === 'newest' ? s.podcast_page.sort_newest : s.podcast_page.sort_oldest}
+                    >
+                      {sortOrder === 'newest' ? `${s.podcast_page.sort_newest} ↓` : `${s.podcast_page.sort_oldest} ↑`}
+                    </button>
+                    {/* Unplayed filter */}
+                    <button
+                      onClick={() => {
+                        const next = !showUnplayedOnly
+                        setShowUnplayedOnly(next)
+                        setEpisodePage(0)
+                        if (feedUrl) localStorage.setItem(`podcast-filter-${feedUrl}`, next ? 'unplayed' : 'all')
+                      }}
+                      className={`text-xs px-1.5 py-0.5 rounded transition-colors ${showUnplayedOnly ? 'text-primary font-medium' : 'text-on-surface-variant hover:text-on-surface'}`}
+                    >
+                      {showUnplayedOnly ? s.podcast_page.filter_unplayed : s.podcast_page.filter_all}
+                    </button>
                     <button
                       onClick={handleRefreshFeed}
                       disabled={loading}
