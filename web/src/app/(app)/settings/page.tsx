@@ -12,6 +12,7 @@ import type { Locale } from '@/lib/i18n'
 
 const ALL_SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]
 const FREE_SPEEDS = [1, 2]
+const SKIP_OPTIONS = [5, 10, 15, 20, 30, 45, 60, 90]
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -26,6 +27,8 @@ export default function SettingsPage() {
   // Playback defaults — read from same localStorage keys that Player.tsx uses
   const [defaultSpeed, setDefaultSpeed] = useState(1)
   const [defaultVolume, setDefaultVolume] = useState(1)
+  const [skipBack, setSkipBack] = useState(15)
+  const [skipForward, setSkipForward] = useState(30)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -43,6 +46,10 @@ export default function SettingsPage() {
       const parsed = Number(storedVolume)
       if (!isNaN(parsed)) setDefaultVolume(parsed)
     }
+    const storedSkipBack = localStorage.getItem('skip-back-seconds')
+    if (storedSkipBack) setSkipBack(Number(storedSkipBack))
+    const storedSkipFwd = localStorage.getItem('skip-forward-seconds')
+    if (storedSkipFwd) setSkipForward(Number(storedSkipFwd))
 
     if (!isGuest) {
       const supabase = createClient()
@@ -68,6 +75,18 @@ export default function SettingsPage() {
       localStorage.setItem('playback-speed', String(speed))
       setSpeed(speed)
     }
+  }
+
+  function handleSkipBackChange(seconds: number) {
+    setSkipBack(seconds)
+    localStorage.setItem('skip-back-seconds', String(seconds))
+    window.dispatchEvent(new Event('skip-intervals-changed'))
+  }
+
+  function handleSkipForwardChange(seconds: number) {
+    setSkipForward(seconds)
+    localStorage.setItem('skip-forward-seconds', String(seconds))
+    window.dispatchEvent(new Event('skip-intervals-changed'))
   }
 
   function handleVolumeChange(volume: number) {
@@ -178,6 +197,34 @@ export default function SettingsPage() {
                   aria-label={s.settings.default_volume}
                 />
               </div>
+            </div>
+
+            {/* Skip back interval */}
+            <div className="px-6 py-4 flex items-center justify-between gap-4">
+              <p className="text-sm text-on-surface flex-shrink-0">{s.settings.skip_back}</p>
+              <select
+                value={skipBack}
+                onChange={(e) => handleSkipBackChange(Number(e.target.value))}
+                className="bg-surface-container text-on-surface text-sm rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-primary"
+              >
+                {SKIP_OPTIONS.map((n) => (
+                  <option key={n} value={n}>{s.settings.skip_seconds(n)}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Skip forward interval */}
+            <div className="px-6 py-4 flex items-center justify-between gap-4">
+              <p className="text-sm text-on-surface flex-shrink-0">{s.settings.skip_forward}</p>
+              <select
+                value={skipForward}
+                onChange={(e) => handleSkipForwardChange(Number(e.target.value))}
+                className="bg-surface-container text-on-surface text-sm rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-primary"
+              >
+                {SKIP_OPTIONS.map((n) => (
+                  <option key={n} value={n}>{s.settings.skip_seconds(n)}</option>
+                ))}
+              </select>
             </div>
           </div>
         </section>

@@ -59,12 +59,27 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
   const availableSpeeds = isFreeTier ? FREE_SPEEDS : ALL_SPEEDS
   const strings = useStrings()
 
+  const [skipBackSecs, setSkipBackSecs] = useState(15)
+  const [skipForwardSecs, setSkipForwardSecs] = useState(30)
+
+  useEffect(() => {
+    function readSkipIntervals() {
+      const back = localStorage.getItem('skip-back-seconds')
+      const fwd = localStorage.getItem('skip-forward-seconds')
+      if (back) setSkipBackSecs(Number(back))
+      if (fwd) setSkipForwardSecs(Number(fwd))
+    }
+    readSkipIntervals()
+    window.addEventListener('skip-intervals-changed', readSkipIntervals)
+    return () => window.removeEventListener('skip-intervals-changed', readSkipIntervals)
+  }, [])
+
   const seekBack = useCallback(() => {
-    if (audioRef.current) seek(audioRef.current.currentTime - 15)
-  }, [audioRef, seek])
+    if (audioRef.current) seek(audioRef.current.currentTime - skipBackSecs)
+  }, [audioRef, seek, skipBackSecs])
   const seekForward = useCallback(() => {
-    if (audioRef.current) seek(audioRef.current.currentTime + 30)
-  }, [audioRef, seek])
+    if (audioRef.current) seek(audioRef.current.currentTime + skipForwardSecs)
+  }, [audioRef, seek, skipForwardSecs])
   useKeyboardShortcuts({ togglePlay, seekBack, seekForward })
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
@@ -626,14 +641,14 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
         {/* Controls */}
         <div className="flex-1 flex flex-col items-center gap-1">
           <div className="flex items-center gap-4">
-            <button onClick={() => seek(currentTime - 15)} className="text-on-surface-variant hover:text-on-surface text-sm">-15</button>
+            <button onClick={() => seek(currentTime - skipBackSecs)} className="text-on-surface-variant hover:text-on-surface text-sm">-{skipBackSecs}</button>
             <button
               onClick={togglePlay}
               className="w-10 h-10 rounded-full bg-brand hover:bg-brand-dark flex items-center justify-center text-on-surface transition-colors"
             >
               {playing ? '❚❚' : '▶'}
             </button>
-            <button onClick={() => seek(currentTime + 30)} className="text-on-surface-variant hover:text-on-surface text-sm">+30</button>
+            <button onClick={() => seek(currentTime + skipForwardSecs)} className="text-on-surface-variant hover:text-on-surface text-sm">+{skipForwardSecs}</button>
             {hasNextInQueue && (
               <button
                 onClick={() => {

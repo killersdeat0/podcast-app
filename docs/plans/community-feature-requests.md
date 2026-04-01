@@ -46,6 +46,8 @@ Spotify's skip buttons are fixed at 15s forward / 15s back. Users want to set th
 
 **Implementation:** A single setting in Settings page — two number inputs for forward and backward skip duration. Player reads from settings on mount.
 
+**Status: ✅ Shipped** — Two dropdowns (5s–90s) in Settings → Playback. Player reads `skip-back-seconds` / `skip-forward-seconds` from localStorage on mount and listens for `skip-intervals-changed` events. Defaults: 15s back / 30s forward.
+
 ---
 
 ## 5. OPML Import / Export ⭐
@@ -192,7 +194,7 @@ Feasibility key: ✅ Fully unblocked · ⚠️ Minor unknowns · 🔶 Needs desi
 
 | Rank | # | Feature | Effort | Feasibility | Notes |
 |------|---|---------|--------|-------------|-------|
-| 1 | 4 | Configurable skip interval | XS | ✅ | One Settings field; Player reads it on mount. Zero dependencies. |
+| 1 | 4 | Configurable skip interval | XS | ✅ | ~~One Settings field; Player reads it on mount. Zero dependencies.~~ **Shipped.** |
 | 2 | 8 | Persistent filter/sort state | XS | ✅ | Save to localStorage keyed by feedUrl. One `useEffect`. |
 | 3 | 16 | All in-progress episodes view | XS | ✅ | Filter toggle on existing history query (`0 < position_pct < 0.98`). |
 | 4 | 7 | Sleep timer | S | ✅ | Client-side only. Countdown → pause audio. No DB or API needed. |
