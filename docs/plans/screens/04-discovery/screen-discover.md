@@ -9,6 +9,10 @@ Primary search and discovery surface; accessible to all users including guests.
 - "Discover" screen title
 - Search bar ("Search podcasts, episodes..." placeholder; calls Edge Function on query change)
 - Genre filter chips / pills (All, Comedy, Tech, News, True Crime, etc.; horizontally scrollable)
+- **"Continue Listening"** section (authenticated users only, hidden for guests):
+  - Horizontal scroll row of up to 10 in-progress episode cards (artwork + title + progress bar)
+  - **"See all →"** link navigates to History screen with `filter=in_progress`
+  - Uses shared `isInProgress()` predicate: `position_seconds > 30 && !completed && position_pct < 98`
 - "Trending" section heading with large podcast artwork cards (2-column grid)
 - Podcast result grid below trending (lazy, infinite scroll; appears when search query is active)
 - Mini player bar (persistent, above tab bar)

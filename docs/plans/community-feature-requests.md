@@ -196,7 +196,7 @@ Feasibility key: ✅ Fully unblocked · ⚠️ Minor unknowns · 🔶 Needs desi
 |------|---|---------|--------|-------------|-------|
 | 1 | 4 | Configurable skip interval | XS | ✅ | ~~One Settings field; Player reads it on mount. Zero dependencies.~~ **Shipped.** |
 | 2 | 8 | Persistent filter/sort state | XS | ✅ | ~~Save to localStorage keyed by feedUrl. One `useEffect`.~~ **Shipped.** |
-| 3 | 16 | All in-progress episodes view | XS | ✅ | Filter toggle on existing history query (`0 < position_pct < 0.98`). |
+| 3 | 16 | All in-progress episodes view | XS | ✅ | ~~Filter toggle on existing history query (`0 < position_pct < 0.98`).~~ **Shipped.** |
 | 4 | 7 | Sleep timer | S | ✅ | Client-side only. Countdown → pause audio. No DB or API needed. |
 | 5 | 5 | OPML export | S | ✅ | One new API route; serialize subscriptions to XML. Import adds ~1 day. |
 | 6 | 15 | Chapter navigation | M | ⚠️ | Parse `<podcast:chapters>` in feed Edge Function; render chapter list in Player. Ties into roadmap #8. |
