@@ -166,7 +166,7 @@ export default function PodcastPage() {
     const sort = localStorage.getItem(`podcast-sort-${feedUrl}`)
     if (sort === 'oldest') setSortOrder('oldest')
     const filter = localStorage.getItem(`podcast-filter-${feedUrl}`)
-    if (filter === 'unplayed') setShowUnplayedOnly(true)
+    if (filter === 'unfinished') setShowUnplayedOnly(true)
   }, [feedUrl])
 
   // Check subscription status + current queue + tier
@@ -1251,7 +1251,7 @@ export default function PodcastPage() {
                         const next = !showUnplayedOnly
                         setShowUnplayedOnly(next)
                         setEpisodePage(0)
-                        if (feedUrl) localStorage.setItem(`podcast-filter-${feedUrl}`, next ? 'unplayed' : 'all')
+                        if (feedUrl) localStorage.setItem(`podcast-filter-${feedUrl}`, next ? 'unfinished' : 'all')
                       }}
                       className={`text-xs px-1.5 py-0.5 rounded transition-colors ${showUnplayedOnly ? 'text-primary font-medium' : 'text-on-surface-variant hover:text-on-surface'}`}
                     >
