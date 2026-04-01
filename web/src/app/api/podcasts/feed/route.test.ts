@@ -28,11 +28,11 @@ describe('GET /api/podcasts/feed', () => {
   })
 
   it('returns 502 when the RSS feed fails to fetch', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }))
     const req = new NextRequest('http://localhost/api/podcasts/feed?url=https://example.com/feed.xml')
     const res = await GET(req)
     expect(res.status).toBe(502)
-    expect(await res.json()).toEqual({ error: 'Failed to parse feed' })
+    expect(await res.json()).toEqual({ error: 'feed_unavailable', upstreamStatus: 503 })
   })
 
   it('returns parsed feed data when url is valid', async () => {

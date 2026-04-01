@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       ...(nocache ? { cache: 'no-store' } : { next: { revalidate: 3600 } }),
     }
   )
-  if (!res.ok) return NextResponse.json({ error: 'Failed to parse feed' }, { status: 502 })
+  if (!res.ok) return NextResponse.json({ error: 'feed_unavailable', upstreamStatus: res.status }, { status: 502 })
   const feed = await res.json()
 
   const total = Array.isArray(feed.episodes) ? feed.episodes.length : 0
