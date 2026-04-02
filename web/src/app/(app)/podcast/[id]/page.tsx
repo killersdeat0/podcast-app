@@ -79,10 +79,13 @@ export default function PodcastPage() {
 
   // Is `id` a numeric iTunes collection ID?
   const collectionId = /^\d+$/.test(id) ? id : null
+  // When id is a decoded feed URL (URL-subscribed podcast with no collectionId),
+  // use it directly so feedUrl is available immediately without subscription backfill.
+  const feedUrlFromId = !collectionId && id.startsWith('http') ? id : null
 
   // feedUrl/title/artwork start from URL params (present for discover links) and are
   // backfilled from subscription data or RSS response for clean subscribed-only URLs.
-  const [feedUrl, setFeedUrl] = useState(paramFeedUrl)
+  const [feedUrl, setFeedUrl] = useState(paramFeedUrl || feedUrlFromId || '')
   const [title, setTitle] = useState(paramTitle)
   const [artwork, setArtwork] = useState(paramArtwork)
 
@@ -188,9 +191,8 @@ export default function PodcastPage() {
       .then((r) => r.json())
       .then((subs: SubscriptionRow[]) => {
         setAllSubscriptions(subs.map((s) => ({ feedUrl: s.feed_url })))
-        // Match by feed URL param (discover links), iTunes collection ID, or encoded/decoded feed URL
-        // Note: Next.js decodes dynamic route params, so id may be decoded even if the sidebar
-        // navigated with an encoded feed URL. Check both forms.
+        // Match by feed URL param (discover links), iTunes collection ID, or feed URL (decoded or encoded).
+        // Next.js decodes dynamic route params, so id may equal the decoded feed URL directly.
         const sub = subs.find((s) => {
           if (paramFeedUrl && s.feed_url === paramFeedUrl) return true
           if (s.collection_id && s.collection_id === id) return true
@@ -590,7 +592,7 @@ export default function PodcastPage() {
         await fetch('/api/subscriptions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ feedUrl, title, artworkUrl: artwork, collectionId: id }),
+          body: JSON.stringify({ feedUrl, title, artworkUrl: artwork, collectionId: collectionId }),
         })
         setSubscribed(true)
         setSubscription({
