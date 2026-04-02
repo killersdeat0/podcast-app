@@ -105,6 +105,7 @@ function AddByUrl() {
   const [subscribing, setSubscribing] = useState(false)
   const [subscribed, setSubscribed] = useState(false)
   const [subscriptions, setSubscriptions] = useState<string[] | null>(null)
+  const previewRef = useRef<HTMLDivElement>(null)
 
   // Lazily load subscriptions when the section is expanded (authenticated users only)
   useEffect(() => {
@@ -146,6 +147,7 @@ function AddByUrl() {
         return
       }
       setPreview({ title: data.title, artworkUrl: data.artworkUrl ?? '', feedUrl: trimmed })
+      setTimeout(() => previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50)
     } catch {
       setFetchError(strings.discover.add_by_url_error_fetch_failed)
     } finally {
@@ -255,7 +257,7 @@ function AddByUrl() {
           )}
 
           {preview && !fetchError && (
-            <div className="mt-3 flex items-center gap-3 p-3 rounded-xl bg-surface-container">
+            <div ref={previewRef} className="mt-3 flex items-center gap-3 p-3 rounded-xl bg-surface-container">
               {preview.artworkUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img

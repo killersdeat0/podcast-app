@@ -148,7 +148,7 @@ Free-tier gates generally show an **Upgrade Sheet** (bottom sheet). Exception: t
       Apple sign-in for iOS (expect/actual OAuth handler)
 - [ ] Podcast search + subscribe — `SearchFeature` + `SearchScreen`; calls Supabase Edge Function
       (`/functions/v1/podcasts-search`); results rendered in lazy column
-- [ ] Subscribe by URL — collapsed "Add by URL" section on Discover screen; calls `/api/podcasts/feed?url=...&limit=1` for preview then `POST /api/subscriptions`; handles 401/403 upstream errors with "access link may have expired" messaging; web reference: `web/src/app/(app)/discover/page.tsx` `AddByUrl` component
+- [ ] Subscribe by URL — collapsed "Add by URL" section on Discover screen; calls `/api/podcasts/feed?url=...&limit=1` for preview then `POST /api/subscriptions`; handles 401/403 upstream errors with "access link may have expired" messaging; web reference: `web/src/app/(app)/discover/page.tsx` `AddByUrl` component. **Important:** when subscribing via URL (no iTunes match), send `collection_id = null` — never use the feed URL string as the collection ID, as this corrupts the DB column which expects a numeric iTunes ID or null
 - [ ] Episode list + playback — `EpisodeListFeature` + `PlayerFeature`; audio via `Media3` (Android)
       / `AVPlayer` (iOS) behind expect/actual `AudioPlayer` interface
 - [ ] Background audio playback — Android: `MediaSessionService` (Media3); iOS: `AVAudioSession`
