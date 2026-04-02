@@ -51,7 +51,7 @@ function SortableSub({ sub, active, isNowPlaying, playing }: { sub: Subscription
 
   const href = sub.collection_id
     ? `/podcast/${sub.collection_id}`
-    : `/podcast/${encodeURIComponent(sub.feed_url)}?feed=${encodeURIComponent(sub.feed_url)}`
+    : `/podcast/${encodeURIComponent(sub.feed_url)}?title=${encodeURIComponent(sub.title ?? '')}${sub.artwork_url ? `&artwork=${encodeURIComponent(sub.artwork_url)}` : ''}`
 
   return (
     <div
@@ -322,9 +322,10 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
                       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}><div className="-mx-3">
                         <SortableContext items={subscriptions.map((s) => s.feed_url)} strategy={verticalListSortingStrategy}>
                           {visibleSubs.map((sub) => {
-                            const isActive =
-                              pathname.includes(encodeURIComponent(sub.feed_url)) ||
-                              (!!sub.collection_id && pathname.includes(sub.collection_id))
+                            const podcastPath = sub.collection_id
+                              ? `/podcast/${sub.collection_id}`
+                              : `/podcast/${encodeURIComponent(sub.feed_url)}`
+                            const isActive = pathname === podcastPath || pathname.startsWith(podcastPath + '?') || pathname.startsWith(podcastPath + '/')
                             const isNowPlaying = !!nowPlaying && nowPlaying.feedUrl === sub.feed_url
                             return <SortableSub key={sub.feed_url} sub={sub} active={isActive} isNowPlaying={isNowPlaying} playing={playing} />
                           })}
