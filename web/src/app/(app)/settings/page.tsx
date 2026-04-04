@@ -56,13 +56,21 @@ export default function SettingsPage() {
       supabase.auth.getUser().then(({ data: { user } }) => {
         if (user?.email) setUserEmail(user.email)
       })
-      // Sync default_volume from DB — overwrites localStorage so cross-device changes are applied
+      // Sync from DB — overwrites localStorage so cross-device changes are applied
       fetch('/api/profile')
         .then((r) => r.json())
-        .then((data: { defaultVolume: number | null }) => {
+        .then((data: { defaultVolume: number | null; skipBackSeconds: number | null; skipForwardSeconds: number | null }) => {
           if (data.defaultVolume != null) {
             setDefaultVolume(data.defaultVolume)
             localStorage.setItem('playback-volume', String(data.defaultVolume))
+          }
+          if (data.skipBackSeconds != null) {
+            setSkipBack(data.skipBackSeconds)
+            localStorage.setItem('skip-back-seconds', String(data.skipBackSeconds))
+          }
+          if (data.skipForwardSeconds != null) {
+            setSkipForward(data.skipForwardSeconds)
+            localStorage.setItem('skip-forward-seconds', String(data.skipForwardSeconds))
           }
         })
         .catch(() => {})
@@ -81,12 +89,26 @@ export default function SettingsPage() {
     setSkipBack(seconds)
     localStorage.setItem('skip-back-seconds', String(seconds))
     window.dispatchEvent(new Event('skip-intervals-changed'))
+    if (!isGuest) {
+      fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skipBackSeconds: seconds }),
+      }).catch(() => {})
+    }
   }
 
   function handleSkipForwardChange(seconds: number) {
     setSkipForward(seconds)
     localStorage.setItem('skip-forward-seconds', String(seconds))
     window.dispatchEvent(new Event('skip-intervals-changed'))
+    if (!isGuest) {
+      fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skipForwardSeconds: seconds }),
+      }).catch(() => {})
+    }
   }
 
   function handleVolumeChange(volume: number) {

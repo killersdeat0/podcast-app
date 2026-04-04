@@ -203,7 +203,7 @@ Whenever completed implementing one of these, update any future facing mobile pl
 | 5 | 5 | OPML export | S | ✅ | ~~One new API route; serialize subscriptions to XML. Import adds ~1 day.~~ **Shipped.** |
 | 6 | 15 | Chapter navigation | M | ⚠️ | ~~Parse `<podcast:chapters>` in feed Edge Function; render chapter list in Player. Ties into roadmap #8.~~ **Shipped.** |
 | 7 | 6 | Private RSS feed support | M | ⚠️ | ~~Already fetch RSS. Need to store auth credentials per subscription and thread them through feed Edge Function. Patreon users immediately unlocked.~~ **Shipped.** |
-| 8 | 3 | Bookmarks with timestamped notes | M | ⚠️ | New DB table + bookmark button in Player + episode detail list. Well-scoped but touches several layers. |
+| 8 | 3 | Bookmarks with timestamped notes | M | ⚠️ | ~~New DB table + bookmark button in Player + episode detail list.~~ **Shipped.** `bookmarks` table; `POST/GET/PATCH/DELETE /api/bookmarks`; bookmark button in Player (desktop + mobile `···` menu); tick marks on scrubber; `/bookmarks` page grouped by episode with collapsible timestamp list. DAI caveat documented. |
 | 9 | 9 | PKM / Readwise integration | M | 🔶 | Depends on bookmarks (#8) being done first. Then a webhook/export endpoint. Strong paid-tier differentiator. |
 | 10 | 10 | Inbox / triage mode | L | 🔶 | Requires rethinking queue UX. Ex-Castro audience is loyal but niche. |
 | — | 1 | Trim silence / Smart Speed | — | ❌ | #1 most-wanted industry-wide. Web blocked by CORS. Mobile Phase 3 only. |

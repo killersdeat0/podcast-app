@@ -37,7 +37,7 @@ and `<Feature>ViewModel.kt` (androidMain).
 | Screen | Contents |
 |--------|----------|
 | **Podcast Detail** | Clear artwork hero; podcast title with bell icon beside it; genre/tag chips; expandable description ("Read more"); "▶ Play Latest" (filled purple) + "+ Follow / Unfollow" (outline) side-by-side buttons; three-dot overflow menu (top-right); "Episodes" heading + Sort button; episode filter pill near Sort (paid); episode rows (title, description snippet, date·duration, share/download/play icons, progress bar on in-progress) |
-| **Full Player** | Artwork, title, podcast name; scrubber + chapter markers; play/pause/skip ±15s; speed selector (1x/2x free — 0.5x–3x paid); silence skip toggle (paid only); sleep timer; queue-ahead preview |
+| **Full Player** | Artwork, title, podcast name; scrubber + chapter markers; play/pause/skip ±15s; speed selector (1x/2x free — 0.5x–3x paid); silence skip toggle (paid only); sleep timer; queue-ahead preview; bookmark button (saves current timestamp) |
 | **Settings** | Back + "Settings" title; PREFERENCES group (Notification Settings, Playback Defaults); DATA & ACCOUNT group (OPML Import/Export with lock icon — paid, Manage Subscription, Sign Out — destructive red); app version footer |
 | **Notification Settings** | Master on/off toggle; per-podcast toggle list (mirrors per-podcast toggle on Podcast Detail); episode filter patterns (paid) |
 | **Stats** | Total listening time (30-day, from `listening_daily`); listening by day of week (bar chart); monthly trend; top shows by listening time; episodes completed per show (from `listening_by_show`); streak (paid only — accessible from Profile). Requires web stats implementation first — mobile reads same API. |
@@ -156,6 +156,7 @@ Free-tier gates generally show an **Upgrade Sheet** (bottom sheet). Exception: t
 - [ ] Sync (progress, subscriptions, queue, history) — direct Supabase KMP client calls;
       RLS enforces per-user access; same DB schema as web
 - [ ] Playlists — `PlaylistFeature`; CRUD via Supabase; sequential auto-advance; share via deep link
+- [ ] Bookmarks — `BookmarkFeature`; bookmark button in Full Player saves `position_seconds` + optional note via `POST /api/bookmarks`; tick marks on scrubber at bookmark positions (distinct color from chapter ticks); `/bookmarks` equivalent screen groups by episode (one row per episode, expand to see timestamps sorted ascending); tap timestamp to seek/load, swipe-to-delete. **API:** `GET /api/bookmarks` (no params = all bookmarks with episode metadata), `GET /api/bookmarks?feedUrl=&guid=` (episode-specific), `POST /api/bookmarks`, `PATCH /api/bookmarks/[id]` (note), `DELETE /api/bookmarks/[id]` (ownership-verified). **DAI caveat:** timestamps are absolute seconds and may drift slightly if dynamic ads change between sessions — same known limitation as web.
 
 ### Mobile-specific
 - [ ] Download manager — `DownloadFeature`; Android: `WorkManager` + `DownloadManager`;

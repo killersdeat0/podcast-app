@@ -18,7 +18,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Search, List, ListMusic, Clock, Zap, User, Settings, ChevronLeft, Menu, LogIn, LogOut, GripVertical } from 'lucide-react'
+import { Search, List, ListMusic, Clock, Bookmark, Zap, User, Settings, ChevronLeft, Menu, LogIn, LogOut, GripVertical } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
@@ -39,6 +39,7 @@ const navIcons = {
   queue:    <List className="w-4 h-4 flex-shrink-0" />,
   playlists: <ListMusic className="w-4 h-4 flex-shrink-0" />,
   history:  <Clock className="w-4 h-4 flex-shrink-0" />,
+  bookmarks: <Bookmark className="w-4 h-4 flex-shrink-0" />,
   upgrade:  <Zap className="w-4 h-4 flex-shrink-0" />,
   profile:  <User className="w-4 h-4 flex-shrink-0" />,
   settings: <Settings className="w-4 h-4 flex-shrink-0" />,
@@ -130,6 +131,7 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
     { href: '/queue',     label: strings.nav.queue,     icon: navIcons.queue,     guestModal: null },
     { href: '/playlists', label: strings.nav.playlists, icon: navIcons.playlists, guestModal: { title: strings.playlists.auth_prompt_title } },
     { href: '/history',   label: strings.nav.history,   icon: navIcons.history,   guestModal: { title: strings.guest.auth_prompt_history_title } },
+    { href: '/bookmarks', label: strings.nav.bookmarks, icon: navIcons.bookmarks, guestModal: { title: strings.guest.auth_prompt_history_title } },
     { href: '/upgrade',   label: strings.nav.upgrade,   icon: navIcons.upgrade,   guestModal: { title: strings.guest.auth_prompt_upgrade_title } },
     { href: '/profile',   label: strings.nav.profile,   icon: navIcons.profile,   guestModal: { title: strings.guest.auth_prompt_profile_title } },
     { href: '/settings',  label: strings.nav.settings,  icon: navIcons.settings,  guestModal: null },

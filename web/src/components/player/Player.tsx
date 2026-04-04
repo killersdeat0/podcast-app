@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { Volume1, Volume2, VolumeX, SkipForward } from 'lucide-react'
+import { Volume1, Volume2, VolumeX, SkipForward, Bookmark } from 'lucide-react'
 import { toast } from 'sonner'
 import { usePlayer, NowPlaying, PlaylistEpisodeRef } from './PlayerContext'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
@@ -74,6 +74,19 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
     return () => window.removeEventListener('skip-intervals-changed', readSkipIntervals)
   }, [])
 
+  useEffect(() => {
+    const np = nowPlaying
+    if (!np || isGuest) return
+    const refresh = () => {
+      fetch(`/api/bookmarks?feedUrl=${encodeURIComponent(np.feedUrl)}&guid=${encodeURIComponent(np.guid)}`)
+        .then((r) => r.json())
+        .then((data) => setPlayerBookmarks(Array.isArray(data) ? data : []))
+        .catch(() => {})
+    }
+    window.addEventListener('bookmarks-changed', refresh)
+    return () => window.removeEventListener('bookmarks-changed', refresh)
+  }, [nowPlaying, isGuest])
+
   const seekBack = useCallback(() => {
     if (audioRef.current) seek(audioRef.current.currentTime - skipBackSecs)
   }, [audioRef, seek, skipBackSecs])
@@ -88,6 +101,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
   const [artworkError, setArtworkError] = useState(false)
   const [mobileMenu, setMobileMenu] = useState<null | 'main' | 'speed' | 'volume'>(null)
   const [chapters, setChapters] = useState<Chapter[]>([])
+  const [playerBookmarks, setPlayerBookmarks] = useState<Array<{ id: string; positionSeconds: number; note: string | null }>>([])
   const [dbQueue, setDbQueue] = useState<Array<{ episode_guid: string; feed_url: string; episode: { title: string; audio_url: string; duration: number | null; artwork_url: string | null; podcast_title: string | null } | null }>>([])
 
   const refreshDbQueue = useCallback(() => {
@@ -192,10 +206,17 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
   useEffect(() => {
     setArtworkError(false)
     setChapters([])
+    setPlayerBookmarks([])
     if (nowPlaying?.chapterUrl) {
       fetch(`/api/podcasts/chapters?url=${encodeURIComponent(nowPlaying.chapterUrl)}`)
         .then((r) => r.json())
         .then(({ chapters: ch }) => setChapters(ch ?? []))
+        .catch(() => {})
+    }
+    if (nowPlaying && !isGuest) {
+      fetch(`/api/bookmarks?feedUrl=${encodeURIComponent(nowPlaying.feedUrl)}&guid=${encodeURIComponent(nowPlaying.guid)}`)
+        .then((r) => r.json())
+        .then((data) => setPlayerBookmarks(Array.isArray(data) ? data : []))
         .catch(() => {})
     }
   }, [nowPlaying])
@@ -597,6 +618,81 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
     }, minutes * 60 * 1000)
   }
 
+  const [pendingBookmarkId, setPendingBookmarkId] = useState<string | null>(null)
+  const [bookmarkNote, setBookmarkNote] = useState('')
+  const [bookmarkNoteOpen, setBookmarkNoteOpen] = useState(false)
+
+  function formatBookmarkTime(s: number) {
+    const m = Math.floor(s / 60)
+    const sec = Math.floor(s % 60)
+    return `${m}:${String(sec).padStart(2, '0')}`
+  }
+
+  async function saveBookmark() {
+    if (isGuest) {
+      toast(strings.player.bookmark_sign_in)
+      return
+    }
+    const np = nowPlayingRef.current
+    const audio = audioRef.current
+    if (!np || !audio) return
+    const positionSeconds = Math.floor(audio.currentTime)
+    const timeLabel = formatBookmarkTime(positionSeconds)
+    try {
+      const res = await fetch('/api/bookmarks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedUrl: np.feedUrl, guid: np.guid, positionSeconds }),
+      })
+      if (!res.ok) {
+        toast.error(strings.player.bookmark_error)
+        return
+      }
+      const bookmark = await res.json()
+      setPendingBookmarkId(bookmark.id)
+      setBookmarkNote('')
+      toast(strings.player.bookmark_saved(timeLabel), {
+        duration: 8000,
+        description: <a href="/bookmarks" className="text-primary underline text-xs">{strings.player.bookmark_saved_hint}</a>,
+        action: {
+          label: strings.player.bookmark_add_note,
+          onClick: () => setBookmarkNoteOpen(true),
+        },
+        onDismiss: () => {
+          setPendingBookmarkId(null)
+          setBookmarkNote('')
+        },
+        onAutoClose: () => {
+          setPendingBookmarkId(null)
+          setBookmarkNote('')
+        },
+      })
+      window.dispatchEvent(new Event('bookmarks-changed'))
+    } catch {
+      toast.error(strings.player.bookmark_error)
+    }
+  }
+
+  async function saveBookmarkNote() {
+    if (!pendingBookmarkId || !bookmarkNote.trim()) {
+      setBookmarkNoteOpen(false)
+      return
+    }
+    try {
+      await fetch(`/api/bookmarks/${pendingBookmarkId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: bookmarkNote.trim() }),
+      })
+      setPendingBookmarkId(null)
+      setBookmarkNote('')
+      setBookmarkNoteOpen(false)
+      window.dispatchEvent(new Event('bookmarks-changed'))
+    } catch {
+      // ignore
+    }
+  }
+
   const hasNextInQueue = (() => {
     if (isGuest) {
       const idx = clientQueue.findIndex((e) => e.guid === nowPlaying?.guid)
@@ -661,6 +757,13 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
                 <SkipForward className="w-4 h-4" />
               </button>
             )}
+            <button
+              onClick={saveBookmark}
+              title={strings.player.bookmark_at(formatBookmarkTime(currentTime))}
+              className="hidden md:flex text-on-surface-variant hover:text-on-surface transition-colors"
+            >
+              <Bookmark className="w-4 h-4" />
+            </button>
           </div>
           <div className="flex items-center gap-2 w-full max-w-lg">
             <span className="text-xs text-on-surface-dim w-10 text-right">{formatTime(currentTime)}</span>
@@ -683,6 +786,15 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
                   onClick={() => seek(ch.startTime)}
                   className="absolute top-1/2 -translate-y-1/2 w-1 h-3 bg-primary/70 rounded-full cursor-pointer pointer-events-auto"
                   style={{ left: `${(ch.startTime / duration) * 100}%` }}
+                />
+              ))}
+              {duration > 0 && playerBookmarks.map((b) => (
+                <div
+                  key={b.id}
+                  title={b.note ?? strings.player.bookmark_at(formatBookmarkTime(b.positionSeconds))}
+                  onClick={() => seek(b.positionSeconds)}
+                  className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-tertiary rounded-full cursor-pointer pointer-events-auto ring-1 ring-surface"
+                  style={{ left: `${(b.positionSeconds / duration) * 100}%` }}
                 />
               ))}
             </div>
@@ -711,6 +823,13 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
               <div className="absolute bottom-full right-0 mb-2 bg-surface-container border border-outline-variant rounded-lg overflow-hidden z-20 min-w-[160px]">
                 {mobileMenu === 'main' && (
                   <>
+                    <button
+                      onClick={() => { saveBookmark(); setMobileMenu(null) }}
+                      className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-on-surface hover:bg-surface-container-high"
+                    >
+                      <span>{strings.player.bookmark}</span>
+                      <Bookmark className="w-4 h-4 text-on-surface-variant" />
+                    </button>
                     <button
                       onClick={() => setMobileMenu('speed')}
                       className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-on-surface hover:bg-surface-container-high"
@@ -829,6 +948,38 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
         </div>
       </div>
     </div>
+      )}
+      {/* Bookmark note modal */}
+      {bookmarkNoteOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-scrim/60 backdrop-blur-sm" onClick={() => setBookmarkNoteOpen(false)} />
+          <div className="relative z-10 bg-surface-container-low border border-outline-variant rounded-2xl p-6 shadow-xl w-full max-w-sm mx-4">
+            <h2 className="text-base font-semibold text-on-surface mb-3">{strings.player.bookmark_add_note}</h2>
+            <input
+              type="text"
+              value={bookmarkNote}
+              onChange={(e) => setBookmarkNote(e.target.value)}
+              placeholder={strings.bookmarks.note_placeholder}
+              autoFocus
+              className="w-full bg-surface-container rounded-lg px-3 py-2 text-sm text-on-surface placeholder-on-surface-variant outline-none focus:ring-2 focus:ring-primary mb-4"
+              onKeyDown={(e) => { if (e.key === 'Enter') saveBookmarkNote() }}
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setBookmarkNoteOpen(false)}
+                className="flex-1 py-2 rounded-lg text-sm bg-surface-container text-on-surface hover:bg-surface-container-high transition-colors"
+              >
+                {strings.bookmarks.note_cancel}
+              </button>
+              <button
+                onClick={saveBookmarkNote}
+                className="flex-1 py-2 rounded-lg text-sm bg-primary text-on-primary hover:opacity-90 transition-opacity"
+              >
+                {strings.bookmarks.note_save}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   )

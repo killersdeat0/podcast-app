@@ -49,6 +49,18 @@ vi.mock('@/lib/i18n/LocaleContext', () => ({
       sleep_5: '5m', sleep_10: '10m', sleep_15: '15m',
       sleep_30: '30m', sleep_45: '45m', sleep_60: '60m',
       upgrade_for_speeds: 'Upgrade',
+      bookmark: 'Bookmark',
+      bookmark_at: (t: string) => `Bookmark at ${t}`,
+      bookmark_saved: (t: string) => `Bookmark saved at ${t}`,
+      bookmark_saved_hint: 'View all bookmarks →',
+      bookmark_add_note: 'Add note',
+      bookmark_sign_in: 'Sign in to save bookmarks',
+      bookmark_error: 'Failed to save bookmark',
+    },
+    bookmarks: {
+      note_placeholder: 'Add a note...',
+      note_save: 'Save',
+      note_cancel: 'Cancel',
     },
   }),
 }))

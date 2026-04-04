@@ -91,13 +91,41 @@ Builds on top of Phase 3b. Assumes `PlayerFeature`, `SettingsScreen`, and `Podca
 
 ---
 
+### 4. Skip Intervals — Cross-Device Sync
+
+**Web reference:** `web/src/app/(app)/settings/page.tsx`, `web/src/app/api/profile/route.ts`
+
+**DB columns:** `user_profiles.skip_back_seconds INTEGER NULL`, `user_profiles.skip_forward_seconds INTEGER NULL` (migration `20260401000000` — already applied)
+
+**API:**
+- `GET /api/profile` → response includes `skipBackSeconds: Int?` and `skipForwardSeconds: Int?`
+- `PATCH /api/profile` with `{ skipBackSeconds: Int }` or `{ skipForwardSeconds: Int }` to save
+
+**Behavior:**
+- On `SettingsScreen` open: call `GET /api/profile`, read `skipBackSeconds` / `skipForwardSeconds`. If non-null, update local preference store (DataStore Preferences) — overwrites any device-local values so cross-device changes are applied.
+- Defaults: 15s back / 30s forward (used when DB value is null).
+- On skip interval change in Settings: write to DataStore immediately; call `PATCH /api/profile` with new value.
+- `PlayerViewModel` on episode load: read DataStore keys `skip_back_seconds` / `skip_forward_seconds` and apply to skip controls.
+- Guest users: use DataStore values only; do not call `PATCH /api/profile`.
+
+**Tasks:**
+- [ ] `SettingsViewModel`: call `GET /api/profile` on open; apply `skipBackSeconds` / `skipForwardSeconds` to DataStore
+- [ ] `SettingsScreen`: add two dropdown rows ("Skip back" / "Skip forward") with options `[5, 10, 15, 20, 30, 45, 60, 90]` seconds
+- [ ] `SettingsViewModel.updateSkipBack(secs: Int)` / `updateSkipForward(secs: Int)`: write DataStore + call `PATCH /api/profile` (skip API call for guests)
+- [ ] `PlayerViewModel` init: read DataStore `skip_back_seconds` / `skip_forward_seconds`; apply to skip button labels and seek delta
+- [ ] Unit tests: defaults used when DataStore empty; DB value overwrites local on sync; guest skips API call
+
+---
+
 ## API Summary (already live)
 
 | Endpoint | Change | Used by |
 |----------|--------|---------|
 | `PATCH /api/subscriptions` Body B | Added `speedOverride?: number \| null` | Per-show speed |
 | `GET /api/profile` | Added `defaultVolume: number \| null` | Default volume sync |
-| `PATCH /api/profile` | New endpoint — updates `default_volume` | Default volume sync |
+| `GET /api/profile` | Added `skipBackSeconds: number \| null`, `skipForwardSeconds: number \| null` | Skip interval sync |
+| `PATCH /api/profile` | Updates `default_volume` | Default volume sync |
+| `PATCH /api/profile` | Updates `skip_back_seconds` / `skip_forward_seconds` | Skip interval sync |
 | `POST /api/queue` | Added `prepend?: boolean` | Undo skip queue restore |
 
 ## DB Summary (already applied to both envs)
@@ -107,6 +135,7 @@ Builds on top of Phase 3b. Assumes `PlayerFeature`, `SettingsScreen`, and `Podca
 | `20260327000000` | `speed_override FLOAT NULL` | `subscriptions` | Per-show speed |
 | `20260327000001` | `increment_queue_positions(p_user_id)` RPC | — | Undo skip queue prepend |
 | `20260327000002` | `default_volume FLOAT NULL` | `user_profiles` | Default volume sync |
+| `20260401000000` | `skip_back_seconds INTEGER NULL`, `skip_forward_seconds INTEGER NULL` | `user_profiles` | Skip interval sync |
 
 ---
 
@@ -121,3 +150,6 @@ Builds on top of Phase 3b. Assumes `PlayerFeature`, `SettingsScreen`, and `Podca
 - [ ] Undo skip: queue episode skipped → restored to queue front after undo
 - [ ] Default volume: change on device A → open app on device B → same volume applied
 - [ ] Default volume: guest user → no PATCH call made
+- [ ] Skip intervals: change on device A → open app on device B → same skip durations applied
+- [ ] Skip intervals: default 15s back / 30s forward used when no DB value set
+- [ ] Skip intervals: guest user → no PATCH call made; DataStore values used locally

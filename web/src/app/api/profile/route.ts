@@ -12,7 +12,7 @@ export async function GET() {
   const [profileResult, listeningResult, completedResult, streakResult] = await Promise.all([
     supabase
       .from('user_profiles')
-      .select('tier, default_volume')
+      .select('tier, default_volume, skip_back_seconds, skip_forward_seconds')
       .eq('user_id', user.id)
       .single(),
     supabase
@@ -59,7 +59,9 @@ export async function GET() {
   }
 
   const defaultVolume = profileResult.data?.default_volume ?? null
-  return NextResponse.json({ email: user.email, tier, listeningSeconds, completedThisWeek, streakDays, defaultVolume })
+  const skipBackSeconds = profileResult.data?.skip_back_seconds ?? null
+  const skipForwardSeconds = profileResult.data?.skip_forward_seconds ?? null
+  return NextResponse.json({ email: user.email, tier, listeningSeconds, completedThisWeek, streakDays, defaultVolume, skipBackSeconds, skipForwardSeconds })
 }
 
 export async function PATCH(request: NextRequest) {
@@ -73,6 +75,16 @@ export async function PATCH(request: NextRequest) {
   if (body.defaultVolume !== undefined) {
     const v = Number(body.defaultVolume)
     update.default_volume = isNaN(v) ? null : Math.max(0, Math.min(1, v))
+  }
+
+  if (body.skipBackSeconds !== undefined) {
+    const v = Number(body.skipBackSeconds)
+    update.skip_back_seconds = isNaN(v) ? null : Math.max(1, v)
+  }
+
+  if (body.skipForwardSeconds !== undefined) {
+    const v = Number(body.skipForwardSeconds)
+    update.skip_forward_seconds = isNaN(v) ? null : Math.max(1, v)
   }
 
   if (Object.keys(update).length === 0) {

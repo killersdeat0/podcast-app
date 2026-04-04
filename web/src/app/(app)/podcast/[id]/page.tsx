@@ -23,6 +23,7 @@ import AuthPromptModal from '@/components/ui/AuthPromptModal'
 import UpgradeModal from '@/components/ui/UpgradeModal'
 import AddToPlaylistPopover from '@/components/ui/AddToPlaylistPopover'
 import { EpisodeProgressOverlay } from '@/components/ui/EpisodeProgressOverlay'
+import { EpisodeBookmarks } from '@/components/ui/EpisodeBookmarks'
 import { ALL_SPEEDS, perShowSpeedKey } from '@/lib/player/speed'
 
 interface SubscriptionRow {
@@ -72,7 +73,7 @@ export default function PodcastPage() {
   const paramFeedUrl = params.get('feed') ?? ''
   const paramTitle = params.get('title') ?? ''
   const paramArtwork = params.get('artwork') ?? ''
-  const { play, clientQueue, enqueueClient, dequeueClient, nowPlaying, playing, audioRef } = usePlayer()
+  const { play, clientQueue, enqueueClient, dequeueClient, nowPlaying, playing, audioRef, seek } = usePlayer()
   const { isGuest, tier: contextTier } = useUser()
   const s = useStrings()
   const router = useRouter()
@@ -822,6 +823,13 @@ export default function PodcastPage() {
               dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(ep.description) }}
             />
           </div>
+        )}
+        {isLoaded && !isGuest && feedUrl && (
+          <EpisodeBookmarks
+            feedUrl={feedUrl}
+            guid={ep.guid}
+            onSeek={(seconds) => seek(seconds)}
+          />
         )}
       </div>
     )
