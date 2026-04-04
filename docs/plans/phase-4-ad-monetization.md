@@ -1,9 +1,26 @@
 # Phase 4 — Ad Monetization
 
 ## Goal
-Monetize free-tier users with audio ads between queue auto-advances. Start with house ads (self-hosted), then migrate to programmatic ads via Google IMA SDK when traffic justifies it.
+Monetize free-tier users via display banner ads and audio ads between queue auto-advances.
 
-## Stage 1: House Ads
+## Stage 0: Google AdSense Display Banner ✅ Shipped
+
+Google AdSense horizontal banner shown at the top of the content area for free-tier users only. Gated in `(app)/layout.tsx` via `isFreeTier`.
+
+- [x] `AdBanner` component (`web/src/components/ui/AdBanner.tsx`) renders AdSense `<ins>` unit when `NEXT_PUBLIC_ADSENSE_PUBLISHER_ID` + `NEXT_PUBLIC_ADSENSE_SLOT_ID` are set
+- [x] Falls back to house upgrade CTA when env vars absent (dev / pre-approval)
+- [x] AdSense script loaded via `next/script` (`strategy="afterInteractive"`) in root layout
+- [x] Dismiss button on both variants
+- [x] `NEXT_PUBLIC_ADSENSE_PUBLISHER_ID` set in Vercel production and `.env.local`
+- [ ] **Pending:** Add `NEXT_PUBLIC_ADSENSE_SLOT_ID` once AdSense site approval completes and horizontal ad unit is created
+
+**Setup checklist (one-time):**
+1. AdSense site approval (in progress — publisher ID `ca-pub-6453936996191895` already wired)
+2. In AdSense: Ads → By ad unit → Display ads → Horizontal → copy slot ID
+3. Disable Auto ads (use manual placement only)
+4. `echo "SLOT_ID" | vercel env add NEXT_PUBLIC_ADSENSE_SLOT_ID production` + add to `.env.local`
+
+## Stage 1: House Ads (Audio)
 
 Self-hosted audio clips played between episodes for free-tier users. Promotes premium upgrade or partner products.
 
@@ -14,7 +31,7 @@ Self-hosted audio clips played between episodes for free-tier users. Promotes pr
 - [ ] Track ad impressions (basic analytics: ad played, ad completed, ad skipped-via-upgrade)
 - [ ] Paid tier bypasses ads entirely
 
-## Stage 2: Google IMA SDK (Programmatic Ads)
+## Stage 2: Google IMA SDK (Programmatic Audio Ads)
 
 Swap house ads for personalized, revenue-generating ads via Google Ad Manager + IMA SDK.
 
