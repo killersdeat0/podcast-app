@@ -50,6 +50,7 @@ import com.trilium.syncpods.queue.QueueViewModel
 import com.trilium.syncpods.search.SearchScreen
 import com.trilium.syncpods.search.SearchViewModel
 import com.trilium.syncpods.settings.SettingsScreen
+import com.trilium.syncpods.settings.SettingsViewModel
 import io.ktor.http.encodeURLPathPart
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -198,7 +199,11 @@ fun AppShell() {
             }
 
             composable(AppRoutes.Settings.route) {
-                SettingsScreen(onBack = { navController.popBackStack() })
+                val settingsViewModel = koinViewModel<SettingsViewModel>()
+                SettingsScreen(
+                    feature = settingsViewModel.feature,
+                    onBack = { navController.popBackStack() },
+                )
             }
 
             composable(AppRoutes.Login.route) {

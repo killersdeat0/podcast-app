@@ -16,6 +16,9 @@ import com.trilium.syncpods.auth.LoginViewModel
 import com.trilium.syncpods.profile.ProfileRepository
 import com.trilium.syncpods.profile.ProfileRepositoryImpl
 import com.trilium.syncpods.profile.ProfileViewModel
+import com.trilium.syncpods.settings.SettingsRepository
+import com.trilium.syncpods.settings.SettingsRepositoryImpl
+import com.trilium.syncpods.settings.SettingsViewModel
 import com.trilium.syncpods.player.AudioPlayer
 import com.trilium.syncpods.player.PlayerViewModel
 import com.russhwolf.settings.Settings
@@ -84,7 +87,9 @@ val appModule = module {
     viewModelOf(::SearchViewModel)
     viewModel { PodcastDetailViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { QueueViewModel(get(), get()) }
+    single<SettingsRepository> { SettingsRepositoryImpl(supabaseClient = get()) }
     viewModelOf(::ProfileViewModel)
+    viewModel { SettingsViewModel(get()) }
     viewModel { LoginViewModel(get()) }
     viewModel { PlayerViewModel(get<AudioPlayer>()) }
 }
