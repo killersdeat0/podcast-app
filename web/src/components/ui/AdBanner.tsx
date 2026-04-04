@@ -7,10 +7,18 @@ import { useStrings } from '@/lib/i18n/LocaleContext'
 const PUBLISHER_ID = process.env.NEXT_PUBLIC_ADSENSE_PUBLISHER_ID
 const AD_SLOT = process.env.NEXT_PUBLIC_ADSENSE_SLOT_ID
 
+const DISMISS_KEY = 'ad-banner-dismissed-until'
+const DISMISS_DURATION_MS = 24 * 60 * 60 * 1000 // 24 hours
+
 export default function AdBanner() {
-  const [dismissed, setDismissed] = useState(false)
+  const [dismissed, setDismissed] = useState(true) // start hidden to avoid flash
   const adRef = useRef<HTMLModElement>(null)
   const s = useStrings()
+
+  useEffect(() => {
+    const until = localStorage.getItem(DISMISS_KEY)
+    if (!until || Date.now() > Number(until)) setDismissed(false)
+  }, [])
 
   useEffect(() => {
     if (!PUBLISHER_ID || !AD_SLOT || !adRef.current) return
@@ -18,7 +26,12 @@ export default function AdBanner() {
       ;(window as any).adsbygoogle = (window as any).adsbygoogle || []
       ;(window as any).adsbygoogle.push({})
     } catch {}
-  }, [])
+  }, [dismissed])
+
+  function handleDismiss() {
+    localStorage.setItem(DISMISS_KEY, String(Date.now() + DISMISS_DURATION_MS))
+    setDismissed(true)
+  }
 
   if (dismissed) return null
 
@@ -35,7 +48,7 @@ export default function AdBanner() {
           data-full-width-responsive="true"
         />
         <button
-          onClick={() => setDismissed(true)}
+          onClick={handleDismiss}
           className="absolute top-1 right-2 text-on-surface-variant hover:text-on-surface transition-colors text-xs"
           aria-label="Dismiss"
         >
@@ -59,7 +72,7 @@ export default function AdBanner() {
         </span>
       </div>
       <button
-        onClick={() => setDismissed(true)}
+        onClick={handleDismiss}
         className="text-on-surface-variant hover:text-on-surface transition-colors ml-4 flex-shrink-0"
         aria-label="Dismiss"
       >
