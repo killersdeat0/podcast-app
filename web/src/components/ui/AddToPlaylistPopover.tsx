@@ -31,6 +31,7 @@ export default function AddToPlaylistPopover({
   const { refs, floatingStyles } = useFloating({
     open,
     placement: 'top-end',
+    strategy: 'fixed',
     middleware: [offset(4), flip(), shift({ padding: 8 })],
     whileElementsMounted: autoUpdate,
   })
