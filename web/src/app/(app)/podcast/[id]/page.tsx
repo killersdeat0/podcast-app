@@ -420,9 +420,15 @@ export default function PodcastPage() {
     return eps
   }, [feed, sortOrder, showUnplayedOnly, episodeProgress])
   const totalPages = Math.ceil(filteredEpisodes.length / PAGE_SIZE)
+  // When no filter active, estimate full page count from feed.total so the denominator is correct upfront
+  const estimatedTotalPages = !showUnplayedOnly && feed?.total
+    ? Math.ceil(feed.total / PAGE_SIZE)
+    : totalPages
+  // Clamp so episodePage can be "ahead" (pending next-page load) without showing an empty page
+  const clampedPage = Math.min(episodePage, Math.max(0, totalPages - 1))
   const pagedEpisodes = useMemo(
-    () => filteredEpisodes.slice(episodePage * PAGE_SIZE, (episodePage + 1) * PAGE_SIZE),
-    [filteredEpisodes, episodePage],
+    () => filteredEpisodes.slice(clampedPage * PAGE_SIZE, (clampedPage + 1) * PAGE_SIZE),
+    [filteredEpisodes, clampedPage],
   )
 
   const searchTotalPages = Math.ceil(searchResults.length / PAGE_SIZE)
@@ -1301,20 +1307,20 @@ export default function PodcastPage() {
                     </button>
                   </div>
                   {pagedEpisodes.map((ep) => renderEpisodeRow(ep))}
-                  {(totalPages > 1 || (feed?.total && feed.episodes.length < feed.total)) && (
+                  {estimatedTotalPages > 1 && (
                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-outline-variant/60">
-                      <button onClick={() => setEpisodePage((p) => Math.max(0, p - 1))} disabled={episodePage === 0} className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><ChevronLeft size={16} /></button>
-                      <span className="text-xs text-on-surface-dim">{episodePage + 1} / {totalPages}</span>
+                      <button onClick={() => setEpisodePage(Math.max(0, clampedPage - 1))} disabled={clampedPage === 0} className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><ChevronLeft size={16} /></button>
+                      <span className="text-xs text-on-surface-dim">{clampedPage + 1} / {estimatedTotalPages}</span>
                       <button
                         onClick={() => {
-                          if (episodePage === totalPages - 1 && feed?.total && feed.episodes.length < feed.total) {
-                            setEpisodeLimit((prev) => prev + 15)
-                            setEpisodePage(0)
+                          if (clampedPage >= totalPages - 1 && feed?.total && feed.episodes.length < feed.total) {
+                            setEpisodeLimit(() => (totalPages + 1) * PAGE_SIZE)
+                            setEpisodePage(totalPages)
                           } else {
-                            setEpisodePage((p) => Math.min(totalPages - 1, p + 1))
+                            setEpisodePage(Math.min(totalPages - 1, clampedPage + 1))
                           }
                         }}
-                        disabled={episodePage === totalPages - 1 && !(feed?.total && feed.episodes.length < feed.total)}
+                        disabled={clampedPage >= estimatedTotalPages - 1}
                         className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       ><ChevronRight size={16} /></button>
                     </div>
