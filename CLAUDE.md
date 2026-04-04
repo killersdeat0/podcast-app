@@ -46,6 +46,10 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID=
 NEXT_PUBLIC_STRIPE_YEARLY_PRICE_ID=
 
+# Google AdSense (optional — omit to show house upgrade CTA banner instead)
+NEXT_PUBLIC_ADSENSE_PUBLISHER_ID=   # ca-pub-XXXXXXXXXXXXXXXX
+NEXT_PUBLIC_ADSENSE_SLOT_ID=        # ad slot ID for the horizontal banner unit
+
 ```
 
 ## Mobile (Compose Multiplatform)
