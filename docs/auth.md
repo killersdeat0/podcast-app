@@ -20,6 +20,8 @@ All auth pages live in `web/src/app/(auth)/` and inherit the centered max-w-md c
 
 All five routes are in `PUBLIC_PATHS` in `proxy.ts` — they must remain accessible to unauthenticated users.
 
+`/ads.txt` is also in `PUBLIC_PATHS` so the Google AdSense crawler can access it for site verification without being redirected to login.
+
 The main form logic lives in `web/src/components/ui/AuthForm.tsx`, shared by both `/login` and `/signup`.
 
 ---
