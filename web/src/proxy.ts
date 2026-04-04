@@ -8,6 +8,7 @@ const PUBLIC_PATHS = [
     '/reset-password',
     '/verify-email',
     '/auth/callback',
+    '/ads.txt',
     '/api/stripe/webhook',
     '/discover',
     '/podcast',
