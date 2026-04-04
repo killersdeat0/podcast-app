@@ -9,8 +9,10 @@ Google AdSense horizontal banner shown at the top of the content area for free-t
 
 - [x] `AdBanner` component (`web/src/components/ui/AdBanner.tsx`) renders AdSense `<ins>` unit when `NEXT_PUBLIC_ADSENSE_PUBLISHER_ID` + `NEXT_PUBLIC_ADSENSE_SLOT_ID` are set
 - [x] Falls back to house upgrade CTA when env vars absent (dev / pre-approval)
-- [x] AdSense script loaded via `next/script` (`strategy="afterInteractive"`) in root layout
-- [x] Dismiss button on both variants
+- [x] AdSense script rendered server-side in `<head>` in root layout (not via `next/script afterInteractive` — crawler must see it in initial HTML)
+- [x] `google-adsense-account` meta tag added via `metadata.other` in root layout for meta-tag verification method
+- [x] `web/public/ads.txt` — served at `syncpods.app/ads.txt` for ads.txt verification method (`google.com, pub-6453936996191895, DIRECT, f08c47fec0942fa0`)
+- [x] Dismiss button persists for 24h via `localStorage` key `ad-banner-dismissed-until`
 - [x] `NEXT_PUBLIC_ADSENSE_PUBLISHER_ID` set in Vercel production and `.env.local`
 - [ ] **Pending:** Add `NEXT_PUBLIC_ADSENSE_SLOT_ID` once AdSense site approval completes and horizontal ad unit is created
 
