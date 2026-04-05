@@ -26,8 +26,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -48,10 +46,9 @@ import kotlinx.coroutines.delay
 fun SettingsScreen(
     feature: SettingsFeature,
     onBack: () -> Unit,
+    onSignedOut: () -> Unit = {},
 ) {
     val state by feature.state.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
-
     LaunchedEffect(Unit) {
         feature.process(SettingsEvent.ScreenVisible)
     }
@@ -59,7 +56,7 @@ fun SettingsScreen(
     LaunchedEffect(Unit) {
         feature.effects.collect { effect ->
             when (effect) {
-                is SettingsEffect.ShowSignedOutToast -> snackbarHostState.showSnackbar("Signed out successfully")
+                is SettingsEffect.NavigateToProfile -> onSignedOut()
             }
         }
     }
@@ -89,7 +86,6 @@ fun SettingsScreen(
                 },
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier

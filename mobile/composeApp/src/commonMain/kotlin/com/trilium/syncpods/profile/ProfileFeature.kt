@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.merge
 // ── State ─────────────────────────────────────────────────────────────────────
 
 data class ProfileState(
-    val isLoading: Boolean = true,
+    val isLoading: Boolean = false,
     val isGuest: Boolean = false,
     val displayName: String = "",
     val email: String = "",
@@ -173,7 +173,10 @@ class ProfileFeature(
         previous: ProfileState,
         result: ProfileResult,
     ): ProfileState = when (result) {
-        is ProfileResult.Loading -> previous.copy(isLoading = true, error = null)
+        is ProfileResult.Loading -> {
+            val hasData = previous.displayName.isNotEmpty() || previous.subscriptions.isNotEmpty() || previous.isGuest
+            previous.copy(isLoading = !hasData, error = null)
+        }
 
         is ProfileResult.GuestLoaded -> previous.copy(
             isLoading = false,

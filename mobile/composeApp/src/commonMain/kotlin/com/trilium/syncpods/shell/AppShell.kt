@@ -203,6 +203,13 @@ fun AppShell() {
                 SettingsScreen(
                     feature = settingsViewModel.feature,
                     onBack = { navController.popBackStack() },
+                    onSignedOut = {
+                        navController.popBackStack()
+                        navController.navigate(AppRoutes.Profile.route) {
+                            launchSingleTop = true
+                            restoreState = false
+                        }
+                    },
                 )
             }
 

@@ -54,7 +54,7 @@ sealed class SettingsResult {
 // ── Effects ───────────────────────────────────────────────────────────────────
 
 sealed class SettingsEffect {
-    data object ShowSignedOutToast : SettingsEffect()
+    data object NavigateToProfile : SettingsEffect()
 }
 
 // ── Feature ───────────────────────────────────────────────────────────────────
@@ -104,7 +104,7 @@ class SettingsFeature(
                     try {
                         repository.signOut()
                         emit(SettingsResult.SignedOut)
-                        _effects.emit(SettingsEffect.ShowSignedOutToast)
+                        _effects.emit(SettingsEffect.NavigateToProfile)
                     } catch (e: Exception) {
                         emit(SettingsResult.SignOutError(e.message ?: "Sign out failed"))
                     }
