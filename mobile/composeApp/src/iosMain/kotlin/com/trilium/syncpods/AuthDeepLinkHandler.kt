@@ -1,9 +1,10 @@
 package com.trilium.syncpods
 
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.handleDeeplinks
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import platform.Foundation.NSURL
 
 private var deepLinkClient: SupabaseClient? = null
 
@@ -13,11 +14,10 @@ fun initAuthDeepLinkHandler(client: SupabaseClient) {
 
 fun handleAuthDeepLink(urlString: String) {
     val client = deepLinkClient ?: return
-    val code = urlString.substringAfter("code=", "").substringBefore("&")
-    if (code.isBlank()) return
+    val nsUrl = NSURL(string = urlString) ?: return
     GlobalScope.launch {
         try {
-            client.auth.exchangeCodeForSession(code)
+            client.handleDeeplinks(nsUrl)
         } catch (_: Exception) {}
     }
 }

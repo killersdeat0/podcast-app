@@ -345,6 +345,7 @@ private class FakeQueueRepository(
 
 private class FakeProfileRepository(private val tier: String = "free") : ProfileRepository {
     override fun isGuest(): Boolean = false
+    override fun authStateChanges(): kotlinx.coroutines.flow.Flow<Unit> = kotlinx.coroutines.flow.emptyFlow()
     override suspend fun getUserTier(): String = tier
     override suspend fun getUserProfile() = UserProfile("", "", tier)
     override suspend fun getSubscriptions() = emptyList<SubscriptionSummary>()
