@@ -86,7 +86,13 @@ val appModule = module {
     viewModel { DiscoverViewModel(get(), get()) }
     viewModelOf(::SearchViewModel)
     viewModel { PodcastDetailViewModel(get(), get(), get(), get(), get(), get()) }
-    viewModel { QueueViewModel(get(), get()) }
+    viewModel {
+        val client = get<SupabaseClient>()
+        val authSignal = client.auth.sessionStatus
+            .filterIsInstance<SessionStatus.Authenticated>()
+            .map { }
+        QueueViewModel(get(), get(), authSignal)
+    }
     single<SettingsRepository> { SettingsRepositoryImpl(supabaseClient = get()) }
     viewModelOf(::ProfileViewModel)
     viewModel { SettingsViewModel(get()) }

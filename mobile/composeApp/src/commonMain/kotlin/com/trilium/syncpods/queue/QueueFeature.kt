@@ -5,8 +5,10 @@ import com.composure.arch.StandardFeature
 import com.trilium.syncpods.profile.ProfileRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -77,6 +79,7 @@ class QueueFeature(
     scope: CoroutineScope,
     private val repository: QueueRepository,
     private val profileRepository: ProfileRepository,
+    private val reloadTrigger: Flow<Unit> = emptyFlow(),
 ) : StandardFeature<QueueState, QueueEvent, QueueAction, QueueResult, QueueEffect>(scope) {
 
     private val _effects = MutableSharedFlow<QueueEffect>(extraBufferCapacity = 8)
@@ -91,6 +94,8 @@ class QueueFeature(
 
             events.filterIsInstance<QueueEvent.RetryTapped>()
                 .map { QueueAction.Load },
+
+            reloadTrigger.map { QueueAction.Load },
 
             events.filterIsInstance<QueueEvent.EpisodeTapped>()
                 .map { QueueAction.PlayEpisode(it.guid) },
