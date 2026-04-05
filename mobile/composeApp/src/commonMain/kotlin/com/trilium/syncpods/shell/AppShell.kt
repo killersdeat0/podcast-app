@@ -143,17 +143,26 @@ fun AppShell() {
             AppRoutes.Login.route,
             AppRoutes.SignUp.route,
             AppRoutes.ForgotPassword.route,
+            AppRoutes.VerifyEmail.ROUTE,
         )
-        supabaseClient.auth.sessionStatus
-            .filterIsInstance<SessionStatus.Authenticated>()
-            .collect {
-                val currentRoute = navController.currentDestination?.route
-                if (currentRoute in authScreenRoutes) {
-                    navController.navigate(AppRoutes.Profile.route) {
-                        popUpTo(0) { inclusive = true }
+        var previousWasNotAuthenticated = false
+        supabaseClient.auth.sessionStatus.collect { status ->
+            when (status) {
+                is SessionStatus.NotAuthenticated -> previousWasNotAuthenticated = true
+                is SessionStatus.Authenticated -> {
+                    val currentRoute = navController.currentDestination?.route
+                    val isColdStartNewLogin = previousWasNotAuthenticated &&
+                        currentRoute == AppRoutes.Discover.route
+                    if (currentRoute in authScreenRoutes || isColdStartNewLogin) {
+                        navController.navigate(AppRoutes.Profile.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
                     }
+                    previousWasNotAuthenticated = false
                 }
+                else -> previousWasNotAuthenticated = false
             }
+        }
     }
 
     val playerViewModel = koinViewModel<PlayerViewModel>()
