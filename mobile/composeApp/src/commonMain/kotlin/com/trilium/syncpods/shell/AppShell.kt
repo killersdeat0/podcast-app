@@ -137,6 +137,25 @@ fun AppShell() {
         }
     }
 
+    val supabaseClient = koinInject<SupabaseClient>()
+    LaunchedEffect(Unit) {
+        val authScreenRoutes = setOf(
+            AppRoutes.Login.route,
+            AppRoutes.SignUp.route,
+            AppRoutes.ForgotPassword.route,
+        )
+        supabaseClient.auth.sessionStatus
+            .filterIsInstance<SessionStatus.Authenticated>()
+            .collect {
+                val currentRoute = navController.currentDestination?.route
+                if (currentRoute in authScreenRoutes) {
+                    navController.navigate(AppRoutes.Profile.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            }
+    }
+
     val playerViewModel = koinViewModel<PlayerViewModel>()
     val playerState by playerViewModel.feature.state.collectAsState()
 
