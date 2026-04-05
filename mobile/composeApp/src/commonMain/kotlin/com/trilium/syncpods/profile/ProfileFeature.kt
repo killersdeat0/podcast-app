@@ -94,6 +94,9 @@ class ProfileFeature(
             events.filterIsInstance<ProfileEvent.RetryTapped>()
                 .map { ProfileAction.LoadProfile },
 
+            repository.authStateChanges()
+                .map { ProfileAction.LoadProfile },
+
             events.filterIsInstance<ProfileEvent.SignInTapped>()
                 .map { ProfileAction.NavigateToSignIn },
 
