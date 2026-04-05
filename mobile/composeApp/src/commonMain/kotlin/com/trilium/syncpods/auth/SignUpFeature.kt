@@ -137,6 +137,7 @@ class SignUpFeature(
                             _effects.emit(SignUpEffect.NavigateToVerifyEmail(email))
                         }
                     } catch (e: Exception) {
+                        println("SignUp error: ${e::class.simpleName} — ${e.message}")
                         val message = when {
                             e.message?.contains("already registered", ignoreCase = true) == true ->
                                 "An account with this email already exists."

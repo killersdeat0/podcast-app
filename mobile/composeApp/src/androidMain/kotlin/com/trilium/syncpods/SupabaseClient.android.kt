@@ -13,7 +13,10 @@ actual fun createSupabaseClient(): SupabaseClient = createSupabaseClient(
     supabaseKey = BuildConfig.SUPABASE_ANON_KEY
 ) {
     install(Postgrest)
-    install(Auth)
+    install(Auth) {
+        scheme = "syncpods"
+        host = "auth"
+    }
     install(Realtime)
     install(ComposeAuth) {
         googleNativeLogin(serverClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID)

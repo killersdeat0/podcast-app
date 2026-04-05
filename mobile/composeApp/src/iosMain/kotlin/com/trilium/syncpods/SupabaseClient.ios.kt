@@ -14,7 +14,10 @@ actual fun createSupabaseClient(): SupabaseClient = createSupabaseClient(
     supabaseKey = NSBundle.mainBundle.objectForInfoDictionaryKey("SUPABASE_ANON_KEY") as? String ?: ""
 ) {
     install(Postgrest)
-    install(Auth)
+    install(Auth) {
+        scheme = "syncpods"
+        host = "auth"
+    }
     install(Realtime)
     install(ComposeAuth) {
         googleNativeLogin(
