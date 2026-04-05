@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.merge
 // ── State ─────────────────────────────────────────────────────────────────────
 
 data class ProfileState(
-    val isLoading: Boolean = false,
+    val isLoading: Boolean = true,
     val isGuest: Boolean = false,
     val displayName: String = "",
     val email: String = "",
