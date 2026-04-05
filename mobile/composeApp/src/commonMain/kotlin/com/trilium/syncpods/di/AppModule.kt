@@ -10,6 +10,7 @@ import com.trilium.syncpods.podcastdetail.PodcastDetailViewModel
 import com.trilium.syncpods.podcastdetail.PodcastSummaryCache
 import com.trilium.syncpods.podcastdetail.SubscriptionRepository
 import com.trilium.syncpods.podcastdetail.SubscriptionRepositoryImpl
+import com.trilium.syncpods.auth.ForgotPasswordViewModel
 import com.trilium.syncpods.auth.LoginRepository
 import com.trilium.syncpods.auth.LoginRepositoryImpl
 import com.trilium.syncpods.auth.LoginViewModel
@@ -97,5 +98,6 @@ val appModule = module {
     viewModelOf(::ProfileViewModel)
     viewModel { SettingsViewModel(get()) }
     viewModel { LoginViewModel(get()) }
+    viewModel { ForgotPasswordViewModel(repository = get()) }
     viewModel { PlayerViewModel(get<AudioPlayer>()) }
 }

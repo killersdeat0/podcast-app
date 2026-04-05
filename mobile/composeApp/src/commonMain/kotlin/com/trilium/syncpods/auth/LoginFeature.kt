@@ -28,6 +28,7 @@ sealed class LoginEvent {
     data class PasswordChanged(val value: String) : LoginEvent()
     data object SignInTapped : LoginEvent()
     data object BackTapped : LoginEvent()
+    data object ForgotPasswordTapped : LoginEvent()
     data class GoogleSignInFailed(val message: String) : LoginEvent()
     data object GoogleSignInDismissed : LoginEvent()
 }
@@ -39,6 +40,7 @@ sealed class LoginAction {
     data class UpdatePassword(val value: String) : LoginAction()
     data object AttemptSignIn : LoginAction()
     data object NavigateBack : LoginAction()
+    data object NavigateToForgotPassword : LoginAction()
     data class SetError(val message: String) : LoginAction()
     data object GoogleSignInUnavailable : LoginAction()
 }
@@ -57,6 +59,7 @@ sealed class LoginResult {
 
 sealed class LoginEffect {
     data object NavigateBack : LoginEffect()
+    data object NavigateToForgotPassword : LoginEffect()
 }
 
 // ── Feature ───────────────────────────────────────────────────────────────────
@@ -85,6 +88,9 @@ class LoginFeature(
 
             events.filterIsInstance<LoginEvent.BackTapped>()
                 .map { LoginAction.NavigateBack },
+
+            events.filterIsInstance<LoginEvent.ForgotPasswordTapped>()
+                .map { LoginAction.NavigateToForgotPassword },
 
             events.filterIsInstance<LoginEvent.GoogleSignInFailed>()
                 .map { LoginAction.SetError(it.message) },
@@ -126,6 +132,10 @@ class LoginFeature(
 
                 is LoginAction.NavigateBack -> flow<LoginResult> {
                     _effects.emit(LoginEffect.NavigateBack)
+                }
+
+                is LoginAction.NavigateToForgotPassword -> flow<LoginResult> {
+                    _effects.emit(LoginEffect.NavigateToForgotPassword)
                 }
 
                 is LoginAction.SetError -> flow {

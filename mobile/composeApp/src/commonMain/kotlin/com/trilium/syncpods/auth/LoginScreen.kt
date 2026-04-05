@@ -57,11 +57,13 @@ import org.koin.compose.koinInject
 fun LoginScreen(
     feature: LoginFeature,
     onBack: () -> Unit,
+    onForgotPassword: () -> Unit = {},
 ) {
     LaunchedEffect(Unit) {
         feature.effects.collect { effect ->
             when (effect) {
                 is LoginEffect.NavigateBack -> onBack()
+                is LoginEffect.NavigateToForgotPassword -> onForgotPassword()
             }
         }
     }
@@ -175,7 +177,7 @@ fun LoginScreen(
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .align(Alignment.End)
-                    .clickable { },
+                    .clickable { feature.process(LoginEvent.ForgotPasswordTapped) },
             )
 
             Spacer(modifier = Modifier.height(8.dp))

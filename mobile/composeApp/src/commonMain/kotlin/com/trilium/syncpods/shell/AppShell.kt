@@ -32,6 +32,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.trilium.syncpods.auth.ForgotPasswordScreen
+import com.trilium.syncpods.auth.ForgotPasswordViewModel
 import com.trilium.syncpods.auth.LoginScreen
 import com.trilium.syncpods.auth.LoginViewModel
 import com.trilium.syncpods.discover.DiscoverScreen
@@ -216,6 +218,15 @@ fun AppShell() {
             composable(AppRoutes.Login.route) {
                 val viewModel = koinViewModel<LoginViewModel>()
                 LoginScreen(
+                    feature = viewModel.feature,
+                    onBack = { navController.popBackStack() },
+                    onForgotPassword = { navController.navigate(AppRoutes.ForgotPassword.route) },
+                )
+            }
+
+            composable(AppRoutes.ForgotPassword.route) {
+                val viewModel = koinViewModel<ForgotPasswordViewModel>()
+                ForgotPasswordScreen(
                     feature = viewModel.feature,
                     onBack = { navController.popBackStack() },
                 )
