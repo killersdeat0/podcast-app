@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
@@ -88,7 +89,7 @@ fun AppShell() {
             Icon(Icons.Default.Star, contentDescription = "Library")
         },
         TabItem(AppRoutes.Queue.route, "Queue") {
-            Icon(Icons.Default.List, contentDescription = "Queue")
+            Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Queue")
         },
         TabItem(AppRoutes.Profile.route, "Profile") {
             Icon(Icons.Default.Person, contentDescription = "Profile")
