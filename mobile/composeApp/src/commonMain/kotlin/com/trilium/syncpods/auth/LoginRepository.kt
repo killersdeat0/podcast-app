@@ -24,7 +24,7 @@ class LoginRepositoryImpl(
     }
 
     override suspend fun signUp(email: String, password: String) {
-        supabaseClient.auth.signUpWith(Email) {
+        supabaseClient.auth.signUpWith(Email, redirectUrl = "syncpods://auth") {
             this.email = email
             this.password = password
         }
