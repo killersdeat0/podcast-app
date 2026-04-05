@@ -14,6 +14,8 @@ import com.trilium.syncpods.auth.ForgotPasswordViewModel
 import com.trilium.syncpods.auth.LoginRepository
 import com.trilium.syncpods.auth.LoginRepositoryImpl
 import com.trilium.syncpods.auth.LoginViewModel
+import com.trilium.syncpods.auth.SignUpViewModel
+import com.trilium.syncpods.auth.VerifyEmailViewModel
 import com.trilium.syncpods.profile.ProfileRepository
 import com.trilium.syncpods.profile.ProfileRepositoryImpl
 import com.trilium.syncpods.profile.ProfileViewModel
@@ -99,5 +101,13 @@ val appModule = module {
     viewModel { SettingsViewModel(get()) }
     viewModel { LoginViewModel(get()) }
     viewModel { ForgotPasswordViewModel(repository = get()) }
+    viewModel { SignUpViewModel(get()) }
+    viewModel {
+        val client = get<SupabaseClient>()
+        val authSignal = client.auth.sessionStatus
+            .filterIsInstance<SessionStatus.Authenticated>()
+            .map { }
+        VerifyEmailViewModel(get(), get(), authSignal)
+    }
     viewModel { PlayerViewModel(get<AudioPlayer>()) }
 }

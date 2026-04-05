@@ -18,4 +18,10 @@ sealed class AppRoutes(val route: String) {
     data object Settings : AppRoutes("settings")
     data object Login : AppRoutes("login")
     data object ForgotPassword : AppRoutes("forgot-password")
+    data object SignUp : AppRoutes("signup")
+    data class VerifyEmail(val email: String) : AppRoutes("verify-email/{email}") {
+        companion object {
+            const val ROUTE = "verify-email/{email}"
+        }
+    }
 }

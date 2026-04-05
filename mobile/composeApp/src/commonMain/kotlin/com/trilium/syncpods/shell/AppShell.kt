@@ -36,6 +36,10 @@ import com.trilium.syncpods.auth.ForgotPasswordScreen
 import com.trilium.syncpods.auth.ForgotPasswordViewModel
 import com.trilium.syncpods.auth.LoginScreen
 import com.trilium.syncpods.auth.LoginViewModel
+import com.trilium.syncpods.auth.SignUpScreen
+import com.trilium.syncpods.auth.SignUpViewModel
+import com.trilium.syncpods.auth.VerifyEmailScreen
+import com.trilium.syncpods.auth.VerifyEmailViewModel
 import com.trilium.syncpods.discover.DiscoverScreen
 import com.trilium.syncpods.discover.DiscoverViewModel
 import com.trilium.syncpods.navigation.AppRoutes
@@ -72,6 +76,9 @@ fun AppShell() {
         || currentDestination?.route == AppRoutes.PodcastDetail.ROUTE
         || currentDestination?.route == AppRoutes.Settings.route
         || currentDestination?.route == AppRoutes.Login.route
+        || currentDestination?.route == AppRoutes.SignUp.route
+        || currentDestination?.route == AppRoutes.ForgotPassword.route
+        || currentDestination?.route == AppRoutes.VerifyEmail.ROUTE
 
     val tabs = listOf(
         TabItem(AppRoutes.Discover.route, "Discover") {
@@ -173,6 +180,8 @@ fun AppShell() {
                 QueueScreen(
                     feature = viewModel.feature,
                     onPlayEpisode = onPlayEpisode,
+                    onNavigateToSignIn = { navController.navigate(AppRoutes.Login.route) },
+                    onNavigateToCreateAccount = { navController.navigate(AppRoutes.SignUp.route) },
                     modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
                     bottomContentPadding = innerPadding.calculateBottomPadding(),
                 )
@@ -221,6 +230,7 @@ fun AppShell() {
                     feature = viewModel.feature,
                     onBack = { navController.popBackStack() },
                     onForgotPassword = { navController.navigate(AppRoutes.ForgotPassword.route) },
+                    onSignUp = { navController.navigate(AppRoutes.SignUp.route) },
                 )
             }
 
@@ -232,14 +242,38 @@ fun AppShell() {
                 )
             }
 
+            composable(AppRoutes.SignUp.route) {
+                val viewModel = koinViewModel<SignUpViewModel>()
+                SignUpScreen(
+                    feature = viewModel.feature,
+                    onBack = { navController.popBackStack() },
+                    onVerifyEmail = { email ->
+                        navController.navigate("verify-email/${email.encodeURLPathPart()}")
+                    },
+                )
+            }
+
+            composable(AppRoutes.VerifyEmail.ROUTE) {
+                val viewModel = koinViewModel<VerifyEmailViewModel>()
+                VerifyEmailScreen(
+                    feature = viewModel.feature,
+                    onBack = { navController.popBackStack() },
+                    onNavigateToHome = {
+                        navController.navigate(AppRoutes.Discover.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                )
+            }
+
             composable(AppRoutes.PodcastDetail.ROUTE) {
                 val viewModel = koinViewModel<PodcastDetailViewModel>()
                 PodcastDetailScreen(
                     feature = viewModel.feature,
                     onBack = { navController.popBackStack() },
                     onPlayEpisode = onPlayEpisode,
-                    onNavigateToSignIn = { /* stub: sign-in screen not yet implemented */ },
-                    onNavigateToCreateAccount = { /* stub: create-account screen not yet implemented */ },
+                    onNavigateToSignIn = { navController.navigate(AppRoutes.Login.route) },
+                    onNavigateToCreateAccount = { navController.navigate(AppRoutes.SignUp.route) },
                     topContentPadding = innerPadding.calculateTopPadding(),
                     bottomContentPadding = innerPadding.calculateBottomPadding(),
                 )

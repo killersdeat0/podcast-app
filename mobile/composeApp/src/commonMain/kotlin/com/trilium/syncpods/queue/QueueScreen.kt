@@ -58,6 +58,8 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 fun QueueScreen(
     feature: QueueFeature,
     onPlayEpisode: (NowPlaying) -> Unit,
+    onNavigateToSignIn: () -> Unit = {},
+    onNavigateToCreateAccount: () -> Unit = {},
     modifier: Modifier = Modifier,
     bottomContentPadding: Dp = 0.dp,
 ) {
@@ -115,8 +117,8 @@ fun QueueScreen(
         LoginPromptSheet(
             reason = LoginPromptReason.SAVE_QUEUE,
             onDismiss = { feature.process(QueueEvent.LoginPromptDismissed) },
-            onSignIn = { /* stub */ },
-            onCreateAccount = { /* stub */ },
+            onSignIn = onNavigateToSignIn,
+            onCreateAccount = onNavigateToCreateAccount,
         )
     }
 

@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -20,11 +22,9 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -32,6 +32,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,28 +44,19 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.runtime.collectAsState
-import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.compose.auth.composeAuth
-import io.github.jan.supabase.compose.auth.composable.NativeSignInResult
-import io.github.jan.supabase.compose.auth.composable.rememberSignInWithGoogle
-import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(
-    feature: LoginFeature,
+fun SignUpScreen(
+    feature: SignUpFeature,
     onBack: () -> Unit,
-    onForgotPassword: () -> Unit = {},
-    onSignUp: () -> Unit = {},
+    onVerifyEmail: (email: String) -> Unit,
 ) {
     LaunchedEffect(Unit) {
         feature.effects.collect { effect ->
             when (effect) {
-                is LoginEffect.NavigateBack -> onBack()
-                is LoginEffect.NavigateToForgotPassword -> onForgotPassword()
+                is SignUpEffect.NavigateBack -> onBack()
+                is SignUpEffect.NavigateToVerifyEmail -> onVerifyEmail(effect.email)
             }
         }
     }
@@ -72,25 +64,14 @@ fun LoginScreen(
     val state by feature.state.collectAsState()
 
     var passwordVisible by remember { mutableStateOf(false) }
-
-    val supabaseClient = koinInject<SupabaseClient>()
-    val googleSignIn = supabaseClient.composeAuth.rememberSignInWithGoogle(
-        onResult = { result ->
-            when (result) {
-                NativeSignInResult.Success -> onBack()
-                is NativeSignInResult.Error -> feature.process(LoginEvent.GoogleSignInFailed(result.message))
-                is NativeSignInResult.NetworkError -> feature.process(LoginEvent.GoogleSignInFailed(result.message))
-                NativeSignInResult.ClosedByUser -> feature.process(LoginEvent.GoogleSignInDismissed)
-            }
-        },
-    )
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Sign In") },
+                title = { Text("Create Account") },
                 navigationIcon = {
-                    IconButton(onClick = { feature.process(LoginEvent.BackTapped) }) {
+                    IconButton(onClick = { feature.process(SignUpEvent.BackTapped) }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
@@ -111,7 +92,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Sign In",
+                text = "Create Account",
                 style = MaterialTheme.typography.headlineMedium,
             )
 
@@ -119,22 +100,22 @@ fun LoginScreen(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "Don't have an account? ",
+                    text = "Already have an account? ",
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Text(
-                    text = "Sign up",
+                    text = "Sign in",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { onSignUp() },
+                    modifier = Modifier.clickable { feature.process(SignUpEvent.BackTapped) },
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
                 value = state.email,
-                onValueChange = { feature.process(LoginEvent.EmailChanged(it)) },
+                onValueChange = { feature.process(SignUpEvent.EmailChanged(it)) },
                 label = { Text("Email") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
@@ -148,16 +129,13 @@ fun LoginScreen(
 
             OutlinedTextField(
                 value = state.password,
-                onValueChange = { feature.process(LoginEvent.PasswordChanged(it)) },
+                onValueChange = { feature.process(SignUpEvent.PasswordChanged(it)) },
                 label = { Text("Password") },
                 singleLine = true,
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Done,
-                ),
-                keyboardActions = KeyboardActions(
-                    onDone = { feature.process(LoginEvent.SignInTapped) },
+                    imeAction = ImeAction.Next,
                 ),
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -170,15 +148,30 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            Text(
-                text = "Forgot password?",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .align(Alignment.End)
-                    .clickable { feature.process(LoginEvent.ForgotPasswordTapped) },
+            OutlinedTextField(
+                value = state.confirmPassword,
+                onValueChange = { feature.process(SignUpEvent.ConfirmPasswordChanged(it)) },
+                label = { Text("Confirm Password") },
+                singleLine = true,
+                visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done,
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { feature.process(SignUpEvent.SignUpTapped) },
+                ),
+                trailingIcon = {
+                    IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                        Icon(
+                            imageVector = if (confirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = if (confirmPasswordVisible) "Hide password" else "Show password",
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -193,7 +186,7 @@ fun LoginScreen(
             }
 
             Button(
-                onClick = { feature.process(LoginEvent.SignInTapped) },
+                onClick = { feature.process(SignUpEvent.SignUpTapped) },
                 enabled = !state.isLoading,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -204,32 +197,8 @@ fun LoginScreen(
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                 } else {
-                    Text("Sign In")
+                    Text("Create Account")
                 }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                HorizontalDivider(modifier = Modifier.weight(1f))
-                Text(
-                    text = "  OR  ",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                HorizontalDivider(modifier = Modifier.weight(1f))
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedButton(
-                onClick = { googleSignIn.startFlow() },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Continue with Google")
             }
 
             Spacer(modifier = Modifier.weight(1f))

@@ -24,6 +24,16 @@
 				<string>$(GOOGLE_IOS_REVERSE_CLIENT_ID)</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.trilium.syncpods.auth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>syncpods</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>
