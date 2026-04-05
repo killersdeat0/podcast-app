@@ -1,4 +1,5 @@
 import SwiftUI
+import ComposeApp
 
 @main
 struct iOSApp: App {
@@ -6,7 +7,7 @@ struct iOSApp: App {
         WindowGroup {
             ContentView()
                 .onOpenURL { url in
-                    MainViewControllerKt.handleAuthDeepLink(urlString: url.absoluteString)
+                    AuthDeepLinkHandlerKt.handleAuthDeepLink(urlString: url.absoluteString)
                 }
         }
     }
