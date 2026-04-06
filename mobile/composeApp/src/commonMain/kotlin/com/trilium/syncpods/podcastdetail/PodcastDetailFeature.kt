@@ -33,6 +33,7 @@ data class PodcastDetailState(
     val isFollowing: Boolean = false,
     val isFollowLoading: Boolean = false,
     val showLoginPrompt: Boolean = false,
+    val showUpgradePrompt: Boolean = false,
     val currentPage: Int = 0,
     val queuedGuids: Set<String> = emptySet(),
     val userTier: String = "free",
@@ -63,6 +64,7 @@ sealed class PodcastDetailAction {
     data object Unfollow : PodcastDetailAction()
     data object ShowLoginPrompt : PodcastDetailAction()
     data object DismissLoginPrompt : PodcastDetailAction()
+    data object ShowUpgradePrompt : PodcastDetailAction()
     data object ToggleSort : PodcastDetailAction()
     data object ToggleDescription : PodcastDetailAction()
     data class PlayEpisode(val episode: Episode) : PodcastDetailAction()
@@ -95,6 +97,7 @@ sealed class PodcastDetailResult {
     data class SetFollowing(val following: Boolean) : PodcastDetailResult()
     data class SetFollowLoading(val loading: Boolean) : PodcastDetailResult()
     data class SetShowLoginPrompt(val show: Boolean) : PodcastDetailResult()
+    data class SetShowUpgradePrompt(val show: Boolean) : PodcastDetailResult()
     data object SortToggled : PodcastDetailResult()
     data object DescriptionToggled : PodcastDetailResult()
     data class PageChanged(val page: Int) : PodcastDetailResult()
@@ -110,6 +113,7 @@ sealed class PodcastDetailEffect {
     data object NavigateBack : PodcastDetailEffect()
     data object NavigateToSignIn : PodcastDetailEffect()
     data object NavigateToCreateAccount : PodcastDetailEffect()
+    data object ShowUpgradePrompt : PodcastDetailEffect()
     data class PlayEpisode(val episode: Episode) : PodcastDetailEffect()
     data object PlayLatest : PodcastDetailEffect()
     data object EpisodeQueuedAdded : PodcastDetailEffect()
@@ -162,11 +166,13 @@ class PodcastDetailFeature(
             events.filterIsInstance<PodcastDetailEvent.EpisodeQueueToggleTapped>()
                 .map {
                     when {
-                        state.value.userTier != "paid" && state.value.queuedGuids.size >= 10 -> PodcastDetailAction.ShowLoginPrompt
+                        state.value.userTier != "paid" && state.value.queuedGuids.size >= 10 -> {
+                            if (queueRepository.isGuest()) PodcastDetailAction.ShowLoginPrompt
+                            else PodcastDetailAction.ShowUpgradePrompt
+                        }
                         it.episode.guid in state.value.queuedGuids -> PodcastDetailAction.RemoveEpisodeFromQueue(
                             it.episode
                         )
-
                         else -> PodcastDetailAction.AddEpisodeToQueue(it.episode)
                     }
                 },
@@ -275,6 +281,10 @@ class PodcastDetailFeature(
                 is PodcastDetailAction.DismissLoginPrompt ->
                     flowOf(PodcastDetailResult.SetShowLoginPrompt(false))
 
+                is PodcastDetailAction.ShowUpgradePrompt -> flow<PodcastDetailResult> {
+                    _effects.emit(PodcastDetailEffect.ShowUpgradePrompt)
+                }
+
                 is PodcastDetailAction.ToggleSort ->
                     flowOf(PodcastDetailResult.SortToggled)
 
@@ -358,6 +368,7 @@ class PodcastDetailFeature(
         is PodcastDetailResult.SetFollowing -> previous.copy(isFollowing = result.following)
         is PodcastDetailResult.SetFollowLoading -> previous.copy(isFollowLoading = result.loading)
         is PodcastDetailResult.SetShowLoginPrompt -> previous.copy(showLoginPrompt = result.show)
+        is PodcastDetailResult.SetShowUpgradePrompt -> previous.copy(showUpgradePrompt = result.show)
         is PodcastDetailResult.SortToggled -> previous.copy(sortNewestFirst = !previous.sortNewestFirst)
         is PodcastDetailResult.DescriptionToggled -> previous.copy(isDescriptionExpanded = !previous.isDescriptionExpanded)
         is PodcastDetailResult.PageChanged -> previous.copy(currentPage = result.page)

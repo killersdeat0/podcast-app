@@ -302,7 +302,7 @@ class PodcastDetailFeatureTest {
     }
 
     @Test
-    fun `EpisodeQueueToggleTapped when free user has 10 or more queued items shows login prompt`() = runTest {
+    fun `EpisodeQueueToggleTapped when guest has 10 or more queued items shows login prompt`() = runTest {
         val tenGuids = (1..10).map { "other-guid-$it" }.toSet()
         val feature = PodcastDetailFeature(
             scope = backgroundScope,
@@ -310,7 +310,7 @@ class PodcastDetailFeatureTest {
             feedRepository = FakeFeedRepository(sampleFeed),
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = PodcastSummaryCache(),
-            queueRepository = FakeQueueRepository(tier = "free", initialQueuedGuids = tenGuids),
+            queueRepository = FakeQueueRepository(guest = true, tier = "free", initialQueuedGuids = tenGuids),
             profileRepository = FakeProfileRepository(tier = "free"),
         )
 
@@ -326,6 +326,65 @@ class PodcastDetailFeatureTest {
 
             while (!latest.showLoginPrompt) latest = awaitItem()
             assertTrue(latest.showLoginPrompt)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `EpisodeQueueToggleTapped when logged-in free user has 10 or more queued items emits ShowUpgradePrompt effect`() = runTest {
+        val tenGuids = (1..10).map { "other-guid-$it" }.toSet()
+        val feature = PodcastDetailFeature(
+            scope = backgroundScope,
+            feedUrl = feedUrl,
+            feedRepository = FakeFeedRepository(sampleFeed),
+            subscriptionRepository = FakeSubscriptionRepository(),
+            summaryCache = PodcastSummaryCache(),
+            queueRepository = FakeQueueRepository(guest = false, tier = "free", initialQueuedGuids = tenGuids),
+            profileRepository = FakeProfileRepository(tier = "free"),
+        )
+
+        // Load screen to populate queuedGuids and userTier in state
+        feature.state.test {
+            awaitItem()
+            feature.process(PodcastDetailEvent.ScreenVisible)
+            var latest = awaitItem()
+            while (latest.queuedGuids.size < 10) latest = awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        feature.effects.test {
+            feature.process(PodcastDetailEvent.EpisodeQueueToggleTapped(sampleEpisodes[0]))
+            assertIs<PodcastDetailEffect.ShowUpgradePrompt>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `EpisodeQueueToggleTapped when logged-in free user hits queue limit does not show login prompt`() = runTest {
+        val tenGuids = (1..10).map { "other-guid-$it" }.toSet()
+        val feature = PodcastDetailFeature(
+            scope = backgroundScope,
+            feedUrl = feedUrl,
+            feedRepository = FakeFeedRepository(sampleFeed),
+            subscriptionRepository = FakeSubscriptionRepository(),
+            summaryCache = PodcastSummaryCache(),
+            queueRepository = FakeQueueRepository(guest = false, tier = "free", initialQueuedGuids = tenGuids),
+            profileRepository = FakeProfileRepository(tier = "free"),
+        )
+
+        feature.state.test {
+            awaitItem()
+
+            feature.process(PodcastDetailEvent.ScreenVisible)
+            var latest = awaitItem()
+            while (latest.queuedGuids.size < 10) latest = awaitItem()
+
+            feature.process(PodcastDetailEvent.EpisodeQueueToggleTapped(sampleEpisodes[0]))
+
+            // Give the feature time to process, then verify no login prompt appeared
+            latest = awaitItem()
+            assertFalse(latest.showLoginPrompt)
 
             cancelAndIgnoreRemainingEvents()
         }

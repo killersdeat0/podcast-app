@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.PlaylistRemove
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -56,8 +57,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -86,6 +89,7 @@ fun PodcastDetailScreen(
     val state by feature.state.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    var showUpgradeSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         feature.process(PodcastDetailEvent.ScreenVisible)
@@ -98,6 +102,7 @@ fun PodcastDetailScreen(
                 is PodcastDetailEffect.NavigateBack -> onBack()
                 is PodcastDetailEffect.NavigateToSignIn -> onNavigateToSignIn()
                 is PodcastDetailEffect.NavigateToCreateAccount -> onNavigateToCreateAccount()
+                is PodcastDetailEffect.ShowUpgradePrompt -> showUpgradeSheet = true
                 is PodcastDetailEffect.PlayEpisode -> onPlayEpisode(
                     NowPlaying(
                         guid = effect.episode.guid,
@@ -433,6 +438,21 @@ fun PodcastDetailScreen(
             onSignIn = { feature.process(PodcastDetailEvent.LoginPromptSignInTapped) },
             onCreateAccount = { feature.process(PodcastDetailEvent.LoginPromptCreateAccountTapped) },
             onDismiss = { feature.process(PodcastDetailEvent.LoginPromptDismissed) },
+        )
+    }
+
+    // Upgrade prompt for logged-in free users hitting the queue limit
+    if (showUpgradeSheet) {
+        AlertDialog(
+            onDismissRequest = { showUpgradeSheet = false },
+            title = { Text("Upgrade to unlock unlimited queue") },
+            text = { Text("Free users can queue up to 10 episodes. Upgrade for unlimited episodes.") },
+            confirmButton = {
+                TextButton(onClick = { showUpgradeSheet = false }) { Text("View Plans") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUpgradeSheet = false }) { Text("Not now") }
+            },
         )
     }
 }
