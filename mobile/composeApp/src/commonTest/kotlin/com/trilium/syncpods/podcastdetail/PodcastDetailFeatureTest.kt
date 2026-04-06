@@ -303,7 +303,7 @@ class PodcastDetailFeatureTest {
     }
 
     @Test
-    fun `EpisodeQueueToggleTapped when free user has 10 or more queued items shows login prompt`() = runTest {
+    fun `EpisodeQueueToggleTapped when guest has 10 or more queued items shows login prompt`() = runTest {
         val tenGuids = (1..10).map { "other-guid-$it" }.toSet()
         val feature = PodcastDetailFeature(
             scope = backgroundScope,
