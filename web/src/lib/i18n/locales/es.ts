@@ -331,6 +331,8 @@ const es = {
     sidebar_heading: 'Mis listas',
     sidebar_empty_hint: 'Sin listas todavía',
     guest_hint: 'Inicia sesión para crear listas',
+    no_playlists_toast: 'Crea una lista primero',
+    no_playlists_toast_cta: 'Ir a Listas',
     auth_prompt_title: 'Inicia sesión para usar listas 🎙️',
     auth_prompt_shared_title: 'Inicia sesión para ver esta lista 🎙️',
     auth_prompt_shared_body: 'Crea una cuenta gratuita o inicia sesión para ver y reproducir esta lista.',

@@ -10,6 +10,11 @@ stripe listen --forward-to localhost:3000/api/stripe/webhook  # required for Str
 cd web && npm run build     # production build
 cd web && npm run lint      # ESLint
 supabase db push            # apply pending migrations to remote DB
+
+# Edge Functions — deploy to BOTH projects every time:
+supabase functions deploy <function-name> --project-ref nuvadoybccdqipyhdhns  # dev
+supabase functions deploy <function-name> --project-ref dqqybduklxwxtcahqswh  # prod
+# Or without --project-ref to deploy to whichever is linked (defaults to prod)
 ```
 
 ## Testing

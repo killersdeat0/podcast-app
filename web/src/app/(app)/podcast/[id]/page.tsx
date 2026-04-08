@@ -819,7 +819,7 @@ export default function PodcastPage() {
               ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin block" />
               : inQueue ? <Check className="w-3.5 h-3.5" strokeWidth={2.5} /> : <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />}
           </button>
-          {!isGuest && userPlaylists.length > 0 && (
+          {!isGuest && (
             <AddToPlaylistPopover
               playlists={userPlaylists}
               onSelect={(playlistId) => addToPlaylist(playlistId, ep)}

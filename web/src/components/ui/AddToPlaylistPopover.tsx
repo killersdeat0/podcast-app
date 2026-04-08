@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { ListPlus, Check } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { useFloating, flip, shift, offset, autoUpdate } from '@floating-ui/react'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 
@@ -27,6 +29,7 @@ export default function AddToPlaylistPopover({
   const [query, setQuery] = useState('')
   const searchRef = useRef<HTMLInputElement>(null)
   const strings = useStrings()
+  const router = useRouter()
 
   const { refs, floatingStyles } = useFloating({
     open,
@@ -65,7 +68,27 @@ export default function AddToPlaylistPopover({
     if (open) setQuery('')
   }, [open, playlists.length])
 
-  if (playlists.length === 0) return null
+  if (playlists.length === 0) {
+    return (
+      <div className={`relative flex-shrink-0 ${className}`}>
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            toast(strings.playlists.no_playlists_toast, {
+              action: {
+                label: strings.playlists.no_playlists_toast_cta,
+                onClick: () => router.push('/playlists'),
+              },
+            })
+          }}
+          title={strings.playlists.add_to_playlist}
+          className="w-8 h-8 flex items-center justify-center rounded-full transition-all text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high opacity-0 group-hover:opacity-100"
+        >
+          <ListPlus className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    )
+  }
 
   const filtered = query.trim()
     ? playlists.filter((pl) => pl.name.toLowerCase().includes(query.toLowerCase()))

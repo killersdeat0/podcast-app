@@ -11,7 +11,21 @@ serve(async (req) => {
   }
 
   const url = new URL(req.url)
-  const term = url.searchParams.get('q')
+  const raw = url.searchParams.get('q')
+  if (!raw) {
+    return new Response(JSON.stringify({ results: [] }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  // Normalize the query so special chars like '&' don't confuse iTunes.
+  // Replace '&' with 'and', strip leading/trailing punctuation/whitespace.
+  const term = raw
+    .replace(/&/g, 'and')
+    .replace(/[^\w\s'"-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
   if (!term) {
     return new Response(JSON.stringify({ results: [] }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

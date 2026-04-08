@@ -291,7 +291,7 @@ export default function HistoryPage() {
               <Info className="w-4 h-4" />
             </button>
           )}
-          {!isGuest && userPlaylists.length > 0 && item.episode && (
+          {!isGuest && item.episode && (
             <AddToPlaylistPopover
               playlists={userPlaylists}
               onSelect={(playlistId) => addToPlaylist(playlistId, item)}

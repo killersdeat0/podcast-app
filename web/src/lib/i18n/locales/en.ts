@@ -331,6 +331,8 @@ const en = {
     sidebar_heading: 'My Playlists',
     sidebar_empty_hint: 'No playlists yet',
     guest_hint: 'Sign in to create playlists',
+    no_playlists_toast: 'Create a playlist first',
+    no_playlists_toast_cta: 'Go to Playlists',
     auth_prompt_title: 'Sign in to use playlists 🎙️',
     auth_prompt_shared_title: 'Sign in to view this playlist 🎙️',
     auth_prompt_shared_body: 'Create a free account or sign in to view and play this playlist.',
