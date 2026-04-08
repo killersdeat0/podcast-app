@@ -1,14 +1,16 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
+import WelcomeModal from '@/components/ui/WelcomeModal'
 
 export default function AppToasts() {
   const strings = useStrings()
   const { isGuest } = useUser()
+  const [welcomeOpen, setWelcomeOpen] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
@@ -16,10 +18,13 @@ export default function AppToasts() {
       if (event !== 'SIGNED_IN' || !session?.user) return
       const createdAt = new Date(session.user.created_at).getTime()
       const isNewUser = Date.now() - createdAt < 30_000
-      if (isNewUser) {
-        toast(strings.welcome_toast_new_user)
+      const wasGuest = !!localStorage.getItem('guestToastShown')
+
+      if (isNewUser || wasGuest) {
+        setWelcomeOpen(true)
         return
       }
+
       const lastShown = Number(localStorage.getItem('welcomeToastShownAt') ?? 0)
       if (Date.now() - lastShown < 12 * 60 * 60 * 1000) return
       localStorage.setItem('welcomeToastShownAt', String(Date.now()))
@@ -42,5 +47,5 @@ export default function AppToasts() {
     })
   }, [isGuest, strings])
 
-  return null
+  return <WelcomeModal open={welcomeOpen} onClose={() => setWelcomeOpen(false)} />
 }

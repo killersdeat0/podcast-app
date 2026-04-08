@@ -1,10 +1,11 @@
 'use client'
 
 import * as Dialog from '@radix-ui/react-dialog'
-import { X, RefreshCw, Rss, ListMusic, Bell } from 'lucide-react'
+import { RefreshCw, Rss, ListMusic, Bell } from 'lucide-react'
 import { useStrings } from '@/lib/i18n/LocaleContext'
+import { useRouter } from 'next/navigation'
 
-interface AboutModalProps {
+interface WelcomeModalProps {
   open: boolean
   onClose: () => void
 }
@@ -16,8 +17,15 @@ const features = [
   { icon: <Bell className="w-4 h-4" />,      key: 'feature_notifications' as const },
 ]
 
-export default function AboutModal({ open, onClose }: AboutModalProps) {
+export default function WelcomeModal({ open, onClose }: WelcomeModalProps) {
   const strings = useStrings()
+  const router = useRouter()
+
+  function handleCta() {
+    onClose()
+    router.push('/discover')
+  }
+
   return (
     <Dialog.Root open={open} onOpenChange={(o) => { if (!o) onClose() }}>
       <Dialog.Portal>
@@ -26,20 +34,15 @@ export default function AboutModal({ open, onClose }: AboutModalProps) {
           <div className="bg-surface-container-low border border-outline-variant rounded-2xl overflow-hidden shadow-xl">
 
             {/* Header */}
-            <div className="bg-primary-container px-6 pt-6 pb-5 relative">
-              <Dialog.Close asChild>
-                <button className="absolute top-4 right-4 text-on-primary-container opacity-60 hover:opacity-100 transition-opacity p-1 rounded-lg">
-                  <X className="w-4 h-4" />
-                </button>
-              </Dialog.Close>
+            <div className="bg-primary-container px-6 pt-6 pb-5">
               <div className="w-10 h-10 rounded-xl bg-brand flex items-center justify-center mb-3">
                 <span className="text-xl">🎙️</span>
               </div>
               <Dialog.Title className="text-xl font-bold text-on-primary-container">
-                SyncPods
+                {strings.welcome.title}
               </Dialog.Title>
               <Dialog.Description className="text-sm text-on-primary-container opacity-80 mt-1">
-                {strings.about.tagline}
+                {strings.welcome.tagline}
               </Dialog.Description>
             </div>
 
@@ -55,15 +58,14 @@ export default function AboutModal({ open, onClose }: AboutModalProps) {
               ))}
             </div>
 
-            {/* Footer */}
+            {/* CTA */}
             <div className="px-6 pb-5">
-              <p className="text-xs text-on-surface-dim italic mb-4">{strings.about.body_3}</p>
-              <a
-                href="/contact"
-                className="flex items-center justify-center w-full bg-surface-container hover:bg-surface-container-high border border-outline-variant rounded-xl px-4 py-2.5 text-sm font-medium text-on-surface transition-colors"
+              <button
+                onClick={handleCta}
+                className="flex items-center justify-center w-full bg-brand hover:opacity-90 rounded-xl px-4 py-2.5 text-sm font-medium text-on-surface transition-opacity"
               >
-                {strings.about.contact_link}
-              </a>
+                {strings.welcome.cta}
+              </button>
             </div>
 
           </div>

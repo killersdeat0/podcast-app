@@ -337,10 +337,18 @@ const es = {
   },
   about: {
     title: 'SyncPods 🎙️',
-    body_1: 'SyncPods es un reproductor de podcasts para quienes escuchan en todas partes — tu progreso, cola y suscripciones se sincronizan en todos tus dispositivos para que nunca pierdas tu lugar.',
-    body_2: 'Suscríbete a cualquier podcast vía RSS, organiza tu escucha con listas y marcadores, y descubre nuevos programas — todo en un solo lugar.',
+    tagline: 'El reproductor de podcasts que te sigue el ritmo.',
+    feature_sync: 'Tu progreso, cola y suscripciones se sincronizan en todos tus dispositivos — continúa exactamente donde lo dejaste.',
+    feature_rss: 'Suscríbete a cualquier podcast vía RSS, incluidos feeds privados de Patreon y Substack.',
+    feature_organize: 'Organiza tu escucha con listas y marcadores, y descubre nuevos programas por el camino.',
+    feature_notifications: 'Los episodios nuevos se marcan automáticamente — un contador en cada programa te dice lo que ha salido desde tu última visita.',
     body_3: 'Creado por alguien con una cola de podcasts probablemente demasiado larga y opiniones firmes sobre los intervalos de salto. Si algo no está bien o tienes una idea, nos encantaría saberlo.',
-    contact_link: 'Contáctanos →',
+    contact_link: 'Escríbenos →',
+  },
+  welcome: {
+    title: 'Bienvenido a SyncPods 🎉',
+    tagline: 'Esto es lo que puedes hacer:',
+    cta: 'Empezar a explorar →',
   },
   contact: {
     heading: 'Contáctanos 👋',

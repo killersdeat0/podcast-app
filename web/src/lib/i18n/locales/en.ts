@@ -337,10 +337,18 @@ const en = {
   },
   about: {
     title: 'SyncPods 🎙️',
-    body_1: 'SyncPods is a podcast player built for people who listen everywhere — your progress, queue, and subscriptions sync across all your devices so you never lose your place.',
-    body_2: 'Subscribe to any podcast via RSS, organize your listening with playlists and bookmarks, and discover new shows — all in one place.',
+    tagline: 'The podcast player that keeps up with you.',
+    feature_sync: 'Your progress, queue, and subscriptions sync across all your devices — pick up exactly where you left off.',
+    feature_rss: 'Subscribe to any podcast via RSS, including private Patreon and Substack feeds.',
+    feature_organize: 'Organize your listening with playlists and bookmarks, and discover new shows along the way.',
+    feature_notifications: 'New episodes are flagged automatically — a badge on each show tells you what\'s dropped since you last visited.',
     body_3: "Built by someone with a probably-too-long podcast queue and strong opinions about skip intervals. If something feels off or you have an idea, we'd love to hear from you.",
-    contact_link: 'Contact us →',
+    contact_link: 'Get in touch →',
+  },
+  welcome: {
+    title: 'Welcome to SyncPods 🎉',
+    tagline: "Here's what you can do:",
+    cta: 'Start exploring →',
   },
   contact: {
     heading: 'Contact Us 👋',
