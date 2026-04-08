@@ -26,7 +26,7 @@ function AuthFormInner({ mode }: { mode: Mode }) {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
     setError(null)
@@ -51,7 +51,7 @@ function AuthFormInner({ mode }: { mode: Mode }) {
       router.push(returnTo)
       router.refresh()
     } else {
-      const isGuest = !!localStorage.getItem('guestToastShown')
+      const isGuest = localStorage.getItem('guestToastShown') !== null
       const { error } = await supabase.auth.signInWithPassword({ email, password })
 
       if (error) {
@@ -72,6 +72,12 @@ function AuthFormInner({ mode }: { mode: Mode }) {
   }
 
   async function handleGoogle() {
+    const isGuest = localStorage.getItem('guestToastShown') !== null
+    if (isGuest) {
+      localStorage.removeItem('guestQueue')
+      localStorage.removeItem('guestToastShown')
+      localStorage.setItem('pendingWelcomeModal', '1')
+    }
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin}/auth/callback?next=${encodeURIComponent(returnTo)}` },

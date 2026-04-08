@@ -18,11 +18,15 @@ export default function AppToasts() {
   useEffect(() => {
     if (localStorage.getItem('pendingWelcomeModal')) {
       localStorage.removeItem('pendingWelcomeModal')
-      localStorage.setItem('welcomeModalShown', '1')
-      setWelcomeOpen(true)
+      if (!localStorage.getItem('welcomeModalShown')) {
+        localStorage.setItem('welcomeModalShown', '1')
+        setWelcomeOpen(true)
+      }
       return
     }
-    // Google OAuth from guest: guestToastShown still set, AuthForm never ran
+    // Google OAuth from guest fallback: AuthForm sets pendingWelcomeModal before redirect,
+    // but if that somehow didn't persist (e.g. tab crashed mid-redirect), this catches it.
+    // Always clean up guestToastShown for logged-in users to prevent stale state.
     if (!isGuest && localStorage.getItem('guestToastShown')) {
       localStorage.removeItem('guestToastShown')
       if (!localStorage.getItem('welcomeModalShown')) {
@@ -42,6 +46,8 @@ export default function AppToasts() {
   }, [])
 
   // Returning-user welcome toast (not the modal)
+  // Guards against Supabase firing SIGNED_IN on every tab-focus via _recoverAndRefresh().
+  // sessionStorage ensures the toast fires at most once per page session (cleared on tab close).
   useEffect(() => {
     const supabase = createClient()
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -49,8 +55,10 @@ export default function AppToasts() {
       const createdAt = new Date(session.user.created_at).getTime()
       const isNewUser = Date.now() - createdAt < 30_000
       if (isNewUser) return
+      if (sessionStorage.getItem('welcomeToastShownThisSession')) return
       const lastShown = Number(localStorage.getItem('welcomeToastShownAt') ?? 0)
       if (Date.now() - lastShown < 12 * 60 * 60 * 1000) return
+      sessionStorage.setItem('welcomeToastShownThisSession', '1')
       localStorage.setItem('welcomeToastShownAt', String(Date.now()))
       toast(strings.welcome_toast)
     })
