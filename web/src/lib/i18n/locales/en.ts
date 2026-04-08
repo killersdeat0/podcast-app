@@ -277,6 +277,8 @@ const en = {
     delete_confirm_button: 'Yes, delete my account',
     delete_cancel: 'Cancel',
     settings_link: 'Settings →',
+    about: 'About',
+    contact: 'Contact',
   },
   stats: {
     heading: '📊 Your Stats',
@@ -330,6 +332,24 @@ const en = {
     auth_prompt_title: 'Sign in to use playlists 🎙️',
     auth_prompt_shared_title: 'Sign in to view this playlist 🎙️',
     auth_prompt_shared_body: 'Create a free account or sign in to view and play this playlist.',
+  },
+  about: {
+    title: 'SyncPods 🎙️',
+    body_1: 'SyncPods is a podcast player built for people who listen everywhere — your progress, queue, and subscriptions sync across all your devices so you never lose your place.',
+    body_2: 'Subscribe to any podcast via RSS, organize your listening with playlists and bookmarks, and discover new shows — all in one place.',
+    body_3: "Built by someone with a probably-too-long podcast queue and strong opinions about skip intervals. If something feels off or you have an idea, we'd love to hear from you.",
+    contact_link: 'Contact us →',
+  },
+  contact: {
+    heading: 'Contact Us 👋',
+    subheading: "We're a small team and we read every message. Don't hesitate to reach out.",
+    support_label: 'Support',
+    support_email: 'support@syncpods.app',
+    support_description: 'Account issues, billing, or anything broken',
+    feedback_label: 'Feedback',
+    feedback_email: 'feedback@syncpods.app',
+    feedback_description: 'Feature ideas, suggestions, or just to say hi',
+    response_time: 'We typically respond within 1–2 business days.',
   },
 }
 

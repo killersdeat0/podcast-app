@@ -277,6 +277,8 @@ const es = {
     delete_confirm_button: 'Sí, eliminar mi cuenta',
     delete_cancel: 'Cancelar',
     settings_link: 'Ajustes →',
+    about: 'Acerca de',
+    contact: 'Contacto',
   },
   stats: {
     heading: '📊 Tus estadísticas',
@@ -330,6 +332,24 @@ const es = {
     auth_prompt_title: 'Inicia sesión para usar listas 🎙️',
     auth_prompt_shared_title: 'Inicia sesión para ver esta lista 🎙️',
     auth_prompt_shared_body: 'Crea una cuenta gratuita o inicia sesión para ver y reproducir esta lista.',
+  },
+  about: {
+    title: 'SyncPods 🎙️',
+    body_1: 'SyncPods es un reproductor de podcasts para quienes escuchan en todas partes — tu progreso, cola y suscripciones se sincronizan en todos tus dispositivos para que nunca pierdas tu lugar.',
+    body_2: 'Suscríbete a cualquier podcast vía RSS, organiza tu escucha con listas y marcadores, y descubre nuevos programas — todo en un solo lugar.',
+    body_3: 'Creado por alguien con una cola de podcasts probablemente demasiado larga y opiniones firmes sobre los intervalos de salto. Si algo no está bien o tienes una idea, nos encantaría saberlo.',
+    contact_link: 'Contáctanos →',
+  },
+  contact: {
+    heading: 'Contáctanos 👋',
+    subheading: 'Somos un equipo pequeño y leemos cada mensaje. No dudes en escribirnos.',
+    support_label: 'Soporte',
+    support_email: 'support@syncpods.app',
+    support_description: 'Problemas de cuenta, facturación o algo roto',
+    feedback_label: 'Comentarios',
+    feedback_email: 'feedback@syncpods.app',
+    feedback_description: 'Ideas de funciones, sugerencias o simplemente saludarnos',
+    response_time: 'Normalmente respondemos en 1–2 días hábiles.',
   },
 }
 

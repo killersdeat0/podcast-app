@@ -9,6 +9,7 @@ import { useUser } from '@/lib/auth/UserContext'
 import { usePlayer } from '@/components/player/PlayerContext'
 import { createClient } from '@/lib/supabase/client'
 import type { Locale } from '@/lib/i18n'
+import AboutModal from '@/components/ui/AboutModal'
 
 const ALL_SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]
 const FREE_SPEEDS = [1, 2]
@@ -33,6 +34,7 @@ export default function SettingsPage() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
 
   useEffect(() => {
     // Restore from localStorage immediately (fast path)
@@ -313,7 +315,7 @@ export default function SettingsPage() {
                     </button>
                   </Dialog.Trigger>
                   <Dialog.Portal>
-                    <Dialog.Overlay className="fixed inset-0 bg-black/60 z-50" />
+                    <Dialog.Overlay className="fixed inset-0 bg-scrim z-50" />
                     <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-sm bg-surface-container border border-outline-variant rounded-2xl p-6 shadow-xl focus:outline-none">
                       <Dialog.Title className="text-lg font-semibold text-on-surface mb-2">
                         {s.settings.delete_confirm_heading}
@@ -343,6 +345,21 @@ export default function SettingsPage() {
           </section>
         )}
       </div>
+
+      <div className="mt-10 flex items-center gap-4">
+        <button
+          onClick={() => setAboutOpen(true)}
+          className="text-xs text-on-surface-dim hover:text-on-surface-variant transition-colors"
+        >
+          {s.settings.about}
+        </button>
+        <span className="text-on-surface-dim text-xs">·</span>
+        <a href="/contact" className="text-xs text-on-surface-dim hover:text-on-surface-variant transition-colors">
+          {s.settings.contact}
+        </a>
+      </div>
+
+      <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
     </div>
   )
 }

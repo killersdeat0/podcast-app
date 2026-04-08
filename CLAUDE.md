@@ -115,6 +115,8 @@ Podcast discovery proxies through `web/src/app/api/podcasts/search` → calls `s
 
 All user-facing strings live in `web/src/lib/i18n/`. The active locale is stored in `localStorage` and toggled from **Settings → Language**. Use `useStrings()` from `LocaleContext.tsx` in every client component — never the static `strings` export from `index.ts`. When writing or editing user-visible text, keep it fun: use emojis in titles/empty states and write CTAs as actions. See `docs/i18n.md` for the full guide.
 
+**Pages that need both `metadata` and i18n:** `metadata` can only be exported from server components, but `useStrings()` requires a client component. Split into a server `page.tsx` (exports `metadata`, renders `<XContent />`) and a client `XContent.tsx` (has `'use client'`, calls `useStrings()`). See `web/src/app/(app)/contact/` for the pattern.
+
 ### Global playback state
 
 `PlayerContext` (`web/src/components/player/PlayerContext.tsx`) holds `nowPlaying` in React state, restored from `localStorage` on mount via `useEffect` (not initial state — avoids SSR hydration mismatch). See `docs/player.md` for full architecture.
@@ -170,7 +172,7 @@ All freemium caps live in `web/src/lib/limits.ts` — **never hardcode limit num
 
 Both web and mobile use **Material3** color roles as the shared design vocabulary. Source color: `#7c3aed` (violet-600). The goal is full portability: change a single `--md-*` variable and both platforms update.
 
-**Web:** All colors are defined as `--md-*` CSS custom properties in `web/src/app/globals.css` and exposed as Tailwind utilities via `@theme inline`. **Always use semantic tokens — never raw Tailwind palette classes** (no `bg-gray-*`, `text-violet-*`, `text-white`, `bg-black/60`, etc.). To add a new color: define `--md-*` in `:root` and expose it as `--color-*` in `@theme inline`; never hardcode hex or rgba values in components.
+**Web:** All colors are defined as `--md-*` CSS custom properties in `web/src/app/globals.css` and exposed as Tailwind utilities via `@theme inline`. **Always use semantic tokens — never raw Tailwind palette classes** (no `bg-gray-*`, `text-violet-*`, `text-white`, `bg-black/60`, etc.). This includes opacity modifiers on semantic tokens — `bg-primary/10` is banned for the same reason as `bg-black/60`; use a defined token like `bg-primary-container` instead. To add a new color: define `--md-*` in `:root` and expose it as `--color-*` in `@theme inline`; never hardcode hex or rgba values in components.
 
 **Mobile:** `SyncPodsTheme` in `mobile/.../theme/Theme.kt` wraps `MaterialTheme` with a custom `darkColorScheme`. All Composables use `MaterialTheme.colorScheme.*` — never hardcoded hex values.
 

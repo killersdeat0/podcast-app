@@ -10,6 +10,8 @@ const PUBLIC_PATHS = [
     '/auth/callback',
     '/ads.txt',
     '/api/stripe/webhook',
+    '/about',
+    '/contact',
     '/discover',
     '/podcast',
     '/queue',

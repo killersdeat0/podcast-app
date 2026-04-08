@@ -6,8 +6,8 @@ import { PlayerProvider } from "@/components/player/PlayerContext";
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 
 export const metadata: Metadata = {
-  title: "SyncPods",
-  description: "Podcast player with cross-device sync",
+  title: "SyncPods — Podcast Player with Cross-Device Sync",
+  description: "Listen to any podcast and pick up exactly where you left off — on any device. SyncPods syncs your queue, progress, and subscriptions automatically.",
   ...(process.env.NEXT_PUBLIC_ADSENSE_PUBLISHER_ID && {
     other: { 'google-adsense-account': process.env.NEXT_PUBLIC_ADSENSE_PUBLISHER_ID },
   }),
