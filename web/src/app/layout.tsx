@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import { PlayerProvider } from "@/components/player/PlayerContext";
+import { Toaster } from "sonner";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${geist.variable} font-sans antialiased`}>
         <PlayerProvider>{children}</PlayerProvider>
+        <Toaster theme="dark" position="bottom-right" />
       </body>
     </html>
   );

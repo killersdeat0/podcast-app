@@ -349,6 +349,10 @@ const es = {
     title: 'Bienvenido a SyncPods 🎉',
     tagline: 'Esto es lo que puedes hacer:',
     cta: 'Empezar a explorar →',
+    guest_title: 'SyncPods 🎙️',
+    guest_tagline: 'Guarda tu progreso en todos tus dispositivos — gratis.',
+    guest_cta: 'Crear cuenta gratuita →',
+    guest_dismiss: 'Quizás después',
   },
   contact: {
     heading: 'Contáctanos 👋',

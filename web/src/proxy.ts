@@ -22,6 +22,7 @@ const PUBLIC_PATHS = [
     '/api/podcasts/chapters',
     '/api/podcasts/top',
     '/playlist',
+    '/settings',
 ]
 
 export async function proxy(request: NextRequest) {

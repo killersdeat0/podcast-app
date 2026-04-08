@@ -20,7 +20,7 @@ All auth pages live in `web/src/app/(auth)/` and inherit the centered max-w-md c
 
 All five routes are in `PUBLIC_PATHS` in `proxy.ts` — they must remain accessible to unauthenticated users.
 
-`/ads.txt` is also in `PUBLIC_PATHS` so the Google AdSense crawler can access it for site verification without being redirected to login.
+`/ads.txt` and `/settings` are also in `PUBLIC_PATHS`. `/ads.txt` allows the Google AdSense crawler through; `/settings` allows guests to change language and playback defaults.
 
 The main form logic lives in `web/src/components/ui/AuthForm.tsx`, shared by both `/login` and `/signup`.
 
@@ -52,7 +52,15 @@ The main form logic lives in `web/src/components/ui/AuthForm.tsx`, shared by bot
 /login → AuthForm.signInWithPassword()
   ├─ error → show error message
   └─ success → redirect to returnTo (or /discover)
+       └─ if was a guest (guestToastShown set): set pendingWelcomeModal, clear guest flags
 ```
+
+**Welcome modal rules** (`WelcomeModal` via `AppToasts`):
+- **New signup** — `pendingWelcomeModal` is set in the signup branch; modal shown once on first app load after sign-up.
+- **Guest → account conversion** — `pendingWelcomeModal` set on login when `guestToastShown` was present (user was browsing as guest).
+- **Google OAuth from guest** — `AppToasts` detects `!isGuest && guestToastShown` on mount and sets the modal directly (AuthForm never runs for OAuth).
+- **Returning user on any device** — modal is NOT shown. `welcomeModalShown` in localStorage is only a guard against showing it twice on the same device; its absence on a new device does not re-trigger the modal.
+- **Guest modal** (`variant="guest"`) — shown **every time** "Continue as guest" is clicked. There is no once-only guard; `pendingGuestWelcomeModal` is always set on that click.
 
 ### Forgot password
 ```
@@ -104,7 +112,9 @@ Only paths starting with `/` and containing no scheme are accepted. Tests live i
 
 ## Guest mode
 
-Public routes (`/discover`, `/podcast/[id]`, `/queue`, `/playlist/[id]`) are accessible without an account. `UserContext` tracks `isGuest: true` for unauthenticated visitors. Guest queue state is stored in `localStorage` under `guestQueue` and cleared on sign-in.
+Public routes (`/discover`, `/podcast/[id]`, `/queue`, `/playlist/[id]`, `/settings`) are accessible without an account. `UserContext` tracks `isGuest: true` for unauthenticated visitors. Guest queue state is stored in `localStorage` under `guestQueue` and cleared on sign-in.
+
+`/settings` is public so guests can change language and playback defaults (stored in `localStorage`). The Account section (sign out, delete account) is hidden for guests via `{!isGuest && ...}` in the settings page.
 
 `AuthPromptModal` is used throughout the app to gate actions that require an account (subscribing, saving progress, creating playlists). It accepts a `dismissable={false}` prop for hard gates where continuing as guest is not allowed.
 

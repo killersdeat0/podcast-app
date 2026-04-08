@@ -349,6 +349,10 @@ const en = {
     title: 'Welcome to SyncPods 🎉',
     tagline: "Here's what you can do:",
     cta: 'Start exploring →',
+    guest_title: 'SyncPods 🎙️',
+    guest_tagline: 'Save your progress across every device — free.',
+    guest_cta: 'Create free account →',
+    guest_dismiss: 'Maybe later',
   },
   contact: {
     heading: 'Contact Us 👋',

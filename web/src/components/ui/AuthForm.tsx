@@ -47,9 +47,11 @@ function AuthFormInner({ mode }: { mode: Mode }) {
 
       localStorage.removeItem('guestQueue')
       localStorage.removeItem('guestToastShown')
+      localStorage.setItem('pendingWelcomeModal', '1')
       router.push(returnTo)
       router.refresh()
     } else {
+      const isGuest = !!localStorage.getItem('guestToastShown')
       const { error } = await supabase.auth.signInWithPassword({ email, password })
 
       if (error) {
@@ -58,8 +60,12 @@ function AuthFormInner({ mode }: { mode: Mode }) {
         return
       }
 
-      localStorage.removeItem('guestQueue')
-      localStorage.removeItem('guestToastShown')
+      if (isGuest) {
+        localStorage.removeItem('guestQueue')
+        localStorage.removeItem('guestToastShown')
+        // Only show the welcome modal when converting from guest → account
+        localStorage.setItem('pendingWelcomeModal', '1')
+      }
       router.push(returnTo)
       router.refresh()
     }
@@ -144,7 +150,13 @@ function AuthFormInner({ mode }: { mode: Mode }) {
       </button>
 
       <p className="text-center text-sm text-on-surface-variant mt-4">
-        <a href="/discover" className="text-primary hover:text-primary">
+        <a
+          href="/discover"
+          className="text-primary hover:text-primary"
+          onClick={() => {
+            localStorage.setItem('pendingGuestWelcomeModal', '1')
+          }}
+        >
           {s.auth.guest_browse}
         </a>
       </p>

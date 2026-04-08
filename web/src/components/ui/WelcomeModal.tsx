@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 interface WelcomeModalProps {
   open: boolean
   onClose: () => void
+  variant?: 'user' | 'guest'
 }
 
 const features = [
@@ -17,13 +18,14 @@ const features = [
   { icon: <Bell className="w-4 h-4" />,      key: 'feature_notifications' as const },
 ]
 
-export default function WelcomeModal({ open, onClose }: WelcomeModalProps) {
+export default function WelcomeModal({ open, onClose, variant = 'user' }: WelcomeModalProps) {
   const strings = useStrings()
   const router = useRouter()
+  const isGuest = variant === 'guest'
 
   function handleCta() {
     onClose()
-    router.push('/discover')
+    router.push(isGuest ? '/signup' : '/discover')
   }
 
   return (
@@ -39,10 +41,10 @@ export default function WelcomeModal({ open, onClose }: WelcomeModalProps) {
                 <span className="text-xl">🎙️</span>
               </div>
               <Dialog.Title className="text-xl font-bold text-on-primary-container">
-                {strings.welcome.title}
+                {isGuest ? strings.welcome.guest_title : strings.welcome.title}
               </Dialog.Title>
               <Dialog.Description className="text-sm text-on-primary-container opacity-80 mt-1">
-                {strings.welcome.tagline}
+                {isGuest ? strings.welcome.guest_tagline : strings.welcome.tagline}
               </Dialog.Description>
             </div>
 
@@ -59,13 +61,21 @@ export default function WelcomeModal({ open, onClose }: WelcomeModalProps) {
             </div>
 
             {/* CTA */}
-            <div className="px-6 pb-5">
+            <div className="px-6 pb-5 space-y-2">
               <button
                 onClick={handleCta}
                 className="flex items-center justify-center w-full bg-brand hover:opacity-90 rounded-xl px-4 py-2.5 text-sm font-medium text-on-surface transition-opacity"
               >
-                {strings.welcome.cta}
+                {isGuest ? strings.welcome.guest_cta : strings.welcome.cta}
               </button>
+              {isGuest && (
+                <button
+                  onClick={onClose}
+                  className="flex items-center justify-center w-full text-sm text-on-surface-dim hover:text-on-surface-variant transition-colors py-1"
+                >
+                  {strings.welcome.guest_dismiss}
+                </button>
+              )}
             </div>
 
           </div>

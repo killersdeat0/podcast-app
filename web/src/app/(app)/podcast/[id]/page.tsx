@@ -25,6 +25,7 @@ import AddToPlaylistPopover from '@/components/ui/AddToPlaylistPopover'
 import { EpisodeProgressOverlay } from '@/components/ui/EpisodeProgressOverlay'
 import { EpisodeBookmarks } from '@/components/ui/EpisodeBookmarks'
 import { ALL_SPEEDS, perShowSpeedKey } from '@/lib/player/speed'
+import { EqBars } from '@/components/ui/EqBars'
 
 interface SubscriptionRow {
   feed_url: string
@@ -764,9 +765,12 @@ export default function PodcastPage() {
               title={isCurrentlyPlaying ? 'Pause' : 'Play'}
               className="flex-shrink-0 w-8 h-8 flex items-end justify-center gap-0.5 pb-1.5 rounded-full transition-all hover:bg-brand/20"
             >
-              {[{ d: '0.6s', delay: '0ms' }, { d: '0.85s', delay: '160ms' }, { d: '0.7s', delay: '80ms' }, { d: '0.95s', delay: '240ms' }].map((bar, i) => (
-                <span key={i} className={`eq-bar${isCurrentlyPlaying ? ' playing' : ''}`} style={{ animationDuration: bar.d, animationDelay: bar.delay }} />
-              ))}
+              <EqBars playing={isCurrentlyPlaying} bars={[
+                { duration: '0.6s', delay: '0ms' },
+                { duration: '0.85s', delay: '160ms' },
+                { duration: '0.7s', delay: '80ms' },
+                { duration: '0.95s', delay: '240ms' },
+              ]} />
             </button>
           ) : (
             <button

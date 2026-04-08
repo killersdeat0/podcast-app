@@ -171,7 +171,10 @@ input[type=range]:hover {
   transform-origin: bottom;
   background-color: var(--md-brand);
   animation: eq-bounce linear infinite;
+  animation-duration: var(--eq-dur, 0.9s);
+  animation-delay: var(--eq-delay, 0s);
   animation-play-state: paused;
+  animation-fill-mode: backwards;
 }
 .eq-bar.playing {
   animation-play-state: running;

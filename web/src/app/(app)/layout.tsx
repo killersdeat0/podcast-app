@@ -5,7 +5,6 @@ import { createClient } from '@/lib/supabase/server'
 import { LocaleProvider } from '@/lib/i18n/LocaleContext'
 import { UserProvider } from '@/lib/auth/UserContext'
 import AppToasts from '@/components/ui/AppToasts'
-import { Toaster } from 'sonner'
 import { cookies } from 'next/headers'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -35,7 +34,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             {isFreeTier && <AdBanner />}
             <main className="flex-1 overflow-y-auto">{children}</main>
           <AppToasts />
-          <Toaster theme="dark" position="bottom-right" />
             <Player isFreeTier={isFreeTier} />
           </div>
         </div>
