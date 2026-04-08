@@ -275,6 +275,8 @@ const en = {
     delete_confirm_heading: 'Delete your account?',
     delete_confirm_body: 'This action cannot be undone. All your data will be permanently deleted.',
     delete_confirm_button: 'Yes, delete my account',
+    delete_error_stripe: "Could not cancel your subscription — please contact support@syncpods.app and we'll delete your account manually.",
+    delete_error_generic: 'Something went wrong. Please contact support@syncpods.app to delete your account.',
     delete_cancel: 'Cancel',
     settings_link: 'Settings →',
     about: 'About',

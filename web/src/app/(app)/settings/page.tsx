@@ -150,9 +150,13 @@ export default function SettingsPage() {
         router.push('/login')
         router.refresh()
       } else {
-        // No delete endpoint yet — show support message
+        const body = await res.json().catch(() => ({}))
         setDeleteOpen(false)
-        toast.info('To delete your account, contact support at support@syncpods.app')
+        if (body.error === 'stripe_cancel_failed') {
+          toast.error(s.settings.delete_error_stripe, { duration: Infinity })
+        } else {
+          toast.error(s.settings.delete_error_generic, { duration: Infinity })
+        }
       }
     } catch {
       setDeleteOpen(false)

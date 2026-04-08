@@ -275,6 +275,8 @@ const es = {
     delete_confirm_heading: '¿Eliminar tu cuenta?',
     delete_confirm_body: 'Esta acción no se puede deshacer. Todos tus datos se eliminarán permanentemente.',
     delete_confirm_button: 'Sí, eliminar mi cuenta',
+    delete_error_stripe: 'No se pudo cancelar tu suscripción — contacta a support@syncpods.app y eliminaremos tu cuenta manualmente.',
+    delete_error_generic: 'Algo salió mal. Contacta a support@syncpods.app para eliminar tu cuenta.',
     delete_cancel: 'Cancelar',
     settings_link: 'Ajustes →',
     about: 'Acerca de',
