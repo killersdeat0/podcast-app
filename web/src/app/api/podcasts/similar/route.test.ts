@@ -212,6 +212,45 @@ describe('GET /api/podcasts/similar', () => {
     expect(calledGenreIds).toContain('1489')
     expect(calledGenreIds).not.toContain('26')
   })
+
+  it('filters out results with trackCount < 5, keeps missing/zero trackCount', async () => {
+    mockFetchByUrl([
+      { match: 'lookup', results: [{ genreIds: ['1318'], collectionId: 99 }] },
+      { match: /search/, results: [
+        makeResult({ collectionId: 1, feedUrl: 'https://example.com/a.xml', trackCount: 3 }),
+        makeResult({ collectionId: 2, feedUrl: 'https://example.com/b.xml', trackCount: 5 }),
+        makeResult({ collectionId: 3, feedUrl: 'https://example.com/c.xml', trackCount: 0 }),
+        makeResult({ collectionId: 4, feedUrl: 'https://example.com/d.xml', trackCount: undefined }),
+      ] },
+    ])
+    const req = new NextRequest('http://localhost/api/podcasts/similar?term=test&excludeId=99')
+    const res = await GET(req)
+    const body = await res.json()
+    const ids = body.results.map((r: ItunesResult) => r.collectionId)
+    expect(ids).not.toContain(1) // trackCount 3 — filtered
+    expect(ids).toContain(2)     // trackCount 5 — kept
+    expect(ids).toContain(3)     // trackCount 0 — kept (falsy = benefit of doubt)
+    expect(ids).toContain(4)     // no trackCount — kept (benefit of doubt)
+  })
+
+  it('includes network/producer search results when artistName is available', async () => {
+    const networkPodcast = makeResult({ collectionId: 99, feedUrl: 'https://example.com/network.xml', trackCount: 20 })
+    mockFetchByUrl([
+      // iTunes lookup returns genre + artistName
+      { match: 'lookup', results: [{ genreIds: ['1318'], collectionId: 42, artistName: 'NPR' }] },
+      // Name+genre search — empty
+      { match: /search.*term=(?!podcast|npr)/, results: [] },
+      // Network search (term=npr) — returns a podcast
+      { match: /search.*term=npr/, results: [networkPodcast] },
+      // Genre-only search
+      { match: /search.*term=podcast/, results: [] },
+    ])
+    const req = new NextRequest('http://localhost/api/podcasts/similar?term=fresh+air&excludeId=42')
+    const res = await GET(req)
+    const body = await res.json()
+    const ids = body.results.map((r: ItunesResult) => r.collectionId)
+    expect(ids).toContain(99)
+  })
 })
 
 // Local type alias to satisfy TypeScript in test assertions

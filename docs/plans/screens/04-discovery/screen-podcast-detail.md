@@ -49,3 +49,5 @@ Full podcast page with artwork hero, follow toggle, and scrollable episode list.
 | `podcastdetail/PodcastDetailViewModel.kt` | `androidMain` |
 
 **Key logic:** Episode list fetched via `/functions/v1/podcasts-feed`. Follow upserts into `subscriptions` table. Artwork uses iTunes CDN URL from `subscriptions.artwork_url` in preference to RSS feed artwork to avoid hotlink blocks.
+
+**Similar podcasts:** If a "You might also like" section is shown, it should use the same multi-pass logic as the web's `/api/podcasts/similar`: name+genre search per genre, same-network/producer pass (using `artistName`), genre-only fallback, genre cap of 6, quality filter (`trackCount < 5`). Implement as a shared Edge Function or inline Kotlin logic. See `docs/plans/phase-2.87-for-you-recommendations.md` for full algorithm details.

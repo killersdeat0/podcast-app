@@ -9,6 +9,10 @@ Primary search and discovery surface; accessible to all users including guests.
 - "Discover" screen title
 - Search bar ("Search podcasts, episodes..." placeholder; calls Edge Function on query change)
 - Genre filter chips / pills (All, Comedy, Tech, News, True Crime, etc.; horizontally scrollable)
+- **"✨ For You"** section (authenticated users with ≥1 subscription; hidden for guests and 0-subscription users):
+  - Horizontal scroll row of up to 36 personalized podcast recommendations
+  - Powered by `podcasts-recommendations` Edge Function (genre-affinity algorithm — see `docs/plans/phase-2.87-for-you-recommendations.md`)
+  - Cache 2 hours in-memory, keyed per user; clear cache on sign-out
 - **"Continue Listening"** section (authenticated users only, hidden for guests):
   - Horizontal scroll row of up to 10 in-progress episode cards (artwork + title + progress bar)
   - **"See all →"** link navigates to History screen with `filter=in_progress`

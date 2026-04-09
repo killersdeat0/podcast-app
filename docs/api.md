@@ -66,6 +66,32 @@ Results are merged in priority order (name+genre first, genre-only second), dedu
 
 In `NODE_ENV=development`, also returns a `debug` object with `cleanedTerm`, `genreIds`, per-pass result counts, and a filtering breakdown.
 
+**Caching:** All iTunes API calls inside this route use Next.js fetch cache with a 24-hour TTL (`next: { revalidate: 86400 }`). This includes the iTunes lookup call (genre IDs) and every iTunes search call. The cache is shared across all users on the server — one user's request warms it for everyone. The route itself is `force-dynamic`; only the individual fetch calls are cached. There is no client-side (localStorage) cache for this route — results vary per podcast, not per user.
+
+---
+
+### `GET /api/podcasts/recommendations` *(planned — For You feature)*
+Returns personalised podcast recommendations for the authenticated user. Auth required.
+
+The route combines Supabase data (user's subscriptions and listening history) with iTunes API calls to find podcasts similar to what the user already enjoys.
+
+**Caching:** Three layers apply, each serving a different scope:
+
+| Layer | Mechanism | TTL | Scope |
+|---|---|---|---|
+| Client (localStorage) | `for-you-cache` key: `{ results: ItunesResult[], ts: number }` | 2 hours | Per user, per browser |
+| Server (Next.js fetch cache) | `next: { revalidate: 86400 }` on iTunes sub-calls | 24 hours | Shared across all users |
+| Database (Supabase) | None — always runs live | — | Per user |
+
+How they interact:
+
+1. On page load the client checks `localStorage` key `for-you-cache`. If the stored timestamp is within 2 hours, results are returned immediately with no network call.
+2. On a cache miss or stale entry, the client calls `GET /api/podcasts/recommendations`. The route itself is `force-dynamic` (no route-level cache) but each internal iTunes API call (`fetch(..., { next: { revalidate: 86400 } })`) is cached server-side for 24 hours, shared across all users.
+3. Supabase queries (subscriptions, `listening_by_show`) always run live — they are fast (~5 ms, indexed by `user_id`) and must reflect the user's current state.
+4. On a successful response, the client writes the results to `localStorage` with the current timestamp. On error, the existing cached value (if any) is preserved.
+
+The localStorage write is wrapped in `try/catch` for private-browsing safety (where `localStorage` writes may throw).
+
 ---
 
 ### `GET /api/podcasts/chapters?url=<chapterUrl>`

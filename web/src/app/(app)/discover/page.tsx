@@ -87,6 +87,24 @@ function ContinueListeningSkeleton() {
   )
 }
 
+function ForYouCard({ podcast }: { podcast: ItunesResult }) {
+  return (
+    <Link
+      href={`/podcast/${podcast.collectionId}?feed=${encodeURIComponent(podcast.feedUrl)}`}
+      className="w-36 flex-shrink-0 text-left hover:opacity-80 transition-opacity"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={podcast.artworkUrl600}
+        alt={podcast.collectionName}
+        className="w-36 h-36 rounded-xl object-cover"
+      />
+      <p className="text-xs font-medium text-on-surface line-clamp-2 mt-2">{podcast.collectionName}</p>
+      <p className="text-xs text-on-surface-variant truncate mt-0.5">{podcast.primaryGenreName}</p>
+    </Link>
+  )
+}
+
 interface FeedPreview {
   title: string
   artworkUrl: string
@@ -292,6 +310,9 @@ function AddByUrl() {
   )
 }
 
+const FOR_YOU_CACHE_KEY = 'for-you-cache'
+const FOR_YOU_TTL = 7_200_000 // 2 hours in ms
+
 export default function DiscoverPage() {
   const strings = useStrings()
   const { isGuest } = useUser()
@@ -315,9 +336,82 @@ export default function DiscoverPage() {
   const [trendingLoading, setTrendingLoading] = useState(true)
   const [activeGenre, setActiveGenre] = useState(0)
 
+  // For You state
+  const [forYouPodcasts, setForYouPodcasts] = useState<ItunesResult[]>([])
+  const [forYouLoading, setForYouLoading] = useState(false)
+  const [showForYouSkeleton, setShowForYouSkeleton] = useState(false)
+  const [forYouDebug, setForYouDebug] = useState<Record<string, unknown> | null>(null)
+
   // Continue Listening state
   const [continueItems, setContinueItems] = useState<HistoryItem[]>([])
   const [showContinueSkeleton, setShowContinueSkeleton] = useState(false)
+
+  // Fetch For You recommendations on mount (authenticated users only), with 2-hour localStorage cache
+  useEffect(() => {
+    if (isGuest) return
+
+    // Check localStorage cache first — serve instantly if fresh
+    try {
+      const raw = localStorage.getItem(FOR_YOU_CACHE_KEY)
+      if (raw) {
+        const cached: { results: ItunesResult[]; ts: number } = JSON.parse(raw)
+        if (Date.now() - cached.ts < FOR_YOU_TTL) {
+          setForYouPodcasts(cached.results)
+          if (process.env.NODE_ENV === 'development') {
+            const ageMs = Date.now() - cached.ts
+            setForYouDebug({
+              source: 'localStorage cache',
+              cachedAt: new Date(cached.ts).toISOString(),
+              ageMinutes: Math.round(ageMs / 60_000),
+              expiresInMinutes: Math.round((FOR_YOU_TTL - ageMs) / 60_000),
+              resultCount: cached.results.length,
+            })
+          }
+          return
+        }
+      }
+    } catch {
+      // localStorage unavailable (private browsing) or malformed JSON — proceed with fetch
+    }
+
+    let cancelled = false
+    setForYouLoading(true)
+
+    // 300ms delay before showing skeletons to avoid flash on fast connections
+    const skeletonTimer = setTimeout(() => {
+      if (!cancelled) setShowForYouSkeleton(true)
+    }, 300)
+
+    fetch('/api/podcasts/recommendations')
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`${res.status}`))))
+      .then((data: { results: ItunesResult[]; debug?: Record<string, unknown> }) => {
+        if (cancelled) return
+        const results = data.results ?? []
+        setForYouPodcasts(results)
+        if (process.env.NODE_ENV === 'development') setForYouDebug(data.debug ?? null)
+        try {
+          localStorage.setItem(FOR_YOU_CACHE_KEY, JSON.stringify({ results, ts: Date.now() }))
+        } catch {
+          // localStorage write failed (quota exceeded, private browsing) — ignore
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setForYouPodcasts([])
+        // Do not update cache on error — preserve any stale data
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setForYouLoading(false)
+          setShowForYouSkeleton(false)
+        }
+        clearTimeout(skeletonTimer)
+      })
+
+    return () => {
+      cancelled = true
+      clearTimeout(skeletonTimer)
+    }
+  }, [isGuest])
 
   // Fetch continue listening on mount (authenticated users only)
   useEffect(() => {
@@ -450,6 +544,9 @@ export default function DiscoverPage() {
 
   const showContinueSection =
     !isGuest && (showContinueSkeleton || continueItems.length > 0)
+
+  const showForYouSection =
+    !isGuest && (showForYouSkeleton || forYouPodcasts.length > 0)
 
   return (
     <div className="p-4 md:p-8">
@@ -605,6 +702,55 @@ export default function DiscoverPage() {
               <PodcastCard key={podcast.collectionId} podcast={podcast} />
             ))}
       </div>
+
+      {/* For You section */}
+      {showForYouSection && (
+        <section className="mt-8 section-fade-in">
+          <h2 className="text-lg font-semibold text-on-surface mb-0.5">
+            {strings.discover.forYouTitle}
+          </h2>
+          <p className="text-sm text-on-surface-variant mb-3">
+            {strings.discover.forYouSubtitle}
+          </p>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            {showForYouSkeleton
+              ? Array.from({ length: 6 }).map((_, i) => (
+                  <ContinueListeningSkeleton key={i} />
+                ))
+              : forYouPodcasts.map((podcast) => (
+                  <ForYouCard key={podcast.collectionId} podcast={podcast} />
+                ))}
+          </div>
+        </section>
+      )}
+
+      {/* Dev-only: For You debug panel */}
+      {process.env.NODE_ENV === 'development' && !forYouLoading && (
+        <details className="mt-4 rounded-lg border border-dashed border-outline-variant p-3 text-xs text-on-surface-variant">
+          <summary className="cursor-pointer font-mono text-warning hover:text-warning">
+            [dev] for you — {forYouPodcasts.length} result{forYouPodcasts.length !== 1 ? 's' : ''}
+          </summary>
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              onClick={() => {
+                try { localStorage.removeItem(FOR_YOU_CACHE_KEY) } catch { /* ignore */ }
+                setForYouPodcasts([])
+                setForYouDebug(null)
+                setShowForYouSkeleton(false)
+                setForYouLoading(false)
+                // Re-trigger the effect by toggling a dummy — simplest is page reload
+                window.location.reload()
+              }}
+              className="px-2 py-1 rounded bg-error/20 text-error font-mono hover:bg-error/30 transition-colors"
+            >
+              clear cache + refetch
+            </button>
+          </div>
+          <pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-on-surface-variant">
+            {forYouDebug ? JSON.stringify(forYouDebug, null, 2) : '(no debug data — check NODE_ENV or API response)'}
+          </pre>
+        </details>
+      )}
 
       {/* Continue Listening section */}
       {showContinueSection && (

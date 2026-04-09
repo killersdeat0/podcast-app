@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import {
   DndContext,
@@ -19,10 +19,10 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Search, List, ListMusic, Clock, Bookmark, Zap, User, Settings, ChevronLeft, Menu, LogIn, LogOut, GripVertical } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
 import { usePlayer } from '@/components/player/PlayerContext'
+import { useSignOut } from '@/lib/auth/useSignOut'
 import AuthPromptModal from '@/components/ui/AuthPromptModal'
 import { EqBars } from '@/components/ui/EqBars'
 interface Subscription {
@@ -111,7 +111,6 @@ function SortableSub({ sub, active, isNowPlaying, playing }: { sub: Subscription
 
 export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean }) {
   const pathname = usePathname()
-  const router = useRouter()
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [open, setOpen] = useState(defaultOpen)
   const [filter, setFilter] = useState('')
@@ -121,7 +120,7 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
   const sensors = useSensors(useSensor(PointerSensor))
   const strings = useStrings()
   const { isGuest, tier } = useUser()
-  const { clearNowPlaying, clearClientQueue, nowPlaying, playing } = usePlayer()
+  const { nowPlaying, playing } = usePlayer()
 
   function openAuthPrompt(returnTo: string, title: string) {
     setAuthReturnTo(returnTo)
@@ -195,16 +194,7 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
     })
   }
 
-  async function handleSignOut() {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    clearNowPlaying()
-    clearClientQueue()
-    localStorage.removeItem('guestToastShown')
-    localStorage.removeItem('welcomeToastShownAt')
-    router.push('/login')
-    router.refresh()
-  }
+  const { signOut: handleSignOut } = useSignOut()
 
   return (
     <aside className={`${open ? 'w-56' : 'w-14'} flex-shrink-0 bg-surface-container-low flex flex-col border-r border-outline-variant transition-[width] duration-200`}>

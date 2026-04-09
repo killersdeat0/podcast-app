@@ -1,12 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import * as Dialog from '@radix-ui/react-dialog'
 import { toast } from 'sonner'
 import { useStrings, useLocale, LOCALE_LABELS } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
 import { usePlayer } from '@/components/player/PlayerContext'
+import { useSignOut } from '@/lib/auth/useSignOut'
 import { createClient } from '@/lib/supabase/client'
 import type { Locale } from '@/lib/i18n'
 import AboutModal from '@/components/ui/AboutModal'
@@ -16,11 +16,11 @@ const FREE_SPEEDS = [1, 2]
 const SKIP_OPTIONS = [5, 10, 15, 20, 30, 45, 60, 90]
 
 export default function SettingsPage() {
-  const router = useRouter()
   const s = useStrings()
   const { locale, setLocale } = useLocale()
   const { isGuest, tier } = useUser()
-  const { setSpeed, clearNowPlaying, clearClientQueue } = usePlayer()
+  const { setSpeed } = usePlayer()
+  const { signOut } = useSignOut()
 
   const isFreeTier = tier === 'free'
   const availableSpeeds = isFreeTier ? FREE_SPEEDS : ALL_SPEEDS
@@ -128,14 +128,7 @@ export default function SettingsPage() {
 
   async function handleSignOut() {
     setSigningOut(true)
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    clearNowPlaying()
-    clearClientQueue()
-    localStorage.removeItem('guestToastShown')
-    localStorage.removeItem('welcomeToastShownAt')
-    router.push('/login')
-    router.refresh()
+    await signOut()
   }
 
   async function handleDeleteAccount() {
@@ -143,12 +136,7 @@ export default function SettingsPage() {
     try {
       const res = await fetch('/api/account/delete', { method: 'DELETE' })
       if (res.ok) {
-        const supabase = createClient()
-        await supabase.auth.signOut()
-        clearNowPlaying()
-        clearClientQueue()
-        router.push('/login')
-        router.refresh()
+        await signOut()
       } else {
         const body = await res.json().catch(() => ({}))
         setDeleteOpen(false)

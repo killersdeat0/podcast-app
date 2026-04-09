@@ -88,6 +88,8 @@ const es = {
     add_by_url_error_fetch_failed: 'No se pudo cargar ese feed. Verifica la URL e intenta de nuevo.',
     add_by_url_error_already_subscribed: 'Ya estás suscrito a este podcast.',
     add_by_url_error_sign_in: 'Inicia sesión para suscribirte a podcasts.',
+    forYouTitle: '✨ Para ti',
+    forYouSubtitle: 'Basado en tus suscripciones',
   },
   genres: {
     0: 'Todo',
