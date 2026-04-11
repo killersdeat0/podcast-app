@@ -167,13 +167,28 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
       setSubscriptions(subscriptions)
     }
 
+    function handleVisibility() {
+      if (document.visibilityState === 'visible') maybeRefresh()
+    }
+
+    function handleCountReset(e: Event) {
+      const { feedUrl, newEpisodeCount } = (e as CustomEvent<{ feedUrl: string; newEpisodeCount: number }>).detail
+      setSubscriptions((prev) =>
+        prev.map((s) => s.feed_url === feedUrl ? { ...s, new_episode_count: newEpisodeCount } : s)
+      )
+    }
+
     fetchSubs()
     maybeRefresh()
     const interval = setInterval(maybeRefresh, 60 * 60 * 1000)
     window.addEventListener('subscriptions-changed', fetchSubs)
+    document.addEventListener('visibilitychange', handleVisibility)
+    window.addEventListener('subscription-count-reset', handleCountReset)
     return () => {
       clearInterval(interval)
       window.removeEventListener('subscriptions-changed', fetchSubs)
+      document.removeEventListener('visibilitychange', handleVisibility)
+      window.removeEventListener('subscription-count-reset', handleCountReset)
     }
   }, [isGuest])
 
