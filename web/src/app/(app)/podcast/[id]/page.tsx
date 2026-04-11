@@ -484,7 +484,9 @@ export default function PodcastPage() {
         }),
         keepalive: true,
       }).catch(() => {})
-      window.dispatchEvent(new Event('subscriptions-changed'))
+      window.dispatchEvent(new CustomEvent('subscription-count-reset', {
+        detail: { feedUrl, newEpisodeCount: 0 },
+      }))
     }
   }, [feedUrl, subscribed])
 
@@ -535,7 +537,9 @@ export default function PodcastPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ feedUrl, lastVisitedAt: new Date().toISOString(), newEpisodeCount: 0 }),
       }).catch(() => {})
-      window.dispatchEvent(new Event('subscriptions-changed'))
+      window.dispatchEvent(new CustomEvent('subscription-count-reset', {
+        detail: { feedUrl, newEpisodeCount: 0 },
+      }))
     }
     if (pending) {
       router.push(pending.href)
