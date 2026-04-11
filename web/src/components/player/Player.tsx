@@ -74,6 +74,15 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
     return () => window.removeEventListener('skip-intervals-changed', readSkipIntervals)
   }, [])
 
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+  const [sleepMinutes, setSleepMinutes] = useState(0)
+  const [volume, setVolume] = useState(1)
+  const [artworkError, setArtworkError] = useState(false)
+  const [mobileMenu, setMobileMenu] = useState<null | 'main' | 'speed' | 'volume'>(null)
+  const [chapters, setChapters] = useState<Chapter[]>([])
+  const [playerBookmarks, setPlayerBookmarks] = useState<Array<{ id: string; positionSeconds: number; note: string | null }>>([])
+
   useEffect(() => {
     const np = nowPlaying
     if (!np || isGuest) return
@@ -94,14 +103,6 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
     if (audioRef.current) seek(audioRef.current.currentTime + skipForwardSecs)
   }, [audioRef, seek, skipForwardSecs])
   useKeyboardShortcuts({ togglePlay, seekBack, seekForward })
-  const [currentTime, setCurrentTime] = useState(0)
-  const [duration, setDuration] = useState(0)
-  const [sleepMinutes, setSleepMinutes] = useState(0)
-  const [volume, setVolume] = useState(1)
-  const [artworkError, setArtworkError] = useState(false)
-  const [mobileMenu, setMobileMenu] = useState<null | 'main' | 'speed' | 'volume'>(null)
-  const [chapters, setChapters] = useState<Chapter[]>([])
-  const [playerBookmarks, setPlayerBookmarks] = useState<Array<{ id: string; positionSeconds: number; note: string | null }>>([])
   const [dbQueue, setDbQueue] = useState<Array<{ episode_guid: string; feed_url: string; episode: { title: string; audio_url: string; duration: number | null; artwork_url: string | null; podcast_title: string | null } | null }>>([])
 
   const refreshDbQueue = useCallback(() => {
@@ -219,6 +220,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
         .then((data) => setPlayerBookmarks(Array.isArray(data) ? data : []))
         .catch(() => {})
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- bookmark refresh is intentionally tied only to nowPlaying change; isGuest is read but doesn't need to trigger a re-fetch on its own
   }, [nowPlaying])
 
   // Sync audio element when nowPlaying changes + restore saved position
@@ -499,6 +501,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
         }
       })
       .catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- restorePreviousEpisode is a stable ref-based callback; including it causes a double-trigger
   }, [audioRef, play, advancePlaylist, restorePreviousEpisode])
 
   useEffect(() => {
@@ -606,6 +609,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
       audio.removeEventListener('ended', onEnded)
       audio.removeEventListener('seeked', onSeeked)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- completeAndAdvance is intentionally excluded: it uses refs internally and including it causes unwanted re-registration of audio event listeners
   }, [audioRef, play, isGuest, dequeueClient, restorePreviousEpisode])
 
   function startSleepTimer(minutes: number) {
@@ -772,7 +776,6 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
                 type="range"
                 min={0}
                 max={duration || 0}
-                // eslint-disable-next-line react-hooks/refs -- ref read during render is intentional: using state would cause unwanted re-renders while dragging
                 value={isDragging.current ? sliderValue : currentTime}
                 onPointerDown={() => { isDragging.current = true; setSliderValue(currentTime) }}
                 onChange={(e) => setSliderValue(Number(e.target.value))}

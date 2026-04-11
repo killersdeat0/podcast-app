@@ -59,7 +59,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem('nowPlaying')
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- setState in useEffect is intentional: restores localStorage on mount, can't use initial state (SSR has no localStorage)
       if (raw) setNowPlaying(JSON.parse(raw))
     } catch {
       // ignore
@@ -69,7 +68,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem('guestQueue')
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- same as above: localStorage restore on mount
       if (raw) setClientQueue(JSON.parse(raw))
     } catch {
       // ignore

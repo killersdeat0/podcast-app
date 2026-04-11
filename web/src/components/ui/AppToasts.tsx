@@ -66,7 +66,6 @@ export default function AppToasts() {
   }, [strings])
 
   // Guest toast (shown once per guest session)
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (!isGuest) return
     if (localStorage.getItem('guestToastShown')) return

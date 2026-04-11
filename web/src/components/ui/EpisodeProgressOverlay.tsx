@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { LIVE_POSITION_INTERVAL_MS } from '@/lib/player/constants'
 
 // CSS custom properties defined in globals.css
@@ -11,8 +11,11 @@ const FILL_ACTIVE = 'var(--md-playback-active-fill)'
  */
 export function EpisodeProgressOverlay({ pct, isPlaying }: { pct: number | null; isPlaying: boolean }) {
   const prevPctRef = useRef<number | null>(null)
-  const goingBackward = pct !== null && prevPctRef.current !== null && pct < prevPctRef.current - 5
-  useLayoutEffect(() => { prevPctRef.current = pct })
+  const [goingBackward, setGoingBackward] = useState(false)
+  useLayoutEffect(() => {
+    setGoingBackward(pct !== null && prevPctRef.current !== null && pct < prevPctRef.current - 5)
+    prevPctRef.current = pct
+  }, [pct])
 
   if (pct === null) return null
   return (

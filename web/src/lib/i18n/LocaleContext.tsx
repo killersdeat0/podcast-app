@@ -27,7 +27,6 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY) as Locale | null
     if (stored && stored in LOCALE_LABELS) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: restores localStorage locale on mount; can't use initial state (SSR has no localStorage)
       setLocaleState(stored)
     }
   }, [])

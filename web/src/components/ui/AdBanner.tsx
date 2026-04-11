@@ -23,8 +23,9 @@ export default function AdBanner() {
   useEffect(() => {
     if (!PUBLISHER_ID || !AD_SLOT || !adRef.current) return
     try {
-      ;(window as any).adsbygoogle = (window as any).adsbygoogle || []
-      ;(window as any).adsbygoogle.push({})
+      const w = window as Window & { adsbygoogle?: unknown[] }
+      w.adsbygoogle = w.adsbygoogle || []
+      w.adsbygoogle.push({})
     } catch {}
   }, [dismissed])
 

@@ -176,13 +176,6 @@ describe('skipToNext — authenticated queue path', () => {
 
     renderPlayer({ isGuest: false })
 
-    // Load EP1 into the player so nowPlaying is set
-    const { PlayerProvider: PP, usePlayer } = await import('./PlayerContext')
-    // We need to trigger play from inside the tree — use a helper component approach
-    // Instead, manipulate via the window event that refreshDbQueue listens to after nowPlaying changes.
-    // The simplest path: set nowPlaying via localStorage before mount.
-    // But we already mounted. Let's re-render with nowPlaying pre-seeded in localStorage.
-
     // Cleaner: render with localStorage pre-set so PlayerContext restores nowPlaying on mount.
     vi.stubGlobal('localStorage', {
       getItem: (k: string) => {
@@ -204,7 +197,7 @@ describe('skipToNext — authenticated queue path', () => {
       expect(screen.queryByTitle('Next episode')).not.toBeNull()
     })
 
-    const audio = getAudio(120, 1800)
+    getAudio(120, 1800)
 
     // Click the skip button
     await act(async () => {
@@ -490,7 +483,7 @@ describe('restorePreviousEpisode — Undo action restores previous episode', () 
       expect(screen.queryByTitle('Next episode')).not.toBeNull()
     })
 
-    const audio = getAudio(300, 1800) // currentTime = 300s
+    getAudio(300, 1800) // currentTime = 300s
 
     // Click skip button — snapshot is saved, EP2 starts playing, toast fires
     await act(async () => {
