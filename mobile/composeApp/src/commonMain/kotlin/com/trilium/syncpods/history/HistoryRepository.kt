@@ -10,6 +10,10 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlin.time.Duration.Companion.days
+
+private const val COMPLETION_THRESHOLD_PCT = 98f
+private const val FREE_TIER_HISTORY_DAYS = 30L
 
 // ── Domain model ──────────────────────────────────────────────────────────────
 
@@ -31,7 +35,7 @@ data class DateGroup(val label: String, val items: List<HistoryItem>)
 
 /** Matches web constants.ts: started (>30s), not completed, under 98% */
 fun HistoryItem.isInProgress(): Boolean =
-    !completed && positionSeconds > 30 && positionPct != null && positionPct < 98f
+    !completed && positionSeconds > 30 && positionPct != null && positionPct < COMPLETION_THRESHOLD_PCT
 
 // ── Interface ─────────────────────────────────────────────────────────────────
 
@@ -74,9 +78,7 @@ class SupabaseHistoryRepository(
 ) : HistoryRepository {
 
     override suspend fun getHistory(isFreeTier: Boolean): List<HistoryItem> {
-        val thirtyDaysAgoIso = Instant.fromEpochMilliseconds(
-            Clock.System.now().toEpochMilliseconds() - 30L * 24 * 60 * 60 * 1000
-        ).toString()
+        val thirtyDaysAgoIso = (Clock.System.now() - FREE_TIER_HISTORY_DAYS.days).toString()
 
         val progressRows = supabaseClient.from("playback_progress").select(
             Columns.list("episode_guid", "feed_url", "position_seconds", "position_pct", "completed", "updated_at")
