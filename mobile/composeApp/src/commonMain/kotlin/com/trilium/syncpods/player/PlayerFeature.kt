@@ -98,6 +98,12 @@ class PlayerFeature(
                     emit(PlayerResult.NowPlayingSet(action.episode))
                     emit(PlayerResult.PlaybackToggled(true))
 
+                    // Immediate access save — bumps updated_at so History orders correctly
+                    val startPos = action.episode.positionSeconds
+                    if (!profileRepository.isGuest() && startPos != null && startPos > MIN_POSITION_TO_SAVE_SECONDS) {
+                        progressRepository.saveProgress(action.episode, startPos, false)
+                    }
+
                     // Periodic save loop — cancelled automatically by flatMapLatest on next action
                     periodicSaveLoop(action.episode)
                 }

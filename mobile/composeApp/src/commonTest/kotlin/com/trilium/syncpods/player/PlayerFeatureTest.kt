@@ -254,6 +254,81 @@ class PlayerFeatureTest {
     }
 
     @Test
+    fun `immediate save fires on play when positionSeconds is above threshold`() = runTest {
+        val audio = FakeAudioPlayer(positionSeconds = 60, durationSeconds = 3600)
+        val progress = FakeProgressRepository()
+        val feature = PlayerFeature(backgroundScope, audio, progress, FakeProfileRepository())
+
+        feature.state.test {
+            awaitItem() // initial
+            feature.process(PlayerEvent.Play(testEpisode("ep1", positionSeconds = 60)))
+            var s = awaitItem()
+            while (!s.isPlaying || s.nowPlaying == null) s = awaitItem()
+
+            assertEquals(1, progress.saveCalls.size)
+            assertEquals("ep1", progress.saveCalls[0].first.guid)
+            assertEquals(60, progress.saveCalls[0].second)
+            assertFalse(progress.saveCalls[0].third)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `immediate save does not fire on play when positionSeconds is null`() = runTest {
+        val audio = FakeAudioPlayer(positionSeconds = 60, durationSeconds = 3600)
+        val progress = FakeProgressRepository()
+        val feature = PlayerFeature(backgroundScope, audio, progress, FakeProfileRepository())
+
+        feature.state.test {
+            awaitItem()
+            feature.process(PlayerEvent.Play(testEpisode("ep1"))) // positionSeconds = null
+            var s = awaitItem()
+            while (!s.isPlaying || s.nowPlaying == null) s = awaitItem()
+
+            assertEquals(0, progress.saveCalls.size)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `immediate save does not fire on play when positionSeconds is at or below threshold`() = runTest {
+        val audio = FakeAudioPlayer(positionSeconds = 5, durationSeconds = 3600)
+        val progress = FakeProgressRepository()
+        val feature = PlayerFeature(backgroundScope, audio, progress, FakeProfileRepository())
+
+        feature.state.test {
+            awaitItem()
+            feature.process(PlayerEvent.Play(testEpisode("ep1", positionSeconds = 5)))
+            var s = awaitItem()
+            while (!s.isPlaying || s.nowPlaying == null) s = awaitItem()
+
+            assertEquals(0, progress.saveCalls.size)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `immediate play save does not fire for guest`() = runTest {
+        val audio = FakeAudioPlayer(positionSeconds = 60, durationSeconds = 3600)
+        val progress = FakeProgressRepository()
+        val feature = PlayerFeature(backgroundScope, audio, progress, FakeProfileRepository(isGuest = true))
+
+        feature.state.test {
+            awaitItem()
+            feature.process(PlayerEvent.Play(testEpisode("ep1", positionSeconds = 60)))
+            var s = awaitItem()
+            while (!s.isPlaying || s.nowPlaying == null) s = awaitItem()
+
+            assertEquals(0, progress.saveCalls.size)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `pause cancels periodic save and resume restarts it`() = runTest {
         val audio = FakeAudioPlayer(positionSeconds = 60, durationSeconds = 3600)
         val progress = FakeProgressRepository()
@@ -326,7 +401,7 @@ private class FakeProfileRepository(private val isGuest: Boolean = false) : Prof
 
 // ── Test helpers ──────────────────────────────────────────────────────────────
 
-private fun testEpisode(guid: String) = NowPlaying(
+private fun testEpisode(guid: String, positionSeconds: Int? = null) = NowPlaying(
     guid = guid,
     title = "Episode $guid",
     podcastName = "Test Podcast",
@@ -334,4 +409,5 @@ private fun testEpisode(guid: String) = NowPlaying(
     audioUrl = "https://audio.example.com/$guid.mp3",
     feedUrl = "https://feed.example.com/rss",
     durationSeconds = 3600,
+    positionSeconds = positionSeconds,
 )
