@@ -213,5 +213,7 @@ class SupabaseProgressRepository(
                 onConflict = "user_id,feed_url"
             }
         }
+
+        _progressSaved.emit(Unit)
     }
 }
