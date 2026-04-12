@@ -355,9 +355,95 @@ class PlayerFeatureTest {
             s = awaitItem()
             while (!s.isPlaying) s = awaitItem() // wait for resumed
 
-            // Advance 10s — timer should fire
+            // Advance 10s — immediate save on resume + one periodic save
             advanceTimeBy(10_001)
-            assertEquals(1, progress.saveCalls.size)
+            assertEquals(2, progress.saveCalls.size)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `immediate save fires on resume`() = runTest {
+        val audio = FakeAudioPlayer(positionSeconds = 60, durationSeconds = 3600)
+        val progress = FakeProgressRepository()
+        val feature = PlayerFeature(backgroundScope, audio, progress, FakeProfileRepository())
+
+        feature.state.test {
+            awaitItem()
+            feature.process(PlayerEvent.Play(testEpisode("ep1")))
+            var s = awaitItem()
+            while (!s.isPlaying || s.nowPlaying == null) s = awaitItem()
+
+            feature.process(PlayerEvent.PauseToggled) // pause
+            s = awaitItem()
+            while (s.isPlaying) s = awaitItem()
+
+            val savesBeforeResume = progress.saveCalls.size
+
+            feature.process(PlayerEvent.PauseToggled) // resume
+            s = awaitItem()
+            while (!s.isPlaying) s = awaitItem()
+
+            // Immediate save fires on resume without time advance
+            assertEquals(savesBeforeResume + 1, progress.saveCalls.size)
+            assertEquals("ep1", progress.saveCalls.last().first.guid)
+            assertEquals(60, progress.saveCalls.last().second)
+            assertFalse(progress.saveCalls.last().third)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `immediate save does not fire on resume when position is at or below threshold`() = runTest {
+        val audio = FakeAudioPlayer(positionSeconds = 5, durationSeconds = 3600)
+        val progress = FakeProgressRepository()
+        val feature = PlayerFeature(backgroundScope, audio, progress, FakeProfileRepository())
+
+        feature.state.test {
+            awaitItem()
+            feature.process(PlayerEvent.Play(testEpisode("ep1")))
+            var s = awaitItem()
+            while (!s.isPlaying || s.nowPlaying == null) s = awaitItem()
+
+            feature.process(PlayerEvent.PauseToggled) // pause
+            s = awaitItem()
+            while (s.isPlaying) s = awaitItem()
+
+            val savesBeforeResume = progress.saveCalls.size
+
+            feature.process(PlayerEvent.PauseToggled) // resume
+            s = awaitItem()
+            while (!s.isPlaying) s = awaitItem()
+
+            assertEquals(savesBeforeResume, progress.saveCalls.size)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `immediate resume save does not fire for guest`() = runTest {
+        val audio = FakeAudioPlayer(positionSeconds = 60, durationSeconds = 3600)
+        val progress = FakeProgressRepository()
+        val feature = PlayerFeature(backgroundScope, audio, progress, FakeProfileRepository(isGuest = true))
+
+        feature.state.test {
+            awaitItem()
+            feature.process(PlayerEvent.Play(testEpisode("ep1")))
+            var s = awaitItem()
+            while (!s.isPlaying || s.nowPlaying == null) s = awaitItem()
+
+            feature.process(PlayerEvent.PauseToggled) // pause
+            s = awaitItem()
+            while (s.isPlaying) s = awaitItem()
+
+            feature.process(PlayerEvent.PauseToggled) // resume
+            s = awaitItem()
+            while (!s.isPlaying) s = awaitItem()
+
+            assertEquals(0, progress.saveCalls.size)
 
             cancelAndIgnoreRemainingEvents()
         }

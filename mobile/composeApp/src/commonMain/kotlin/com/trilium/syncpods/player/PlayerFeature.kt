@@ -118,6 +118,13 @@ class PlayerFeature(
                     audioPlayer.resume()
                     emit(PlayerResult.PlaybackToggled(true))
                     val ep = state.value.nowPlaying ?: return@flow
+                    // Immediate access save on resume — bumps updated_at so History orders correctly
+                    if (!profileRepository.isGuest()) {
+                        val pos = audioPlayer.currentPositionSeconds()
+                        if (pos > MIN_POSITION_TO_SAVE_SECONDS) {
+                            progressRepository.saveProgress(ep, pos, false)
+                        }
+                    }
                     // Restart periodic save loop after resume
                     periodicSaveLoop(ep)
                 }
