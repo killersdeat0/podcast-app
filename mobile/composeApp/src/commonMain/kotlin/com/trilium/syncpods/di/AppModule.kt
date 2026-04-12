@@ -117,5 +117,5 @@ val appModule = module {
     single<ProgressRepository> { SupabaseProgressRepository(supabaseClient = get()) }
     viewModel { PlayerViewModel(get<AudioPlayer>(), get<ProgressRepository>(), get<ProfileRepository>()) }
     single<HistoryRepository> { SupabaseHistoryRepository(supabaseClient = get()) }
-    viewModel { HistoryViewModel(get(), get()) }
+    viewModel { HistoryViewModel(get(), get(), get()) }
 }
