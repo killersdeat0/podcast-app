@@ -28,26 +28,26 @@ class ProgressRepositoryTest {
     @Test
     fun `computePositionPct computes percentage correctly`() {
         val pct = computePositionPct(positionSeconds = 1800, durationSeconds = 3600)
-        assertEquals(50f, pct)
+        assertEquals(50, pct)
     }
 
     @Test
     fun `computePositionPct at 98 percent threshold`() {
         val pct = computePositionPct(positionSeconds = 3528, durationSeconds = 3600)
-        assertEquals(98f, pct)
+        assertEquals(98, pct)
     }
 
     @Test
     fun `computePositionPct is capped at 100`() {
         // position exceeds duration (e.g. duration estimate was wrong)
         val pct = computePositionPct(positionSeconds = 4000, durationSeconds = 3600)
-        assertEquals(100f, pct)
+        assertEquals(100, pct)
     }
 
     @Test
     fun `computePositionPct is not negative`() {
         val pct = computePositionPct(positionSeconds = 0, durationSeconds = 3600)
-        assertEquals(0f, pct)
+        assertEquals(0, pct)
     }
 
     // ── computeDeltaSeconds ───────────────────────────────────────────────────

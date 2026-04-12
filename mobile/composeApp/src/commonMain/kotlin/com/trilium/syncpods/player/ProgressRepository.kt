@@ -38,7 +38,7 @@ private data class PlaybackProgressUpsertRow(
     @SerialName("episode_guid") val episodeGuid: String,
     @SerialName("feed_url") val feedUrl: String,
     @SerialName("position_seconds") val positionSeconds: Int,
-    @SerialName("position_pct") val positionPct: Float?,
+    @SerialName("position_pct") val positionPct: Int?,
     @SerialName("completed") val completed: Boolean,
     @SerialName("updated_at") val updatedAt: String,
 )
@@ -72,9 +72,9 @@ private data class ListeningByShowSelectRow(
 
 // ── Pure computation helpers (internal so commonTest can access them) ─────────
 
-internal fun computePositionPct(positionSeconds: Int, durationSeconds: Int?): Float? {
+internal fun computePositionPct(positionSeconds: Int, durationSeconds: Int?): Int? {
     if (durationSeconds == null || durationSeconds <= 0) return null
-    return (positionSeconds.toFloat() / durationSeconds.toFloat() * 100f).coerceIn(0f, 100f)
+    return (positionSeconds.toFloat() / durationSeconds.toFloat() * 100f).coerceIn(0f, 100f).toInt()
 }
 
 internal fun computeDeltaSeconds(lastInstant: Instant?, now: Instant): Int {
