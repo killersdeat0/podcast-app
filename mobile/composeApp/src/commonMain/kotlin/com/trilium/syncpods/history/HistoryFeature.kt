@@ -90,7 +90,13 @@ class HistoryFeature(
 
     override val eventToAction: Interactor<HistoryEvent, HistoryAction> = { events ->
         merge(
-            events.filterIsInstance<HistoryEvent.ScreenVisible>().map { HistoryAction.Load },
+            events.filterIsInstance<HistoryEvent.ScreenVisible>().map {
+                val s = state.value
+                if (s.allGroups.isEmpty() && s.inProgressItems.isEmpty() && !s.isLoading)
+                    HistoryAction.Load
+                else
+                    HistoryAction.SilentLoad
+            },
             events.filterIsInstance<HistoryEvent.RetryTapped>().map { HistoryAction.Load },
             events.filterIsInstance<HistoryEvent.ProgressSaved>().map { HistoryAction.SilentLoad },
             events.filterIsInstance<HistoryEvent.TabSelected>().map { HistoryAction.SwitchTab(it.tab) },

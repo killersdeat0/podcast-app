@@ -62,6 +62,33 @@ class HistoryFeatureTest {
     }
 
     @Test
+    fun `ScreenVisible on subsequent visit does not show loading state`() = runTest {
+        val itemA = testHistoryItem(guid = "ep-a", updatedAt = "2020-01-01T00:00:00Z")
+        val itemB = testHistoryItem(guid = "ep-b", updatedAt = "2020-01-02T00:00:00Z")
+        val repo = FakeHistoryRepository(items = listOf(itemA))
+        val feature = HistoryFeature(backgroundScope, repo, FakeProfileRepository())
+
+        feature.state.test {
+            awaitItem() // initial
+
+            // First visit — full load
+            feature.process(HistoryEvent.ScreenVisible)
+            var latest = awaitItem()
+            while (latest.isLoading) latest = awaitItem()
+            assertEquals(listOf("ep-a"), latest.allGroups.flatMap { it.items }.map { it.guid })
+
+            // Second visit — data already present, should silent-reload
+            repo.items = listOf(itemB)
+            feature.process(HistoryEvent.ScreenVisible)
+            latest = awaitItem()
+            assertFalse(latest.isLoading, "Subsequent ScreenVisible must not show a loading spinner")
+            assertEquals(listOf("ep-b"), latest.allGroups.flatMap { it.items }.map { it.guid })
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `passes isFreeTier true to repository when user is on free tier`() = runTest {
         val repo = FakeHistoryRepository()
         val feature = HistoryFeature(backgroundScope, repo, FakeProfileRepository(tier = "free"))
