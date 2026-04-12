@@ -23,6 +23,7 @@ data class PodcastDetailState(
     val podcastTitle: String = "",
     val artistName: String = "",
     val artworkUrl: String = "",
+    val feedUrl: String = "",
     val genres: List<String> = emptyList(),
     val description: String = "",
     val episodes: List<Episode> = emptyList(),
@@ -353,6 +354,7 @@ class PodcastDetailFeature(
             podcastTitle = result.title,
             artistName = result.artistName,
             artworkUrl = result.artworkUrl,
+            feedUrl = feedUrl,
             genres = result.genres,
         )
 

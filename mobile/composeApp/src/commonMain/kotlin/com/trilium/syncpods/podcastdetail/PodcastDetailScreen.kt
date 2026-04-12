@@ -110,6 +110,8 @@ fun PodcastDetailScreen(
                         podcastName = feature.state.value.podcastTitle,
                         artworkUrl = feature.state.value.artworkUrl,
                         audioUrl = effect.episode.audioUrl,
+                        feedUrl = feature.state.value.feedUrl,
+                        durationSeconds = effect.episode.duration,
                     )
                 )
                 is PodcastDetailEffect.PlayLatest -> {
@@ -123,6 +125,8 @@ fun PodcastDetailScreen(
                                 podcastName = s.podcastTitle,
                                 artworkUrl = s.artworkUrl,
                                 audioUrl = episode.audioUrl,
+                                feedUrl = s.feedUrl,
+                                durationSeconds = episode.duration,
                             )
                         )
                     }

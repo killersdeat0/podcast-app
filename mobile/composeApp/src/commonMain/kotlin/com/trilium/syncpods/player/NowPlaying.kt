@@ -6,4 +6,6 @@ data class NowPlaying(
     val podcastName: String,
     val artworkUrl: String,
     val audioUrl: String,
+    val feedUrl: String,
+    val durationSeconds: Int?,
 )

@@ -55,6 +55,8 @@ fun HistoryScreen(
                         podcastName = effect.item.podcastTitle,
                         artworkUrl = effect.item.artworkUrl.orEmpty(),
                         audioUrl = effect.item.audioUrl,
+                        feedUrl = effect.item.feedUrl,
+                        durationSeconds = effect.item.durationSeconds,
                     )
                 )
             }
