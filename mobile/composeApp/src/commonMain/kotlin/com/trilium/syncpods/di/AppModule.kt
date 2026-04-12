@@ -24,6 +24,8 @@ import com.trilium.syncpods.settings.SettingsRepositoryImpl
 import com.trilium.syncpods.settings.SettingsViewModel
 import com.trilium.syncpods.player.AudioPlayer
 import com.trilium.syncpods.player.PlayerViewModel
+import com.trilium.syncpods.player.ProgressRepository
+import com.trilium.syncpods.player.SupabaseProgressRepository
 import com.russhwolf.settings.Settings
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
@@ -112,7 +114,8 @@ val appModule = module {
             .map { }
         VerifyEmailViewModel(get(), get(), authSignal)
     }
-    viewModel { PlayerViewModel(get<AudioPlayer>()) }
+    single<ProgressRepository> { SupabaseProgressRepository(supabaseClient = get()) }
+    viewModel { PlayerViewModel(get<AudioPlayer>(), get<ProgressRepository>(), get<ProfileRepository>()) }
     single<HistoryRepository> { SupabaseHistoryRepository(supabaseClient = get()) }
     viewModel { HistoryViewModel(get(), get()) }
 }
