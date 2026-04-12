@@ -5,6 +5,8 @@ import com.trilium.syncpods.profile.ProfileRepository
 import com.trilium.syncpods.profile.SubscriptionSummary
 import com.trilium.syncpods.profile.UserProfile
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
@@ -304,6 +306,7 @@ private class FakeAudioPlayer(
 private class FakeProgressRepository : ProgressRepository {
     // Triple<NowPlaying, positionSeconds, completed>
     val saveCalls = mutableListOf<Triple<NowPlaying, Int, Boolean>>()
+    override val progressSaved: SharedFlow<Unit> = MutableSharedFlow()
     override suspend fun saveProgress(nowPlaying: NowPlaying, positionSeconds: Int, completed: Boolean) {
         saveCalls.add(Triple(nowPlaying, positionSeconds, completed))
     }
