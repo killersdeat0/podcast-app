@@ -4,6 +4,8 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.Clock
@@ -12,6 +14,7 @@ import kotlin.time.Instant
 // ── Interface ─────────────────────────────────────────────────────────────────
 
 interface ProgressRepository {
+    val progressSaved: SharedFlow<Unit>
     suspend fun saveProgress(
         nowPlaying: NowPlaying,
         positionSeconds: Int,
@@ -89,6 +92,9 @@ class SupabaseProgressRepository(
 ) : ProgressRepository {
 
     private var lastSaveInstant: Instant? = null
+
+    private val _progressSaved = MutableSharedFlow<Unit>(extraBufferCapacity = 8)
+    override val progressSaved: SharedFlow<Unit> get() = _progressSaved
 
     override suspend fun saveProgress(
         nowPlaying: NowPlaying,
@@ -203,5 +209,7 @@ class SupabaseProgressRepository(
                 onConflict = "user_id,feed_url"
             }
         }
+
+        _progressSaved.emit(Unit)
     }
 }
