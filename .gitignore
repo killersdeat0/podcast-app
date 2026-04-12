@@ -27,6 +27,10 @@ node_modules
 # local AI agent configs
 .agents/
 
+# Claude Code local config
+.claude/settings.local.json
+.claude/worktrees/
+
 # Playwright test artifacts
 web/playwright-report/
 web/test-results/
