@@ -448,6 +448,52 @@ class PlayerFeatureTest {
             cancelAndIgnoreRemainingEvents()
         }
     }
+
+    @Test
+    fun `immediate save does not fire on play when durationSeconds is null`() = runTest {
+        val audio = FakeAudioPlayer(positionSeconds = 60, durationSeconds = 3600)
+        val progress = FakeProgressRepository()
+        val feature = PlayerFeature(backgroundScope, audio, progress, FakeProfileRepository())
+
+        feature.state.test {
+            awaitItem()
+            feature.process(PlayerEvent.Play(testEpisode("ep1", positionSeconds = 60, durationSeconds = null)))
+            var s = awaitItem()
+            while (!s.isPlaying || s.nowPlaying == null) s = awaitItem()
+
+            assertEquals(0, progress.saveCalls.size)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `immediate save does not fire on resume when durationSeconds is null`() = runTest {
+        val audio = FakeAudioPlayer(positionSeconds = 60, durationSeconds = 3600)
+        val progress = FakeProgressRepository()
+        val feature = PlayerFeature(backgroundScope, audio, progress, FakeProfileRepository())
+
+        feature.state.test {
+            awaitItem()
+            feature.process(PlayerEvent.Play(testEpisode("ep1", durationSeconds = null)))
+            var s = awaitItem()
+            while (!s.isPlaying || s.nowPlaying == null) s = awaitItem()
+
+            feature.process(PlayerEvent.PauseToggled) // pause
+            s = awaitItem()
+            while (s.isPlaying) s = awaitItem()
+
+            val savesBeforeResume = progress.saveCalls.size
+
+            feature.process(PlayerEvent.PauseToggled) // resume
+            s = awaitItem()
+            while (!s.isPlaying) s = awaitItem()
+
+            assertEquals(savesBeforeResume, progress.saveCalls.size)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 }
 
 // ── Fakes ─────────────────────────────────────────────────────────────────────
@@ -487,13 +533,13 @@ private class FakeProfileRepository(private val isGuest: Boolean = false) : Prof
 
 // ── Test helpers ──────────────────────────────────────────────────────────────
 
-private fun testEpisode(guid: String, positionSeconds: Int? = null) = NowPlaying(
+private fun testEpisode(guid: String, positionSeconds: Int? = null, durationSeconds: Int? = 3600) = NowPlaying(
     guid = guid,
     title = "Episode $guid",
     podcastName = "Test Podcast",
     artworkUrl = "https://art.example.com/cover.jpg",
     audioUrl = "https://audio.example.com/$guid.mp3",
     feedUrl = "https://feed.example.com/rss",
-    durationSeconds = 3600,
+    durationSeconds = durationSeconds,
     positionSeconds = positionSeconds,
 )

@@ -8,6 +8,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
@@ -98,7 +99,10 @@ class HistoryFeature(
                     HistoryAction.SilentLoad
             },
             events.filterIsInstance<HistoryEvent.RetryTapped>().map { HistoryAction.Load },
-            events.filterIsInstance<HistoryEvent.ProgressSaved>().map { HistoryAction.SilentLoad },
+            // Debounce collapses rapid-fire emissions (e.g. switch-away save + immediate save
+            // both firing within ms of each other) into a single SilentLoad, preventing the
+            // intermediate wrong-order state from briefly appearing in the UI.
+            events.filterIsInstance<HistoryEvent.ProgressSaved>().debounce(300L).map { HistoryAction.SilentLoad },
             events.filterIsInstance<HistoryEvent.TabSelected>().map { HistoryAction.SwitchTab(it.tab) },
             events.filterIsInstance<HistoryEvent.EpisodeTapped>().map { HistoryAction.PlayEpisode(it.item) },
         )

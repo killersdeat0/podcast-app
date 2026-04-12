@@ -98,9 +98,11 @@ class PlayerFeature(
                     emit(PlayerResult.NowPlayingSet(action.episode))
                     emit(PlayerResult.PlaybackToggled(true))
 
-                    // Immediate access save — bumps updated_at so History orders correctly
+                    // Immediate access save — bumps updated_at so History orders correctly.
+                    // Guard on durationSeconds: saveProgress computes positionPct = null when
+                    // durationSeconds is null, which would cause the item to fail isInProgress().
                     val startPos = action.episode.positionSeconds
-                    if (!profileRepository.isGuest() && startPos != null && startPos > MIN_POSITION_TO_SAVE_SECONDS) {
+                    if (!profileRepository.isGuest() && startPos != null && startPos > MIN_POSITION_TO_SAVE_SECONDS && action.episode.durationSeconds != null) {
                         progressRepository.saveProgress(action.episode, startPos, false)
                     }
 
@@ -118,8 +120,9 @@ class PlayerFeature(
                     audioPlayer.resume()
                     emit(PlayerResult.PlaybackToggled(true))
                     val ep = state.value.nowPlaying ?: return@flow
-                    // Immediate access save on resume — bumps updated_at so History orders correctly
-                    if (!profileRepository.isGuest()) {
+                    // Immediate access save on resume — bumps updated_at so History orders correctly.
+                    // Guard on durationSeconds: same as Play handler — prevents positionPct = null write.
+                    if (!profileRepository.isGuest() && ep.durationSeconds != null) {
                         val pos = audioPlayer.currentPositionSeconds()
                         if (pos > MIN_POSITION_TO_SAVE_SECONDS) {
                             progressRepository.saveProgress(ep, pos, false)
