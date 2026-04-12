@@ -33,4 +33,13 @@ class AndroidAudioPlayer(private val context: Context) : AudioPlayer {
         player?.release()
         player = null
     }
+
+    override suspend fun currentPositionSeconds(): Int = withContext(Dispatchers.Main) {
+        ((player?.currentPosition ?: 0L) / 1000L).toInt()
+    }
+
+    override suspend fun durationSeconds(): Int? = withContext(Dispatchers.Main) {
+        val ms = player?.duration ?: return@withContext null
+        if (ms <= 0L) null else (ms / 1000L).toInt()
+    }
 }

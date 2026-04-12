@@ -5,4 +5,6 @@ interface AudioPlayer {
     suspend fun pause()
     suspend fun resume()
     suspend fun stop()
+    suspend fun currentPositionSeconds(): Int
+    suspend fun durationSeconds(): Int?
 }
