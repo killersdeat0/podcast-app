@@ -27,6 +27,7 @@ data class QueueItem(
     val artworkUrl: String?,
     val audioUrl: String,
     val durationSeconds: Int?,
+    val positionSeconds: Int? = null,
 )
 
 // ── Interface ─────────────────────────────────────────────────────────────────
@@ -91,6 +92,12 @@ private data class QueueInsertRow(
 @Serializable
 private data class QueuePositionRow(
     @SerialName("position") val position: Int,
+)
+
+@Serializable
+private data class ProgressRow(
+    @SerialName("episode_guid") val episodeGuid: String,
+    @SerialName("position_seconds") val positionSeconds: Int,
 )
 
 // ── Local (guest) implementation ──────────────────────────────────────────────
@@ -175,15 +182,28 @@ class SupabaseQueueRepository(
             .decodeList<QueueBaseRow>()
         if (queueRows.isEmpty()) return emptyList()
         val guids = queueRows.map { it.episodeGuid }
-        val episodeRows = supabaseClient.from("episodes")
-            .select(Columns.list("guid", "title", "audio_url", "duration", "artwork_url", "podcast_title")) {
-                filter { isIn("guid", guids) }
-            }.decodeList<EpisodeMetaRow>()
-        val episodeMap = episodeRows.associateBy { it.guid }
+        val episodeMap = coroutineScope {
+            val episodesDeferred = async {
+                supabaseClient.from("episodes")
+                    .select(Columns.list("guid", "title", "audio_url", "duration", "artwork_url", "podcast_title")) {
+                        filter { isIn("guid", guids) }
+                    }.decodeList<EpisodeMetaRow>().associateBy { it.guid }
+            }
+            val progressDeferred = async {
+                supabaseClient.from("playback_progress")
+                    .select(Columns.list("episode_guid", "position_seconds")) {
+                        filter { isIn("episode_guid", guids) }
+                    }.decodeList<ProgressRow>().associate { it.episodeGuid to it.positionSeconds }
+            }
+            val episodes = episodesDeferred.await()
+            val progress = progressDeferred.await()
+            Pair(episodes, progress)
+        }
+        val (episodeByGuid, progressByGuid) = episodeMap
         return queueRows
             .sortedBy { it.position }
             .mapNotNull { row ->
-                val ep = episodeMap[row.episodeGuid] ?: return@mapNotNull null
+                val ep = episodeByGuid[row.episodeGuid] ?: return@mapNotNull null
                 val audioUrl = ep.audioUrl ?: return@mapNotNull null
                 QueueItem(
                     guid = row.episodeGuid,
@@ -194,6 +214,7 @@ class SupabaseQueueRepository(
                     artworkUrl = ep.artworkUrl,
                     audioUrl = audioUrl,
                     durationSeconds = ep.duration,
+                    positionSeconds = progressByGuid[row.episodeGuid],
                 )
             }
     }

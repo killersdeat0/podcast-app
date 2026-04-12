@@ -80,6 +80,7 @@ fun QueueScreen(
                         audioUrl = effect.item.audioUrl,
                         feedUrl = effect.item.feedUrl,
                         durationSeconds = effect.item.durationSeconds,
+                        positionSeconds = effect.item.positionSeconds,
                     )
                 )
                 is QueueEffect.NavigateToUpgrade -> showUpgradeSheet = true

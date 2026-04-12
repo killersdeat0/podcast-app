@@ -138,6 +138,10 @@ class SupabaseProgressRepository(
             onConflict = "user_id,episode_guid"
         }
 
+        // Notify listeners immediately after the ordering-relevant write so that
+        // History refreshes without waiting for the slower listening-stats updates below.
+        _progressSaved.emit(Unit)
+
         val deltaSeconds = computeDeltaSeconds(lastSaveInstant, now)
         lastSaveInstant = now
 
@@ -209,7 +213,5 @@ class SupabaseProgressRepository(
                 onConflict = "user_id,feed_url"
             }
         }
-
-        _progressSaved.emit(Unit)
     }
 }
