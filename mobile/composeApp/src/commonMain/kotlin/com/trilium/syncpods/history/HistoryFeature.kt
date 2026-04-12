@@ -5,14 +5,17 @@ import com.composure.arch.StandardFeature
 import com.trilium.syncpods.profile.ProfileRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
@@ -35,6 +38,7 @@ data class HistoryState(
 sealed class HistoryEvent {
     data object ScreenVisible : HistoryEvent()
     data object RetryTapped : HistoryEvent()
+    data object ProgressSaved : HistoryEvent()
     data class TabSelected(val tab: HistoryTab) : HistoryEvent()
     data class EpisodeTapped(val item: HistoryItem) : HistoryEvent()
 }
@@ -43,6 +47,7 @@ sealed class HistoryEvent {
 
 sealed class HistoryAction {
     data object Load : HistoryAction()
+    data object SilentLoad : HistoryAction()
     data class SwitchTab(val tab: HistoryTab) : HistoryAction()
     data class PlayEpisode(val item: HistoryItem) : HistoryAction()
 }
@@ -69,7 +74,14 @@ class HistoryFeature(
     scope: CoroutineScope,
     private val repository: HistoryRepository,
     private val profileRepository: ProfileRepository,
+    progressUpdates: Flow<Unit> = emptyFlow(),
 ) : StandardFeature<HistoryState, HistoryEvent, HistoryAction, HistoryResult, HistoryEffect>(scope) {
+
+    init {
+        scope.launch {
+            progressUpdates.collect { process(HistoryEvent.ProgressSaved) }
+        }
+    }
 
     private val _effects = MutableSharedFlow<HistoryEffect>(extraBufferCapacity = 8)
     override val effects: SharedFlow<HistoryEffect> get() = _effects
@@ -80,6 +92,7 @@ class HistoryFeature(
         merge(
             events.filterIsInstance<HistoryEvent.ScreenVisible>().map { HistoryAction.Load },
             events.filterIsInstance<HistoryEvent.RetryTapped>().map { HistoryAction.Load },
+            events.filterIsInstance<HistoryEvent.ProgressSaved>().map { HistoryAction.SilentLoad },
             events.filterIsInstance<HistoryEvent.TabSelected>().map { HistoryAction.SwitchTab(it.tab) },
             events.filterIsInstance<HistoryEvent.EpisodeTapped>().map { HistoryAction.PlayEpisode(it.item) },
         )
@@ -90,6 +103,15 @@ class HistoryFeature(
             when (action) {
                 is HistoryAction.Load -> flow {
                     emit(HistoryResult.Loading)
+                    try {
+                        val tier = profileRepository.getUserTier()
+                        val items = repository.getHistory(isFreeTier = tier == "free")
+                        emit(HistoryResult.Loaded(items))
+                    } catch (e: Exception) {
+                        emit(HistoryResult.LoadError(e.message ?: "Failed to load history"))
+                    }
+                }
+                is HistoryAction.SilentLoad -> flow {
                     try {
                         val tier = profileRepository.getUserTier()
                         val items = repository.getHistory(isFreeTier = tier == "free")

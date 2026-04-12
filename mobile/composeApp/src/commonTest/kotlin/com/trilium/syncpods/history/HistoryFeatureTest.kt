@@ -5,6 +5,7 @@ import com.trilium.syncpods.profile.ProfileRepository
 import com.trilium.syncpods.profile.SubscriptionSummary
 import com.trilium.syncpods.profile.UserProfile
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.runTest
 import kotlin.time.Clock
@@ -314,12 +315,42 @@ class HistoryFeatureTest {
             cancelAndIgnoreRemainingEvents()
         }
     }
+
+    @Test
+    fun `silently refreshes history on ProgressSaved without showing loading state`() = runTest {
+        val itemA = testHistoryItem(guid = "ep-a", updatedAt = "2020-01-01T00:00:00Z")
+        val itemB = testHistoryItem(guid = "ep-b", updatedAt = "2020-01-02T00:00:00Z")
+        val repo = FakeHistoryRepository(items = listOf(itemA))
+        val progressUpdates = MutableSharedFlow<Unit>(extraBufferCapacity = 8)
+        val feature = HistoryFeature(backgroundScope, repo, FakeProfileRepository(), progressUpdates)
+
+        feature.state.test {
+            awaitItem() // consume initial
+
+            feature.process(HistoryEvent.ScreenVisible)
+            var latest = awaitItem()
+            while (latest.isLoading) latest = awaitItem()
+
+            assertEquals(listOf("ep-a"), latest.allGroups.flatMap { it.items }.map { it.guid })
+
+            // Swap items and trigger silent reload
+            repo.items = listOf(itemB)
+            progressUpdates.emit(Unit)
+
+            // Must receive updated state without isLoading becoming true
+            latest = awaitItem()
+            assertFalse(latest.isLoading, "Silent reload must not show a loading spinner")
+            assertEquals(listOf("ep-b"), latest.allGroups.flatMap { it.items }.map { it.guid })
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 }
 
 // ── Fakes ─────────────────────────────────────────────────────────────────────
 
 private class FakeHistoryRepository(
-    private val items: List<HistoryItem> = emptyList(),
+    var items: List<HistoryItem> = emptyList(),
     var shouldThrow: Boolean = false,
     var isFreeTierCaptured: Boolean? = null,
     var getHistoryCallCount: Int = 0,
