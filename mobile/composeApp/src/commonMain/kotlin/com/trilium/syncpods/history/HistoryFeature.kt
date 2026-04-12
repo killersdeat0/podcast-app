@@ -77,14 +77,14 @@ class HistoryFeature(
     progressUpdates: Flow<Unit> = emptyFlow(),
 ) : StandardFeature<HistoryState, HistoryEvent, HistoryAction, HistoryResult, HistoryEffect>(scope) {
 
+    private val _effects = MutableSharedFlow<HistoryEffect>(extraBufferCapacity = 8)
+    override val effects: SharedFlow<HistoryEffect> get() = _effects
+
     init {
         scope.launch {
             progressUpdates.collect { process(HistoryEvent.ProgressSaved) }
         }
     }
-
-    private val _effects = MutableSharedFlow<HistoryEffect>(extraBufferCapacity = 8)
-    override val effects: SharedFlow<HistoryEffect> get() = _effects
 
     override val initial = HistoryState()
 
