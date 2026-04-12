@@ -8,4 +8,5 @@ data class NowPlaying(
     val audioUrl: String,
     val feedUrl: String,
     val durationSeconds: Int?,
+    val positionSeconds: Int? = null,
 )

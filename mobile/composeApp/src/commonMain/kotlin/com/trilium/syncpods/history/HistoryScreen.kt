@@ -57,6 +57,7 @@ fun HistoryScreen(
                         audioUrl = effect.item.audioUrl,
                         feedUrl = effect.item.feedUrl,
                         durationSeconds = effect.item.durationSeconds,
+                        positionSeconds = effect.item.positionSeconds,
                     )
                 )
             }
