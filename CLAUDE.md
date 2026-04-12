@@ -159,15 +159,13 @@ Schema lives in `supabase/migrations/`. Key tables: `subscriptions`, `episodes` 
 
 The Sidebar fetches subscriptions on mount and re-fetches on the custom `subscriptions-changed` window event. Fire `window.dispatchEvent(new Event('subscriptions-changed'))` after any subscribe/unsubscribe to update the sidebar instantly without a page reload.
 
-**Badge refresh on tab focus:** The Sidebar also listens for `document visibilitychange` and calls `maybeRefresh()` (1-hour localStorage cooldown) whenever the tab becomes visible again. This keeps `new_episode_count` badges current when users tab back.
-
 **Instant badge clear — `subscription-count-reset` event:** To clear (or update) a badge without a network round-trip, dispatch:
 ```ts
 window.dispatchEvent(new CustomEvent('subscription-count-reset', {
   detail: { feedUrl: string, newEpisodeCount: number }
 }))
 ```
-The Sidebar updates its local `subscriptions` state in-place from the event payload. Dispatch this from the podcast detail page after the user has seen a show's new episodes (Task 2 clears the badge this way instead of firing a full `subscriptions-changed` refetch).
+The Sidebar updates its local `subscriptions` state in-place from the event payload — use this instead of `subscriptions-changed` when only the badge count is changing.
 
 ### Playlist sync
 
