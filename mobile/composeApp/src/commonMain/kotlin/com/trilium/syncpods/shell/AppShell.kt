@@ -1,11 +1,7 @@
 package com.trilium.syncpods.shell
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
@@ -164,11 +159,7 @@ fun AppShell() {
                 ) {
                     NavigationBar {
                         tabs.forEach { tab ->
-                            AnimatedVisibility(
-                                visible = tab.visible,
-                                enter = fadeIn() + expandHorizontally(),
-                                exit = fadeOut() + shrinkHorizontally(),
-                            ) {
+                            if (tab.visible) {
                                 NavigationBarItem(
                                     selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true,
                                     onClick = {
