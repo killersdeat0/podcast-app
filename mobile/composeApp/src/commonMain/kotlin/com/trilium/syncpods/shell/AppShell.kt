@@ -52,6 +52,7 @@ import com.trilium.syncpods.podcastdetail.PodcastDetailViewModel
 import com.trilium.syncpods.profile.ProfileEvent
 import com.trilium.syncpods.profile.ProfileScreen
 import com.trilium.syncpods.profile.ProfileViewModel
+import com.trilium.syncpods.history.HistoryEvent
 import com.trilium.syncpods.history.HistoryScreen
 import com.trilium.syncpods.history.HistoryViewModel
 import com.trilium.syncpods.queue.QueueScreen
@@ -232,6 +233,12 @@ fun AppShell() {
 
             composable(AppRoutes.History.route) {
                 val viewModel = koinViewModel<HistoryViewModel>()
+                val lifecycleOwner = LocalLifecycleOwner.current
+                LaunchedEffect(lifecycleOwner) {
+                    lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                        viewModel.feature.process(HistoryEvent.ScreenVisible)
+                    }
+                }
                 HistoryScreen(
                     feature = viewModel.feature,
                     onPlayEpisode = onPlayEpisode,

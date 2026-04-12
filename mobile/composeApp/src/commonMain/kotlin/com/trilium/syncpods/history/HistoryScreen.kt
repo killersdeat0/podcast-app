@@ -46,7 +46,6 @@ fun HistoryScreen(
     val state by feature.state.collectAsState()
 
     LaunchedEffect(Unit) {
-        feature.process(HistoryEvent.ScreenVisible)
         feature.effects.collect { effect ->
             when (effect) {
                 is HistoryEffect.PlayEpisode -> onPlayEpisode(
