@@ -70,6 +70,18 @@ private data class ListeningByShowSelectRow(
     @SerialName("episodes_completed") val episodesCompleted: Int = 0,
 )
 
+// ── Pure computation helpers (internal so commonTest can access them) ─────────
+
+internal fun computePositionPct(positionSeconds: Int, durationSeconds: Int?): Float? {
+    if (durationSeconds == null || durationSeconds <= 0) return null
+    return (positionSeconds.toFloat() / durationSeconds.toFloat() * 100f).coerceIn(0f, 100f)
+}
+
+internal fun computeDeltaSeconds(lastInstant: Instant?, now: Instant): Int {
+    if (lastInstant == null) return 0
+    return (now - lastInstant).inWholeSeconds.coerceIn(0L, 15L).toInt()
+}
+
 // ── Supabase implementation ───────────────────────────────────────────────────
 
 class SupabaseProgressRepository(
@@ -85,12 +97,7 @@ class SupabaseProgressRepository(
     ) {
         val userId = supabaseClient.auth.currentUserOrNull()?.id ?: return
 
-        val duration = nowPlaying.durationSeconds
-        val positionPct: Float? = if (duration != null && duration > 0) {
-            (positionSeconds.toFloat() / duration.toFloat() * 100f).coerceIn(0f, 100f)
-        } else {
-            null
-        }
+        val positionPct = computePositionPct(positionSeconds, nowPlaying.durationSeconds)
 
         // Upsert episode metadata
         supabaseClient.from("episodes").upsert(
@@ -125,13 +132,7 @@ class SupabaseProgressRepository(
             onConflict = "user_id,episode_guid"
         }
 
-        // Compute delta since last save
-        val previous = lastSaveInstant
-        val deltaSeconds = if (previous != null) {
-            (now - previous).inWholeSeconds.coerceIn(0L, 15L).toInt()
-        } else {
-            0
-        }
+        val deltaSeconds = computeDeltaSeconds(lastSaveInstant, now)
         lastSaveInstant = now
 
         val date = now.toString().substring(0, 10) // "YYYY-MM-DD" UTC

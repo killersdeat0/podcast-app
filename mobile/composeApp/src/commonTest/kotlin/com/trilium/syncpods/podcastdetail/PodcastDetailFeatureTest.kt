@@ -97,6 +97,7 @@ class PodcastDetailFeatureTest {
             assertEquals(sampleSummary.artistName, latest.artistName)
             assertEquals(sampleSummary.artworkUrl, latest.artworkUrl)
             assertEquals(sampleSummary.genres, latest.genres)
+            assertEquals(feedUrl, latest.feedUrl)
 
             // Episodes loaded from feed (wait for loading to settle too)
             while (latest.episodes.isEmpty() || latest.isLoading) latest = awaitItem()
