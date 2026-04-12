@@ -61,6 +61,7 @@ private data class ListeningByShowUpsertRow(
     @SerialName("feed_url") val feedUrl: String,
     @SerialName("seconds_listened") val secondsListened: Int,
     @SerialName("episodes_completed") val episodesCompleted: Int,
+    @SerialName("last_listened_at") val lastListenedAt: String,
 )
 
 @Serializable
@@ -173,6 +174,7 @@ class SupabaseProgressRepository(
                     feedUrl = nowPlaying.feedUrl,
                     secondsListened = (existingByShow?.secondsListened ?: 0) + deltaSeconds,
                     episodesCompleted = (existingByShow?.episodesCompleted ?: 0) + completedIncrement,
+                    lastListenedAt = updatedAt,
                 )
             ) {
                 onConflict = "user_id,feed_url"
@@ -194,6 +196,7 @@ class SupabaseProgressRepository(
                     feedUrl = nowPlaying.feedUrl,
                     secondsListened = existingByShow?.secondsListened ?: 0,
                     episodesCompleted = (existingByShow?.episodesCompleted ?: 0) + 1,
+                    lastListenedAt = updatedAt,
                 )
             ) {
                 onConflict = "user_id,feed_url"
