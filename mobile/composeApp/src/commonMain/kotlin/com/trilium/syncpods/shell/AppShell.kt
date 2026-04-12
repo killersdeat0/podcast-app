@@ -233,11 +233,8 @@ fun AppShell() {
 
             composable(AppRoutes.History.route) {
                 val viewModel = koinViewModel<HistoryViewModel>()
-                val lifecycleOwner = LocalLifecycleOwner.current
-                LaunchedEffect(lifecycleOwner) {
-                    lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-                        viewModel.feature.process(HistoryEvent.ScreenVisible)
-                    }
+                LaunchedEffect(Unit) {
+                    viewModel.feature.process(HistoryEvent.ScreenVisible)
                 }
                 HistoryScreen(
                     feature = viewModel.feature,
