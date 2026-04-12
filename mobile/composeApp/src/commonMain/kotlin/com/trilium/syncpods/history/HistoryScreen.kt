@@ -155,14 +155,14 @@ private fun HistoryAllContent(
                     text = "${group.label.uppercase()} · ${group.items.size} $episodeWord",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
+                    modifier = Modifier.animateItem().padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
                 )
             }
             items(group.items, key = { it.guid }) { item ->
                 EpisodeRow(
                     item = item,
                     onTap = { onEpisodeTapped(item) },
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                    modifier = Modifier.animateItem().padding(horizontal = 8.dp, vertical = 2.dp),
                 )
             }
         }
@@ -184,7 +184,7 @@ private fun HistoryInProgressContent(
             EpisodeRow(
                 item = item,
                 onTap = { onEpisodeTapped(item) },
-                modifier = Modifier.padding(horizontal = 8.dp),
+                modifier = Modifier.animateItem().padding(horizontal = 8.dp),
             )
         }
     }
