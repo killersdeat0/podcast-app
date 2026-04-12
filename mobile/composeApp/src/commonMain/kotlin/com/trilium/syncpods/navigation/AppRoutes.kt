@@ -4,6 +4,7 @@ sealed class AppRoutes(val route: String) {
     data object Discover : AppRoutes("discover")
     data object Library : AppRoutes("library")
     data object Queue : AppRoutes("queue")
+    data object History : AppRoutes("history")
     data object Profile : AppRoutes("profile")
     data class PodcastDetail(val feedUrl: String) : AppRoutes("podcast/{feedUrl}") {
         companion object {

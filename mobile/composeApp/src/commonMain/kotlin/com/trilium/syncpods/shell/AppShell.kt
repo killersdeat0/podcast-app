@@ -1,7 +1,11 @@
 package com.trilium.syncpods.shell
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
@@ -52,6 +57,8 @@ import com.trilium.syncpods.podcastdetail.PodcastDetailViewModel
 import com.trilium.syncpods.profile.ProfileEvent
 import com.trilium.syncpods.profile.ProfileScreen
 import com.trilium.syncpods.profile.ProfileViewModel
+import com.trilium.syncpods.history.HistoryScreen
+import com.trilium.syncpods.history.HistoryViewModel
 import com.trilium.syncpods.queue.QueueScreen
 import com.trilium.syncpods.queue.QueueViewModel
 import com.trilium.syncpods.search.SearchScreen
@@ -68,6 +75,7 @@ import org.koin.compose.viewmodel.koinViewModel
 private data class TabItem(
     val route: String,
     val label: String,
+    val visible: Boolean = true,
     val icon: @Composable () -> Unit,
 )
 
@@ -85,6 +93,10 @@ fun AppShell() {
         || currentDestination?.route == AppRoutes.ForgotPassword.route
         || currentDestination?.route == AppRoutes.VerifyEmail.ROUTE
 
+    val supabaseClient = koinInject<SupabaseClient>()
+    val sessionStatus by supabaseClient.auth.sessionStatus.collectAsState()
+    val isAuthenticated = sessionStatus is SessionStatus.Authenticated
+
     val tabs = listOf(
         TabItem(AppRoutes.Discover.route, "Discover") {
             Icon(Icons.Default.Search, contentDescription = "Discover")
@@ -95,12 +107,13 @@ fun AppShell() {
         TabItem(AppRoutes.Queue.route, "Queue") {
             Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Queue")
         },
+        TabItem(AppRoutes.History.route, "History", visible = isAuthenticated) {
+            Icon(Icons.Default.History, contentDescription = "History")
+        },
         TabItem(AppRoutes.Profile.route, "Profile") {
             Icon(Icons.Default.Person, contentDescription = "Profile")
         },
     )
-
-    val supabaseClient = koinInject<SupabaseClient>()
     LaunchedEffect(Unit) {
         val authScreenRoutes = setOf(
             AppRoutes.Login.route,
@@ -151,20 +164,26 @@ fun AppShell() {
                 ) {
                     NavigationBar {
                         tabs.forEach { tab ->
-                            NavigationBarItem(
-                                selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true,
-                                onClick = {
-                                    navController.navigate(tab.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
+                            AnimatedVisibility(
+                                visible = tab.visible,
+                                enter = fadeIn() + expandHorizontally(),
+                                exit = fadeOut() + shrinkHorizontally(),
+                            ) {
+                                NavigationBarItem(
+                                    selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true,
+                                    onClick = {
+                                        navController.navigate(tab.route) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
                                         }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
-                                icon = tab.icon,
-                                label = { Text(tab.label) },
-                            )
+                                    },
+                                    icon = tab.icon,
+                                    label = { Text(tab.label) },
+                                )
+                            }
                         }
                     }
                 }
@@ -215,6 +234,16 @@ fun AppShell() {
                     onPlayEpisode = onPlayEpisode,
                     onNavigateToSignIn = { navController.navigate(AppRoutes.Login.route) },
                     onNavigateToCreateAccount = { navController.navigate(AppRoutes.SignUp.route) },
+                    modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
+                    bottomContentPadding = innerPadding.calculateBottomPadding(),
+                )
+            }
+
+            composable(AppRoutes.History.route) {
+                val viewModel = koinViewModel<HistoryViewModel>()
+                HistoryScreen(
+                    feature = viewModel.feature,
+                    onPlayEpisode = onPlayEpisode,
                     modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
                     bottomContentPadding = innerPadding.calculateBottomPadding(),
                 )

@@ -30,6 +30,9 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.status.SessionStatus
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
+import com.trilium.syncpods.history.HistoryRepository
+import com.trilium.syncpods.history.HistoryViewModel
+import com.trilium.syncpods.history.SupabaseHistoryRepository
 import com.trilium.syncpods.queue.DelegatingQueueRepository
 import com.trilium.syncpods.queue.LocalQueueRepository
 import com.trilium.syncpods.queue.QueueRepository
@@ -110,4 +113,6 @@ val appModule = module {
         VerifyEmailViewModel(get(), get(), authSignal)
     }
     viewModel { PlayerViewModel(get<AudioPlayer>()) }
+    single<HistoryRepository> { SupabaseHistoryRepository(supabaseClient = get()) }
+    viewModel { HistoryViewModel(get(), get()) }
 }
