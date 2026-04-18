@@ -12,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -30,10 +31,14 @@ fun PodcastCard(
         color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Column {
+            val placeholderColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            val errorColor = MaterialTheme.colorScheme.errorContainer
             AsyncImage(
                 model = podcast.artworkUrl,
                 contentDescription = podcast.title,
                 contentScale = ContentScale.Crop,
+                placeholder = ColorPainter(placeholderColor),
+                error = ColorPainter(errorColor),
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f)

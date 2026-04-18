@@ -38,8 +38,13 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.android)
             implementation(libs.koin.android)
+            implementation(libs.androidx.media3.exoplayer)
+            implementation(libs.credentials)
+            implementation(libs.credentials.play.services)
+            implementation(libs.googleid)
         }
         commonMain.dependencies {
+            implementation(libs.supabase.compose.auth)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
@@ -61,6 +66,9 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.navigation.compose)
             implementation(compose.materialIconsExtended)
+            implementation(libs.sh.calvin.reorderable)
+            implementation(libs.multiplatform.settings)
+            implementation(libs.multiplatform.settings.serialization)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
@@ -69,6 +77,7 @@ kotlin {
             implementation(libs.kotlin.test)
             implementation(libs.turbine)
             implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.multiplatform.settings.test)
         }
     }
 }
@@ -85,6 +94,7 @@ android {
         versionName = "1.0"
         buildConfigField("String", "SUPABASE_URL", "\"${localProperties["SYNCPODS_SUPABASE_URL"] ?: project.findProperty("SYNCPODS_SUPABASE_URL") ?: ""}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProperties["SYNCPODS_SUPABASE_ANON_KEY"] ?: project.findProperty("SYNCPODS_SUPABASE_ANON_KEY") ?: ""}\"")
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localProperties["GOOGLE_WEB_CLIENT_ID"] ?: ""}\"")
     }
     buildFeatures {
         buildConfig = true
@@ -107,5 +117,29 @@ android {
 
 dependencies {
     debugImplementation(libs.compose.uiTooling)
+}
+
+val generateIosSecrets by tasks.registering {
+    group = "ios"
+    description = "Generates iosApp/Configuration/Secrets.xcconfig from local.properties"
+    val secretsFile = rootProject.file("iosApp/Configuration/Secrets.xcconfig")
+    outputs.file(secretsFile)
+    // Capture values at configuration time so the task is configuration-cache compatible
+    val googleWebClientId = localProperties["GOOGLE_WEB_CLIENT_ID"] as? String ?: ""
+    val googleIosClientId = localProperties["GOOGLE_IOS_CLIENT_ID"] as? String ?: ""
+    val googleIosReverseClientId = localProperties["GOOGLE_IOS_REVERSE_CLIENT_ID"] as? String ?: ""
+    doLast {
+        secretsFile.writeText(buildString {
+            appendLine("// Auto-generated from local.properties — do not commit")
+            appendLine("GOOGLE_WEB_CLIENT_ID = $googleWebClientId")
+            appendLine("GOOGLE_IOS_CLIENT_ID = $googleIosClientId")
+            appendLine("GIDClientID = $googleIosClientId")
+            appendLine("GOOGLE_IOS_REVERSE_CLIENT_ID = $googleIosReverseClientId")
+        })
+    }
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink>().configureEach {
+    dependsOn(generateIosSecrets)
 }
 

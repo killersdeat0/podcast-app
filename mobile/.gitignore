@@ -2,9 +2,11 @@
 .kotlin
 .gradle
 **/build/
+**/.build/
 xcuserdata
 !src/**/build/
 local.properties
+**/Secrets.xcconfig
 .idea
 .DS_Store
 captures

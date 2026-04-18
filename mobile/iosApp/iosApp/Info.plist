@@ -8,5 +8,32 @@
 	<string>https://nuvadoybccdqipyhdhns.supabase.co</string>
 	<key>SUPABASE_ANON_KEY</key>
 	<string>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51dmFkb3liY2NkcWlweWhkaG5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MjE2MzEsImV4cCI6MjA4ODQ5NzYzMX0.ESzA7Zf2UNrAKleTjlscx94KOZHtJ4PWfsaR4FdSQjk</string>
+	<key>GOOGLE_WEB_CLIENT_ID</key>
+	<string>$(GOOGLE_WEB_CLIENT_ID)</string>
+	<key>GOOGLE_IOS_CLIENT_ID</key>
+	<string>$(GOOGLE_IOS_CLIENT_ID)</string>
+	<key>GIDClientID</key>
+	<string>$(GIDClientID)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>$(GOOGLE_IOS_REVERSE_CLIENT_ID)</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.trilium.syncpods.auth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>syncpods</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

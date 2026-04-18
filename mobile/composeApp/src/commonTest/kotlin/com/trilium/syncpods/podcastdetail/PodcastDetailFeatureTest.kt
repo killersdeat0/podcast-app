@@ -2,11 +2,18 @@ package com.trilium.syncpods.podcastdetail
 
 import app.cash.turbine.test
 import com.trilium.syncpods.discover.PodcastSummary
+import com.trilium.syncpods.profile.ProfileRepository
+import com.trilium.syncpods.profile.SubscriptionSummary
+import com.trilium.syncpods.profile.UserProfile
+import com.trilium.syncpods.queue.QueueItem
+import com.trilium.syncpods.queue.QueueRepository
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class PodcastDetailFeatureTest {
@@ -53,14 +60,16 @@ class PodcastDetailFeatureTest {
         feedRepository: EpisodeFeedRepository = FakeFeedRepository(sampleFeed),
         subscriptionRepository: SubscriptionRepository = FakeSubscriptionRepository(),
         summaryCache: PodcastSummaryCache = PodcastSummaryCache(),
-        isGuest: Boolean = false,
+        queueRepository: FakeQueueRepository = FakeQueueRepository(),
+        profileRepository: ProfileRepository = FakeProfileRepository(tier = queueRepository.tier),
     ) = PodcastDetailFeature(
         scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default),
         feedUrl = feedUrl,
         feedRepository = feedRepository,
         subscriptionRepository = subscriptionRepository,
         summaryCache = summaryCache,
-        isGuest = isGuest,
+        queueRepository = queueRepository,
+        profileRepository = profileRepository,
     )
 
     @Test
@@ -72,6 +81,8 @@ class PodcastDetailFeatureTest {
             feedRepository = FakeFeedRepository(sampleFeed),
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = cache,
+            queueRepository = FakeQueueRepository(),
+            profileRepository = FakeProfileRepository(),
         )
 
         feature.state.test {
@@ -86,6 +97,7 @@ class PodcastDetailFeatureTest {
             assertEquals(sampleSummary.artistName, latest.artistName)
             assertEquals(sampleSummary.artworkUrl, latest.artworkUrl)
             assertEquals(sampleSummary.genres, latest.genres)
+            assertEquals(feedUrl, latest.feedUrl)
 
             // Episodes loaded from feed (wait for loading to settle too)
             while (latest.episodes.isEmpty() || latest.isLoading) latest = awaitItem()
@@ -104,6 +116,8 @@ class PodcastDetailFeatureTest {
             feedRepository = FakeFeedRepository(sampleFeed),
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = PodcastSummaryCache(), // empty cache
+            queueRepository = FakeQueueRepository(),
+            profileRepository = FakeProfileRepository(),
         )
 
         feature.state.test {
@@ -130,7 +144,8 @@ class PodcastDetailFeatureTest {
             feedRepository = FakeFeedRepository(sampleFeed),
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = PodcastSummaryCache(),
-            isGuest = true,
+            queueRepository = FakeQueueRepository(guest = true),
+            profileRepository = FakeProfileRepository(),
         )
 
         feature.state.test {
@@ -155,6 +170,8 @@ class PodcastDetailFeatureTest {
             feedRepository = FakeFeedRepository(sampleFeed),
             subscriptionRepository = subRepo,
             summaryCache = PodcastSummaryCache(),
+            queueRepository = FakeQueueRepository(),
+            profileRepository = FakeProfileRepository(),
         )
 
         feature.state.test {
@@ -180,6 +197,8 @@ class PodcastDetailFeatureTest {
             feedRepository = FakeFeedRepository(sampleFeed),
             subscriptionRepository = subRepo,
             summaryCache = PodcastSummaryCache(),
+            queueRepository = FakeQueueRepository(),
+            profileRepository = FakeProfileRepository(),
         )
 
         // Load screen first to set isFollowing = true from repo
@@ -199,6 +218,212 @@ class PodcastDetailFeatureTest {
     }
 
     @Test
+    fun `EpisodeQueueToggleTapped when not queued adds to queue and updates queuedGuids`() = runTest {
+        val queueRepo = FakeQueueRepository()
+        val feature = PodcastDetailFeature(
+            scope = backgroundScope,
+            feedUrl = feedUrl,
+            feedRepository = FakeFeedRepository(sampleFeed),
+            subscriptionRepository = FakeSubscriptionRepository(),
+            summaryCache = PodcastSummaryCache(),
+            queueRepository = queueRepo,
+            profileRepository = FakeProfileRepository(tier = queueRepo.tier),
+        )
+
+        feature.state.test {
+            awaitItem() // initial
+
+            feature.process(PodcastDetailEvent.EpisodeQueueToggleTapped(sampleEpisodes[0]))
+
+            var latest = awaitItem()
+            while (sampleEpisodes[0].guid !in latest.queuedGuids) latest = awaitItem()
+            assertTrue(sampleEpisodes[0].guid in latest.queuedGuids)
+            assertEquals(sampleEpisodes[0].guid, queueRepo.addCalledWith)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `EpisodeQueueToggleTapped when queued removes from queue and updates queuedGuids`() = runTest {
+        val queueRepo = FakeQueueRepository(initialQueuedGuids = setOf(sampleEpisodes[0].guid))
+        val feature = PodcastDetailFeature(
+            scope = backgroundScope,
+            feedUrl = feedUrl,
+            feedRepository = FakeFeedRepository(sampleFeed),
+            subscriptionRepository = FakeSubscriptionRepository(),
+            summaryCache = PodcastSummaryCache(),
+            queueRepository = queueRepo,
+            profileRepository = FakeProfileRepository(tier = queueRepo.tier),
+        )
+
+        feature.state.test {
+            awaitItem() // initial (queuedGuids is empty until ScreenVisible loads them)
+
+            // Seed queuedGuids via ScreenVisible so the toggle can detect the episode is queued
+            feature.process(PodcastDetailEvent.ScreenVisible)
+            var latest = awaitItem()
+            while (sampleEpisodes[0].guid !in latest.queuedGuids) latest = awaitItem()
+
+            feature.process(PodcastDetailEvent.EpisodeQueueToggleTapped(sampleEpisodes[0]))
+
+            while (sampleEpisodes[0].guid in latest.queuedGuids) latest = awaitItem()
+            assertFalse(sampleEpisodes[0].guid in latest.queuedGuids)
+            assertEquals(sampleEpisodes[0].guid, queueRepo.removeCalledWith)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `EpisodeQueueToggleTapped when guest has fewer than 10 queued items adds to queue`() = runTest {
+        val queueRepo = FakeQueueRepository(guest = true)
+        val feature = PodcastDetailFeature(
+            scope = backgroundScope,
+            feedUrl = feedUrl,
+            feedRepository = FakeFeedRepository(sampleFeed),
+            subscriptionRepository = FakeSubscriptionRepository(),
+            summaryCache = PodcastSummaryCache(),
+            queueRepository = queueRepo,
+            profileRepository = FakeProfileRepository(tier = queueRepo.tier),
+        )
+
+        feature.state.test {
+            awaitItem() // initial
+
+            feature.process(PodcastDetailEvent.EpisodeQueueToggleTapped(sampleEpisodes[0]))
+
+            var latest = awaitItem()
+            while (sampleEpisodes[0].guid !in latest.queuedGuids) latest = awaitItem()
+            assertTrue(sampleEpisodes[0].guid in latest.queuedGuids)
+            assertFalse(latest.showLoginPrompt)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `EpisodeQueueToggleTapped when guest has 10 or more queued items shows login prompt`() = runTest {
+        val tenGuids = (1..10).map { "other-guid-$it" }.toSet()
+        val feature = PodcastDetailFeature(
+            scope = backgroundScope,
+            feedUrl = feedUrl,
+            feedRepository = FakeFeedRepository(sampleFeed),
+            subscriptionRepository = FakeSubscriptionRepository(),
+            summaryCache = PodcastSummaryCache(),
+            queueRepository = FakeQueueRepository(guest = true, tier = "free", initialQueuedGuids = tenGuids),
+            profileRepository = FakeProfileRepository(tier = "free"),
+        )
+
+        feature.state.test {
+            awaitItem() // initial
+
+            // Load screen to populate queuedGuids and userTier in state
+            feature.process(PodcastDetailEvent.ScreenVisible)
+            var latest = awaitItem()
+            while (latest.queuedGuids.size < 10) latest = awaitItem()
+
+            feature.process(PodcastDetailEvent.EpisodeQueueToggleTapped(sampleEpisodes[0]))
+
+            while (!latest.showLoginPrompt) latest = awaitItem()
+            assertTrue(latest.showLoginPrompt)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `EpisodeQueueToggleTapped when logged-in free user has 10 or more queued items emits ShowUpgradePrompt effect`() = runTest {
+        val tenGuids = (1..10).map { "other-guid-$it" }.toSet()
+        val feature = PodcastDetailFeature(
+            scope = backgroundScope,
+            feedUrl = feedUrl,
+            feedRepository = FakeFeedRepository(sampleFeed),
+            subscriptionRepository = FakeSubscriptionRepository(),
+            summaryCache = PodcastSummaryCache(),
+            queueRepository = FakeQueueRepository(guest = false, tier = "free", initialQueuedGuids = tenGuids),
+            profileRepository = FakeProfileRepository(tier = "free"),
+        )
+
+        // Load screen to populate queuedGuids and userTier in state
+        feature.state.test {
+            awaitItem()
+            feature.process(PodcastDetailEvent.ScreenVisible)
+            var latest = awaitItem()
+            while (latest.queuedGuids.size < 10) latest = awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        feature.effects.test {
+            feature.process(PodcastDetailEvent.EpisodeQueueToggleTapped(sampleEpisodes[0]))
+            assertIs<PodcastDetailEffect.ShowUpgradePrompt>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `EpisodeQueueToggleTapped when logged-in free user hits queue limit does not show login prompt`() = runTest {
+        val tenGuids = (1..10).map { "other-guid-$it" }.toSet()
+        val feature = PodcastDetailFeature(
+            scope = backgroundScope,
+            feedUrl = feedUrl,
+            feedRepository = FakeFeedRepository(sampleFeed),
+            subscriptionRepository = FakeSubscriptionRepository(),
+            summaryCache = PodcastSummaryCache(),
+            queueRepository = FakeQueueRepository(guest = false, tier = "free", initialQueuedGuids = tenGuids),
+            profileRepository = FakeProfileRepository(tier = "free"),
+        )
+
+        feature.state.test {
+            awaitItem()
+
+            feature.process(PodcastDetailEvent.ScreenVisible)
+            var latest = awaitItem()
+            while (latest.queuedGuids.size < 10) latest = awaitItem()
+
+            feature.process(PodcastDetailEvent.EpisodeQueueToggleTapped(sampleEpisodes[0]))
+
+            // Give the feature time to process, then verify no login prompt appeared
+            latest = awaitItem()
+            assertFalse(latest.showLoginPrompt)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `EpisodeQueueToggleTapped when paid user has 10 or more queued items adds to queue`() = runTest {
+        val tenGuids = (1..10).map { "other-guid-$it" }.toSet()
+        val queueRepo = FakeQueueRepository(tier = "paid", initialQueuedGuids = tenGuids)
+        val feature = PodcastDetailFeature(
+            scope = backgroundScope,
+            feedUrl = feedUrl,
+            feedRepository = FakeFeedRepository(sampleFeed),
+            subscriptionRepository = FakeSubscriptionRepository(),
+            summaryCache = PodcastSummaryCache(),
+            queueRepository = queueRepo,
+            profileRepository = FakeProfileRepository(tier = queueRepo.tier),
+        )
+
+        feature.state.test {
+            awaitItem() // initial
+
+            feature.process(PodcastDetailEvent.ScreenVisible)
+            var latest = awaitItem()
+            while (latest.userTier != "paid") latest = awaitItem()
+
+            feature.process(PodcastDetailEvent.EpisodeQueueToggleTapped(sampleEpisodes[0]))
+
+            while (sampleEpisodes[0].guid !in latest.queuedGuids) latest = awaitItem()
+            assertTrue(sampleEpisodes[0].guid in latest.queuedGuids)
+            assertFalse(latest.showLoginPrompt)
+            assertEquals(sampleEpisodes[0].guid, queueRepo.addCalledWith)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `SortToggled flips sortNewestFirst`() = runTest {
         val feature = PodcastDetailFeature(
             scope = backgroundScope,
@@ -206,6 +431,8 @@ class PodcastDetailFeatureTest {
             feedRepository = FakeFeedRepository(sampleFeed),
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = PodcastSummaryCache(),
+            queueRepository = FakeQueueRepository(),
+            profileRepository = FakeProfileRepository(),
         )
 
         feature.state.test {
@@ -232,6 +459,8 @@ class PodcastDetailFeatureTest {
             feedRepository = FakeFeedRepository(sampleFeed),
             subscriptionRepository = FakeSubscriptionRepository(),
             summaryCache = PodcastSummaryCache(),
+            queueRepository = FakeQueueRepository(),
+            profileRepository = FakeProfileRepository(),
         )
 
         feature.state.test {
@@ -252,6 +481,42 @@ class PodcastDetailFeatureTest {
 }
 
 // ── Test doubles ──────────────────────────────────────────────────────────────
+
+private class FakeQueueRepository(
+    private val initialQueuedGuids: Set<String> = emptySet(),
+    private val guest: Boolean = false,
+    val tier: String = "free",
+    var addCalledWith: String? = null,
+    var removeCalledWith: String? = null,
+    var shouldThrowOnAdd: Boolean = false,
+) : QueueRepository {
+    override fun isGuest(): Boolean = guest
+    override suspend fun getQueuedGuids(): Set<String> = initialQueuedGuids
+    override suspend fun addEpisode(
+        guid: String,
+        feedUrl: String,
+        title: String,
+        audioUrl: String,
+        durationSeconds: Int?,
+        pubDate: String?,
+        podcastTitle: String,
+        artworkUrl: String?,
+    ) {
+        addCalledWith = guid
+        if (shouldThrowOnAdd) throw Exception("Add failed")
+    }
+    override suspend fun getQueue(): List<QueueItem> = emptyList()
+    override suspend fun removeEpisode(guid: String) { removeCalledWith = guid }
+    override suspend fun reorderQueue(orderedGuids: List<String>) {}
+}
+
+private class FakeProfileRepository(private val tier: String = "free") : ProfileRepository {
+    override fun isGuest(): Boolean = false
+    override fun authStateChanges(): kotlinx.coroutines.flow.Flow<Unit> = kotlinx.coroutines.flow.emptyFlow()
+    override suspend fun getUserTier(): String = tier
+    override suspend fun getUserProfile() = UserProfile("", "", tier)
+    override suspend fun getSubscriptions() = emptyList<SubscriptionSummary>()
+}
 
 private class FakeFeedRepository(
     private val feed: PodcastFeedResponse,

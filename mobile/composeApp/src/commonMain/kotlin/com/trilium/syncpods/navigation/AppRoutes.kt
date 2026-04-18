@@ -4,6 +4,7 @@ sealed class AppRoutes(val route: String) {
     data object Discover : AppRoutes("discover")
     data object Library : AppRoutes("library")
     data object Queue : AppRoutes("queue")
+    data object History : AppRoutes("history")
     data object Profile : AppRoutes("profile")
     data class PodcastDetail(val feedUrl: String) : AppRoutes("podcast/{feedUrl}") {
         companion object {
@@ -13,6 +14,15 @@ sealed class AppRoutes(val route: String) {
     data class Search(val query: String) : AppRoutes("search/{query}") {
         companion object {
             const val ROUTE = "search/{query}"
+        }
+    }
+    data object Settings : AppRoutes("settings")
+    data object Login : AppRoutes("login")
+    data object ForgotPassword : AppRoutes("forgot-password")
+    data object SignUp : AppRoutes("signup")
+    data class VerifyEmail(val email: String) : AppRoutes("verify-email/{email}") {
+        companion object {
+            const val ROUTE = "verify-email/{email}"
         }
     }
 }

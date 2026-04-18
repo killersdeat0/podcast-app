@@ -161,6 +161,28 @@ class DiscoverFeatureTest {
     }
 
     @Test
+    fun `ScreenVisible skips reload when trending already loaded`() = runTest {
+        val repo = FakePodcastRepository(trendingResult = listOf(samplePodcast))
+        val feature = DiscoverFeature(backgroundScope, repo, com.trilium.syncpods.podcastdetail.PodcastSummaryCache())
+
+        feature.state.test {
+            awaitItem() // initial
+
+            feature.process(DiscoverEvent.ScreenVisible)
+            var latest = awaitItem()
+            while (latest.isLoading || latest.trendingPodcasts.isEmpty()) latest = awaitItem()
+            assertEquals(1, repo.trendingFetchCount)
+
+            // Second ScreenVisible — trending already populated, should be a no-op
+            feature.process(DiscoverEvent.ScreenVisible)
+            expectNoEvents()
+            assertEquals(1, repo.trendingFetchCount)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `SuggestionTapped emits NavigateToPodcastDetail effect`() = runTest {
         val repo = FakePodcastRepository()
         val feature = DiscoverFeature(backgroundScope, repo, com.trilium.syncpods.podcastdetail.PodcastSummaryCache())
@@ -200,6 +222,7 @@ private class FakePodcastRepository(
 
     var lastTrendingGenreId: Int? = null
     var lastSearchQuery: String? = null
+    var trendingFetchCount: Int = 0
 
     override suspend fun searchPodcasts(query: String, genreId: Int?): List<PodcastSummary> {
         lastSearchQuery = query
@@ -208,6 +231,7 @@ private class FakePodcastRepository(
 
     override suspend fun fetchTrending(genreId: Int?): List<PodcastSummary> {
         lastTrendingGenreId = genreId
+        trendingFetchCount++
         return trendingResult
     }
 }
