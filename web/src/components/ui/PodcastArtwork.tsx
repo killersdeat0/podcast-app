@@ -37,7 +37,7 @@ export function PodcastArtwork({ src, title, className }: PodcastArtworkProps) {
         className={`${className ?? ''} flex items-center justify-center select-none [container-type:size]`}
         style={{ backgroundColor: color }}
       >
-        <span className="font-bold text-white text-[45cqmin] leading-none">
+        <span className="font-bold text-[45cqmin] leading-none" style={{ color: 'white' }}>
           {letter}
         </span>
       </div>
@@ -49,7 +49,6 @@ export function PodcastArtwork({ src, title, className }: PodcastArtworkProps) {
     <img
       src={src}
       alt={title ?? ''}
-      role="img"
       className={className}
       onError={() => setImgError(true)}
     />
