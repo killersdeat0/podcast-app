@@ -99,10 +99,11 @@ class PlayerFeature(
                     emit(PlayerResult.PlaybackToggled(true))
 
                     // Immediate access save — bumps updated_at so History orders correctly.
-                    // Guard: positionSeconds > 0 ensures a valid history row (DB filters position > 0).
+                    // Guard: positionSeconds > MIN_POSITION_TO_SAVE_SECONDS ensures a valid history row
+                    // (DB filters position > 0; threshold also skips nearly-unstarted episodes).
                     // durationSeconds guard retained so positionPct isn't nulled out for In Progress.
                     val startPos = action.episode.positionSeconds
-                    if (!profileRepository.isGuest() && startPos != null && startPos > 0 && action.episode.durationSeconds != null) {
+                    if (!profileRepository.isGuest() && startPos != null && startPos > MIN_POSITION_TO_SAVE_SECONDS && action.episode.durationSeconds != null) {
                         progressRepository.saveProgress(action.episode, startPos, false)
                     }
 
@@ -124,7 +125,7 @@ class PlayerFeature(
                     // Guard on durationSeconds: prevents positionPct = null write (keeps In Progress valid).
                     if (!profileRepository.isGuest() && ep.durationSeconds != null) {
                         val pos = audioPlayer.currentPositionSeconds()
-                        if (pos > 0) {
+                        if (pos > MIN_POSITION_TO_SAVE_SECONDS) {
                             progressRepository.saveProgress(ep, pos, false)
                         }
                     }
