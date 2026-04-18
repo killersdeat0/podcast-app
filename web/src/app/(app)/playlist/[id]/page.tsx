@@ -689,7 +689,7 @@ export default function PlaylistDetailPage() {
       {overLimit && (
         <div className="mb-4 p-3 bg-yellow-900/30 border border-yellow-700/50 rounded-lg text-sm text-yellow-300">
           {strings.playlists.over_limit_episodes}{' '}
-          <a href="/upgrade" className="underline hover:text-yellow-200">{strings.playlists.upgrade_cta}</a>
+          <Link href="/upgrade" className="underline hover:text-yellow-200">{strings.playlists.upgrade_cta}</Link>
         </div>
       )}
 

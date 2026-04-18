@@ -9,6 +9,7 @@ import { usePlayer } from '@/components/player/PlayerContext'
 import { useSignOut } from '@/lib/auth/useSignOut'
 import { createClient } from '@/lib/supabase/client'
 import type { Locale } from '@/lib/i18n'
+import Link from 'next/link'
 import AboutModal from '@/components/ui/AboutModal'
 
 const ALL_SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]
@@ -188,9 +189,9 @@ export default function SettingsPage() {
                   ))}
                 </select>
                 {isFreeTier && (
-                  <a href="/upgrade" className="text-[10px] text-primary hover:underline whitespace-nowrap">
+                  <Link href="/upgrade" className="text-[10px] text-primary hover:underline whitespace-nowrap">
                     {s.settings.free_speed_hint}
-                  </a>
+                  </Link>
                 )}
               </div>
             </div>
@@ -346,9 +347,9 @@ export default function SettingsPage() {
           {s.settings.about}
         </button>
         <span className="text-on-surface-dim text-xs">·</span>
-        <a href="/contact" className="text-xs text-on-surface-dim hover:text-on-surface-variant transition-colors">
+        <Link href="/contact" className="text-xs text-on-surface-dim hover:text-on-surface-variant transition-colors">
           {s.settings.contact}
-        </a>
+        </Link>
       </div>
 
       <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />

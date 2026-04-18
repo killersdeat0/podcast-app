@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useState, useMemo, useRef } from 'react'
 import { useSearchParams, useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { usePlayer } from '@/components/player/PlayerContext'
 import { SkeletonEpisodeRow } from '@/components/ui/Skeleton'
 import type { PodcastFeed, Episode } from '@/lib/rss/parser'
@@ -935,7 +936,7 @@ export default function PodcastPage() {
               {subscribed && !isGuest && contextTier === 'free' && (
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-on-surface-variant">{s.podcast_page.per_show_speed_label}</span>
-                  <a href="/upgrade" className="text-xs text-primary hover:underline">{s.player.upgrade_for_speeds}</a>
+                  <Link href="/upgrade" className="text-xs text-primary hover:underline">{s.player.upgrade_for_speeds}</Link>
                 </div>
               )}
               {process.env.NODE_ENV === 'development' && subscribed && (
@@ -987,12 +988,12 @@ export default function PodcastPage() {
                   <p className="text-xs text-on-surface-variant mt-0.5">{s.podcast_page.guest_nudge_description}</p>
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
-                  <a href={`/login?returnTo=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '')}`} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-surface-container-high hover:bg-surface-container-highest text-on-surface transition-colors">
+                  <Link href={`/login?returnTo=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '')}`} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-surface-container-high hover:bg-surface-container-highest text-on-surface transition-colors">
                     {s.podcast_page.guest_nudge_login}
-                  </a>
-                  <a href="/signup" className="px-3 py-1.5 rounded-lg text-xs font-medium bg-brand hover:bg-brand text-on-surface transition-colors">
+                  </Link>
+                  <Link href="/signup" className="px-3 py-1.5 rounded-lg text-xs font-medium bg-brand hover:bg-brand text-on-surface transition-colors">
                     {s.podcast_page.guest_nudge_signup}
-                  </a>
+                  </Link>
                 </div>
               </div>
             )}
@@ -1141,9 +1142,9 @@ export default function PodcastPage() {
                 >
                   {s.podcast_page.filter_off}
                 </button>
-                <a href="/upgrade" className="text-xs text-on-surface-dim hover:text-primary transition-colors ml-1">
+                <Link href="/upgrade" className="text-xs text-on-surface-dim hover:text-primary transition-colors ml-1">
                   Pro: custom filters →
-                </a>
+                </Link>
               </div>
             )}
 

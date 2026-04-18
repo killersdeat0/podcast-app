@@ -657,7 +657,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
       setBookmarkNote('')
       toast(strings.player.bookmark_saved(timeLabel), {
         duration: 8000,
-        description: <a href="/bookmarks" className="text-primary underline text-xs">{strings.player.bookmark_saved_hint}</a>,
+        description: <Link href="/bookmarks" className="text-primary underline text-xs">{strings.player.bookmark_saved_hint}</Link>,
         action: {
           label: strings.player.bookmark_add_note,
           onClick: () => setBookmarkNoteOpen(true),
@@ -944,9 +944,9 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
             />
           </div>
           {isFreeTier && (
-            <a href="/upgrade" className="text-[10px] text-primary hover:text-primary leading-none whitespace-nowrap">
+            <Link href="/upgrade" className="text-[10px] text-primary hover:text-primary leading-none whitespace-nowrap">
               {strings.player.upgrade_for_speeds}
-            </a>
+            </Link>
           )}
         </div>
       </div>

@@ -107,7 +107,7 @@ export default function PlaylistsPage() {
       {atLimit && (
         <div className="mb-4 p-3 bg-warning-container border border-warning rounded-lg text-sm text-on-warning-container">
           {strings.playlists.limit_reached_playlists}{' '}
-          <a href="/upgrade" className="underline hover:text-on-warning-container">{strings.playlists.upgrade_cta}</a>
+          <Link href="/upgrade" className="underline hover:text-on-warning-container">{strings.playlists.upgrade_cta}</Link>
         </div>
       )}
 
