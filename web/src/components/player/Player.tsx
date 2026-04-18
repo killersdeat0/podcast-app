@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Volume1, Volume2, VolumeX, SkipForward, Bookmark } from 'lucide-react'
 import { toast } from 'sonner'
 import { usePlayer, NowPlaying, PlaylistEpisodeRef } from './PlayerContext'
+import { PodcastArtwork } from '@/components/ui/PodcastArtwork'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useStrings } from '@/lib/i18n/LocaleContext'
@@ -78,7 +79,6 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
   const [duration, setDuration] = useState(0)
   const [sleepMinutes, setSleepMinutes] = useState(0)
   const [volume, setVolume] = useState(1)
-  const [artworkError, setArtworkError] = useState(false)
   const [mobileMenu, setMobileMenu] = useState<null | 'main' | 'speed' | 'volume'>(null)
   const [chapters, setChapters] = useState<Chapter[]>([])
   const [playerBookmarks, setPlayerBookmarks] = useState<Array<{ id: string; positionSeconds: number; note: string | null }>>([])
@@ -205,7 +205,6 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
   }, [updatePlaylistEpisodes])
 
   useEffect(() => {
-    setArtworkError(false)
     setChapters([])
     setPlayerBookmarks([])
     if (nowPlaying?.chapterUrl) {
@@ -721,17 +720,13 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
       <div className="max-w-screen-xl mx-auto flex items-center gap-3 md:gap-6">
         {/* Artwork + info */}
         <div className="flex items-center gap-3 min-w-0 flex-shrink max-w-[40%] md:max-w-none md:w-56 md:flex-shrink-0">
-          {nowPlaying.artworkUrl && !artworkError && (
-            <Link href={`/podcast/${encodeURIComponent(nowPlaying.feedUrl)}`} className="flex-shrink-0">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={nowPlaying.artworkUrl}
-                alt=""
-                className="w-10 h-10 md:w-12 md:h-12 rounded-lg object-cover hover:opacity-80 transition-opacity"
-                onError={() => setArtworkError(true)}
-              />
-            </Link>
-          )}
+          <Link href={`/podcast/${encodeURIComponent(nowPlaying.feedUrl)}`} className="flex-shrink-0">
+            <PodcastArtwork
+              src={nowPlaying.artworkUrl}
+              title={nowPlaying.podcastTitle}
+              className="w-10 h-10 md:w-12 md:h-12 rounded-lg object-cover hover:opacity-80 transition-opacity"
+            />
+          </Link>
           <div className="overflow-hidden min-w-0 hidden sm:block">
             <ScrollingText text={nowPlaying.title} className="text-sm font-medium text-on-surface" />
             <ScrollingText text={nowPlaying.podcastTitle} className="text-xs text-on-surface-variant" />

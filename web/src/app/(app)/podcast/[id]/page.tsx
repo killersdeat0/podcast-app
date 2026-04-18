@@ -5,6 +5,7 @@ import { useSearchParams, useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { usePlayer } from '@/components/player/PlayerContext'
 import { SkeletonEpisodeRow } from '@/components/ui/Skeleton'
+import { PodcastArtwork } from '@/components/ui/PodcastArtwork'
 import type { PodcastFeed, Episode } from '@/lib/rss/parser'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
@@ -882,14 +883,11 @@ export default function PodcastPage() {
         {!loading && <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background" />}
         {/* Content */}
         {!(loading && !title) && <div className="relative z-10 flex gap-5 md:gap-7 items-end px-4 md:px-8 pt-8 pb-12">
-          {artwork && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={artwork}
-              alt={title}
-              className="w-32 h-32 md:w-40 md:h-40 rounded-2xl object-cover flex-shrink-0 shadow-2xl ring-1 ring-outline-variant self-start"
-            />
-          )}
+          <PodcastArtwork
+            src={artwork}
+            title={title}
+            className="w-32 h-32 md:w-40 md:h-40 rounded-2xl object-cover flex-shrink-0 shadow-2xl ring-1 ring-outline-variant self-start"
+          />
           <div className="min-w-0 pb-1">
             <h1 className="text-3xl md:text-4xl font-bold text-on-surface leading-tight mb-1">{title}</h1>
             {feed && (

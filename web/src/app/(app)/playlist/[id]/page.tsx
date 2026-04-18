@@ -28,6 +28,7 @@ import { useUser } from '@/lib/auth/UserContext'
 import { usePlayer } from '@/components/player/PlayerContext'
 import type { PlaylistEpisodeRef } from '@/components/player/PlayerContext'
 import AuthPromptModal from '@/components/ui/AuthPromptModal'
+import { PodcastArtwork } from '@/components/ui/PodcastArtwork'
 
 interface PlaylistEpisode {
   id: string
@@ -195,12 +196,11 @@ function SortableEpisodeRow({
             disabled={!item.episode}
             className="flex items-center gap-3 flex-1 min-w-0 text-left disabled:opacity-50"
           >
-            {item.episode?.artwork_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={item.episode.artwork_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-            ) : (
-              <div className="w-10 h-10 rounded-lg bg-surface-container-high flex-shrink-0" />
-            )}
+            <PodcastArtwork
+              src={item.episode?.artwork_url}
+              title={item.episode?.podcast_title}
+              className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+            />
             <div className="overflow-hidden flex-1">
               <p className="text-sm font-medium text-on-surface truncate">
                 {item.episode?.title ?? item.episode_guid}

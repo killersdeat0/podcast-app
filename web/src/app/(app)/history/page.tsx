@@ -13,6 +13,7 @@ import { useUserPlaylists } from '@/hooks/useUserPlaylists'
 import { addEpisodeToPlaylist } from '@/lib/playlists/addEpisodeToPlaylist'
 import { Info } from 'lucide-react'
 import DOMPurify from 'dompurify'
+import { PodcastArtwork } from '@/components/ui/PodcastArtwork'
 
 interface HistoryItem {
   episode_guid: string
@@ -255,16 +256,11 @@ export default function HistoryPage() {
             disabled={!item.episode}
             className="flex items-center gap-3 flex-1 min-w-0 text-left disabled:opacity-50"
           >
-            {item.episode?.artwork_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={item.episode.artwork_url}
-                alt=""
-                className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-lg bg-surface-container-high flex-shrink-0" />
-            )}
+            <PodcastArtwork
+              src={item.episode?.artwork_url}
+              title={item.episode?.podcast_title}
+              className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+            />
             <div className="flex-1 overflow-hidden">
               <p className="text-sm font-medium text-on-surface truncate">
                 {item.episode?.title ?? item.episode_guid}

@@ -7,6 +7,7 @@ import { Headphones, CheckCircle, Flame, Radio, Sparkles } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { formatDuration } from '@/lib/formatDuration'
+import { PodcastArtwork } from '@/components/ui/PodcastArtwork'
 
 interface ProfileData {
   email: string
@@ -368,16 +369,11 @@ export default function ProfilePage() {
                       className="flex items-center gap-3 group"
                     >
                       <div className="relative w-10 h-10 flex-shrink-0">
-                        {sub.artwork_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={sub.artwork_url}
-                            alt=""
-                            className="w-10 h-10 rounded-lg object-cover"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-lg bg-surface-container" />
-                        )}
+                        <PodcastArtwork
+                          src={sub.artwork_url}
+                          title={sub.title}
+                          className="w-10 h-10 rounded-lg object-cover"
+                        />
                         {sub.new_episode_count > 0 && (
                           <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-0.5 bg-brand rounded-full border-2 border-surface flex items-center justify-center text-[10px] font-bold text-on-brand leading-none">
                             {sub.new_episode_count > 99 ? '99+' : sub.new_episode_count}

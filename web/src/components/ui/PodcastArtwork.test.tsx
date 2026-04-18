@@ -64,14 +64,30 @@ describe('PodcastArtwork', () => {
     expect(color1).not.toBe(color2)
   })
 
-  it('applies className to the img element', () => {
-    render(<PodcastArtwork src="https://example.com/art.jpg" title="Test" className="w-10 h-10 rounded-lg" />)
-    const img = screen.getByRole('img')
-    expect(img).toHaveClass('w-10', 'h-10', 'rounded-lg')
+  it('applies className to the outer div when src is provided', () => {
+    const { container } = render(<PodcastArtwork src="https://example.com/art.jpg" title="Test" className="w-10 h-10 rounded-lg" />)
+    expect(container.firstChild).toHaveClass('w-10', 'h-10', 'rounded-lg')
+    expect(screen.getByRole('img')).toBeInTheDocument()
   })
 
   it('applies className to the letter tile div', () => {
     const { container } = render(<PodcastArtwork src={null} title="Test" className="w-10 h-10 rounded-lg" />)
     expect(container.firstChild).toHaveClass('w-10', 'h-10', 'rounded-lg')
+  })
+
+  it('shows letter tile before image loads', () => {
+    render(<PodcastArtwork src="https://example.com/art.jpg" title="My Podcast" className="w-10 h-10" />)
+    expect(screen.getByText('M')).toBeInTheDocument()
+    const img = screen.getByRole('img')
+    expect(img).toHaveClass('opacity-0')
+  })
+
+  it('hides letter tile after image loads', () => {
+    render(<PodcastArtwork src="https://example.com/art.jpg" title="My Podcast" className="w-10 h-10" />)
+    const img = screen.getByRole('img')
+    fireEvent.load(img)
+    expect(screen.queryByText('M')).not.toBeInTheDocument()
+    expect(img).toHaveClass('opacity-100')
+    expect(img).not.toHaveClass('opacity-0')
   })
 })

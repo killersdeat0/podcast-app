@@ -25,6 +25,7 @@ import { usePlayer } from '@/components/player/PlayerContext'
 import { useSignOut } from '@/lib/auth/useSignOut'
 import AuthPromptModal from '@/components/ui/AuthPromptModal'
 import { EqBars } from '@/components/ui/EqBars'
+import { PodcastArtwork } from '@/components/ui/PodcastArtwork'
 interface Subscription {
   feed_url: string
   title: string
@@ -80,12 +81,11 @@ function SortableSub({ sub, active, isNowPlaying, playing }: { sub: Subscription
         }`}
       >
         <div className="relative w-6 h-6 flex-shrink-0">
-          {sub.artwork_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={sub.artwork_url} alt="" className="w-6 h-6 rounded-md object-cover" />
-          ) : (
-            <span className="w-6 h-6 rounded-md bg-surface-container-high block" />
-          )}
+          <PodcastArtwork
+            src={sub.artwork_url}
+            title={sub.title}
+            className="w-6 h-6 rounded-md object-cover"
+          />
           {sub.new_episode_count > 0 && (
             <span className="absolute -top-1 -right-1 min-w-[12px] h-[12px] px-0.5 bg-brand rounded-full border border-surface flex items-center justify-center text-[8px] font-bold text-on-surface leading-none">
               {sub.new_episode_count > 99 ? '99+' : sub.new_episode_count}

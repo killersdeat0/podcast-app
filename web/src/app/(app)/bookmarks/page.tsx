@@ -8,6 +8,7 @@ import { usePlayer } from '@/components/player/PlayerContext'
 import { useUser } from '@/lib/auth/UserContext'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { groupByEpisode, type BookmarkItem } from '@/lib/bookmarks/groupByEpisode'
+import { PodcastArtwork } from '@/components/ui/PodcastArtwork'
 
 function formatTime(s: number) {
   const m = Math.floor(s / 60)
@@ -110,16 +111,11 @@ export default function BookmarksPage() {
                   onClick={() => toggleExpanded(group.key)}
                   className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-container transition-colors text-left"
                 >
-                  {group.episode?.artworkUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={group.episode.artworkUrl}
-                      alt=""
-                      width={44}
-                      height={44}
-                      className="rounded-lg flex-shrink-0 object-cover"
-                    />
-                  )}
+                  <PodcastArtwork
+                    src={group.episode?.artworkUrl}
+                    title={group.episode?.podcastTitle}
+                    className="w-11 h-11 rounded-lg flex-shrink-0 object-cover"
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-on-surface truncate">
                       {group.episode?.title ?? group.guid}

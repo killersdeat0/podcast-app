@@ -174,16 +174,13 @@ Use `@radix-ui/react-dialog` for all modals — no custom backdrop/escape patter
 
 Use `<Link href="...">` from `next/link` for all internal navigation. Raw `<a href="...">` tags cause full page reloads, which unmount the React tree and kill audio playback. This is the most common source of the podcast pausing mid-listen when navigating. The only valid uses of `<a>` are external URLs (`target="_blank"`) and auth pages that intentionally have no player.
 
+### Podcast artwork — always use `<PodcastArtwork>`
+
+Use `<PodcastArtwork src={...} title={...} className="..." />` from `@/components/ui/PodcastArtwork` instead of raw `<img>` for all podcast/episode artwork. See `docs/ui-patterns.md` for full details.
+
 ### Rendering HTML from RSS feeds
 
-Podcast/episode descriptions from RSS feeds may contain HTML (from CDATA sections). Always sanitize before rendering: use `DOMPurify.sanitize()` with `dangerouslySetInnerHTML`. Never render raw RSS HTML without sanitization. Apply Tailwind child selectors (`[&_a]:`, `[&_p]:`, etc.) on the container to style the rendered HTML using semantic tokens.
-
-```tsx
-<div
-  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(description) }}
-  className="[&_a]:text-primary [&_a]:underline [&_p]:mb-2"
-/>
-```
+Always sanitize RSS HTML with `DOMPurify.sanitize()` before `dangerouslySetInnerHTML`. Never render raw RSS HTML without sanitization. See `docs/ui-patterns.md` for the pattern.
 
 ### Ownership verification
 

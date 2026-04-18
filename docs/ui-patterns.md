@@ -53,6 +53,44 @@ All modal dialogs use `@radix-ui/react-dialog` (`import * as Dialog from '@radix
 
 **Do not** use `el.style.animation = 'none'` (the shorthand) in the imperative animation code — it wipes `animation-duration` and `animation-delay` sub-properties. Always use `el.style.animationName = 'none'` instead.
 
+## Podcast artwork (`PodcastArtwork`)
+
+`web/src/components/ui/PodcastArtwork.tsx` — use this instead of raw `<img>` for all podcast/episode artwork everywhere in the app.
+
+```tsx
+<PodcastArtwork
+  src={episode.artwork_url}
+  title={episode.podcast_title}
+  className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+/>
+```
+
+**Props:** `src?: string | null`, `title?: string | null`, `className?: string`. Pass your existing Tailwind size/shape classes via `className` — the component fills the box.
+
+**Behavior:**
+- `src` present → renders a wrapper `<div>` with the background color, shows a letter tile placeholder while the image loads, then fades the image in (`opacity-0` → `opacity-100`, `transition-opacity duration-200`)
+- `src` absent or image load error → renders the letter tile immediately (no `<img>` attempt)
+- Letter = first character of `title`, uppercased; `?` if title is empty/null
+- Background color = deterministic from `title` hash, chosen from 8 muted tones so each podcast gets a consistent color everywhere it appears
+
+**State management:** uses `loadedSrc` / `erroredSrc` string state (not booleans) — when `src` changes, the loaded/error states automatically reset without needing a `useEffect`.
+
+**Do not** add `onError` handlers or artwork ternaries at call sites — the component handles everything internally.
+
+## Rendering HTML from RSS feeds
+
+Podcast/episode descriptions from RSS feeds may contain HTML (from CDATA sections). Always sanitize before rendering:
+
+```tsx
+<div
+  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(description) }}
+  className="[&_a]:text-primary [&_a]:underline [&_p]:mb-2"
+/>
+```
+
+- Use `DOMPurify.sanitize()` — never render raw RSS HTML without sanitization
+- Apply Tailwind child selectors (`[&_a]:`, `[&_p]:`, etc.) on the container to style the rendered HTML using semantic tokens
+
 ## Toasts
 
 Use **sonner** via the single `<AppToasts />` component in the app shell layout (`web/src/app/(app)/layout.tsx`). Do not create standalone toast components — add new toast triggers inside `AppToasts`.

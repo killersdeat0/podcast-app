@@ -9,6 +9,7 @@ import { SkeletonPodcastCard } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useStrings } from '@/lib/i18n/LocaleContext'
 import { PodcastCard } from '@/components/podcasts/PodcastCard'
+import { PodcastArtwork } from '@/components/ui/PodcastArtwork'
 import { useUser } from '@/lib/auth/UserContext'
 import { usePlayer } from '@/components/player/PlayerContext'
 import { isInProgress } from '@/lib/player/constants'
@@ -51,16 +52,11 @@ function ContinueCard({ item }: { item: HistoryItem }) {
       onClick={handleClick}
       className="w-36 flex-shrink-0 text-left hover:opacity-80 transition-opacity"
     >
-      {ep?.artwork_url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={ep.artwork_url}
-          alt={ep.title}
-          className="w-36 h-36 rounded-xl object-cover"
-        />
-      ) : (
-        <div className="w-36 h-36 rounded-xl bg-surface-container-high" />
-      )}
+      <PodcastArtwork
+        src={ep?.artwork_url}
+        title={ep?.podcast_title ?? ep?.title}
+        className="w-36 h-36 rounded-xl object-cover"
+      />
       <p className="text-xs font-medium text-on-surface line-clamp-2 mt-2">
         {ep?.title ?? ''}
       </p>
@@ -93,10 +89,9 @@ function ForYouCard({ podcast }: { podcast: ItunesResult }) {
       href={`/podcast/${podcast.collectionId}?feed=${encodeURIComponent(podcast.feedUrl)}`}
       className="w-36 flex-shrink-0 text-left hover:opacity-80 transition-opacity"
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <PodcastArtwork
         src={podcast.artworkUrl600}
-        alt={podcast.collectionName}
+        title={podcast.collectionName}
         className="w-36 h-36 rounded-xl object-cover"
       />
       <p className="text-xs font-medium text-on-surface line-clamp-2 mt-2">{podcast.collectionName}</p>
@@ -276,16 +271,11 @@ function AddByUrl() {
 
           {preview && !fetchError && (
             <div ref={previewRef} className="mt-3 flex items-center gap-3 p-3 rounded-xl bg-surface-container">
-              {preview.artworkUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={preview.artworkUrl}
-                  alt={preview.title}
-                  className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
-                />
-              ) : (
-                <div className="w-14 h-14 rounded-lg bg-surface-container-high flex-shrink-0" />
-              )}
+              <PodcastArtwork
+                src={preview.artworkUrl}
+                title={preview.title}
+                className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
+              />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-on-surface line-clamp-2">{preview.title}</p>
               </div>
@@ -598,10 +588,9 @@ export default function DiscoverPage() {
                       className="flex items-center gap-3 px-4 py-3 hover:bg-surface-container transition-colors"
                       onClick={() => setShowDropdown(false)}
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
+                      <PodcastArtwork
                         src={podcast.artworkUrl600}
-                        alt={podcast.collectionName}
+                        title={podcast.collectionName}
                         className="w-10 h-10 rounded-md object-cover flex-shrink-0"
                       />
                       <div className="overflow-hidden">
@@ -669,10 +658,9 @@ export default function DiscoverPage() {
           href={`/podcast/${featuredPodcast.collectionId}?feed=${encodeURIComponent(featuredPodcast.feedUrl)}`}
           className="flex gap-5 bg-primary-container hover:bg-primary-container/80 rounded-2xl p-5 mb-4 transition-colors"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <PodcastArtwork
             src={featuredPodcast.artworkUrl600}
-            alt={featuredPodcast.collectionName}
+            title={featuredPodcast.collectionName}
             className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
           />
           <div className="overflow-hidden flex flex-col justify-center">

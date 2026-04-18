@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import type { ItunesResult } from '@/lib/itunes/search'
+import { PodcastArtwork } from '@/components/ui/PodcastArtwork'
 
 export function PodcastCard({ podcast }: { podcast: ItunesResult }) {
   return (
@@ -9,10 +10,9 @@ export function PodcastCard({ podcast }: { podcast: ItunesResult }) {
       href={`/podcast/${podcast.collectionId}?feed=${encodeURIComponent(podcast.feedUrl)}`}
       className="flex gap-4 bg-surface-container-low hover:bg-surface-container rounded-xl p-4 transition-colors"
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <PodcastArtwork
         src={podcast.artworkUrl600}
-        alt={podcast.collectionName}
+        title={podcast.collectionName}
         className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
       />
       <div className="overflow-hidden">

@@ -26,10 +26,14 @@ interface PodcastArtworkProps {
 }
 
 export function PodcastArtwork({ src, title, className }: PodcastArtworkProps) {
-  const [imgError, setImgError] = useState(false)
+  const [erroredSrc, setErroredSrc] = useState<string | null>(null)
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null)
 
   const letter = title?.trim()[0]?.toUpperCase() ?? '?'
   const color = MUTED_COLORS[simpleHash(title ?? '') % MUTED_COLORS.length]
+
+  const imgError = erroredSrc === src
+  const imgLoaded = loadedSrc === src
 
   if (!src || imgError) {
     return (
@@ -45,12 +49,26 @@ export function PodcastArtwork({ src, title, className }: PodcastArtworkProps) {
   }
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt={title ?? ''}
-      className={className}
-      onError={() => setImgError(true)}
-    />
+    <div
+      className={`${className ?? ''} relative overflow-hidden [container-type:size]`}
+      style={{ backgroundColor: color }}
+    >
+      {!imgLoaded && (
+        <span
+          className="absolute inset-0 flex items-center justify-center font-bold text-[45cqmin] leading-none select-none"
+          style={{ color: 'white' }}
+        >
+          {letter}
+        </span>
+      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={title ?? ''}
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
+        onLoad={() => setLoadedSrc(src)}
+        onError={() => setErroredSrc(src)}
+      />
+    </div>
   )
 }

@@ -551,7 +551,7 @@ describe('artwork link', () => {
     unmount()
   })
 
-  it('does not render an artwork link when artworkUrl is empty', async () => {
+  it('renders an artwork link with fallback when artworkUrl is empty', async () => {
     vi.stubGlobal('localStorage', {
       getItem: (k: string) => (k === 'nowPlaying' ? JSON.stringify(EP1) : null),
       setItem: vi.fn(),
@@ -564,7 +564,10 @@ describe('artwork link', () => {
     await act(async () => { await new Promise((r) => setTimeout(r, 10)) })
 
     const link = document.querySelector(`a[href="/podcast/${encodeURIComponent(EP1.feedUrl)}"]`)
-    expect(link).toBeNull()
+    expect(link).not.toBeNull()
+    // When artworkUrl is empty, PodcastArtwork renders a fallback div with a letter
+    const fallback = link?.querySelector('div[style*="background-color"]')
+    expect(fallback).not.toBeNull()
 
     unmount()
   })
