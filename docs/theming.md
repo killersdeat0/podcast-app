@@ -52,13 +52,13 @@ This generates Tailwind utilities for every role:
 | `text-on-surface-dim` | `#6b7280` | `text-gray-500`/`text-gray-600` (timestamps, section labels, drag handles) |
 | `border-outline-variant` | `#374151` | `border-gray-700`/`border-gray-800` |
 
-**Brand tokens** (vivid violet fills — distinct from the M3 `primary` role which is for text):
+**Brand tokens** (theme-driven fills — distinct from the M3 `primary` role which is for text):
 
-| Token | Value | Usage |
+| Token | Value (rose default) | Usage |
 |---|---|---|
-| `bg-brand` / `text-brand` | `#7c3aed` | Filled buttons, nav active left-border accent, badges — replaces `bg-violet-600` |
-| `hover:bg-brand-dark` | `#5b21b6` | Hover state on brand fills and slider accent |
-| `text-primary` | `#a78bfa` | Violet accent text — replaces `text-violet-400` |
+| `bg-brand` / `text-brand` | `#f43f5e` | Filled buttons, nav active left-border accent, badges |
+| `hover:bg-brand-dark` | (darker shade per theme) | Hover state on brand fills and slider accent |
+| `text-primary` | `#fda4af` | Primary accent text |
 | `accent-brand` | `#7c3aed` | `input[type=range]` slider track color |
 
 **App-specific tokens** (custom extensions to M3, defined in `globals.css`):
