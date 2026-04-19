@@ -7,18 +7,19 @@ import { useStrings, useLocale, LOCALE_LABELS } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
 import { useTheme, THEMES, type Theme } from '@/lib/theme/useTheme'
 
-const THEME_META: Record<Theme, { label: string; color: string }> = {
-  rose:   { label: 'Rose',   color: '#f43f5e' },
-  amber:  { label: 'Amber',  color: '#f59e0b' },
-  sky:    { label: 'Sky',    color: '#0ea5e9' },
-  violet: { label: 'Violet', color: '#7c3aed' },
-}
 import { usePlayer } from '@/components/player/PlayerContext'
 import { useSignOut } from '@/lib/auth/useSignOut'
 import { createClient } from '@/lib/supabase/client'
 import type { Locale } from '@/lib/i18n'
 import Link from 'next/link'
 import AboutModal from '@/components/ui/AboutModal'
+
+const THEME_META: Record<Theme, { label: string; color: string }> = {
+  rose:   { label: 'Rose',   color: '#f43f5e' },
+  amber:  { label: 'Amber',  color: '#f59e0b' },
+  sky:    { label: 'Sky',    color: '#0ea5e9' },
+  violet: { label: 'Violet', color: '#7c3aed' },
+}
 
 const ALL_SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]
 const FREE_SPEEDS = [1, 2]
@@ -188,6 +189,7 @@ export default function SettingsPage() {
                     onClick={() => changeTheme(t)}
                     title={THEME_META[t].label}
                     aria-label={`${THEME_META[t].label} theme${theme === t ? ' (active)' : ''}`}
+                    aria-pressed={theme === t}
                     className="w-6 h-6 rounded-full transition-all"
                     style={{
                       background: THEME_META[t].color,
@@ -200,18 +202,12 @@ export default function SettingsPage() {
             </div>
             {/* Mini preview strip */}
             <div className="px-4 py-2.5 flex items-center gap-3 bg-surface-container-low">
-              <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-on-brand text-xs flex-shrink-0"
-                style={{ background: THEME_META[theme].color }}
-              >
+              <div className="w-7 h-7 rounded-full flex items-center justify-center bg-primary text-on-primary text-xs flex-shrink-0">
                 ▶
               </div>
               <div className="flex-1">
                 <div className="h-1.5 rounded-full bg-surface-container-high overflow-hidden">
-                  <div
-                    className="h-1.5 rounded-full w-2/5 transition-colors"
-                    style={{ background: THEME_META[theme].color }}
-                  />
+                  <div className="h-1.5 rounded-full w-2/5 bg-primary transition-colors" />
                 </div>
               </div>
               <span className="text-xs text-on-surface-variant">{THEME_META[theme].label}</span>
