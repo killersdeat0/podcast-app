@@ -5,6 +5,14 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { toast } from 'sonner'
 import { useStrings, useLocale, LOCALE_LABELS } from '@/lib/i18n/LocaleContext'
 import { useUser } from '@/lib/auth/UserContext'
+import { useTheme, THEMES, type Theme } from '@/lib/theme/useTheme'
+
+const THEME_META: Record<Theme, { label: string; color: string }> = {
+  rose:   { label: 'Rose',   color: '#f43f5e' },
+  amber:  { label: 'Amber',  color: '#f59e0b' },
+  sky:    { label: 'Sky',    color: '#0ea5e9' },
+  violet: { label: 'Violet', color: '#7c3aed' },
+}
 import { usePlayer } from '@/components/player/PlayerContext'
 import { useSignOut } from '@/lib/auth/useSignOut'
 import { createClient } from '@/lib/supabase/client'
@@ -20,6 +28,7 @@ export default function SettingsPage() {
   const s = useStrings()
   const { locale, setLocale } = useLocale()
   const { isGuest, tier } = useUser()
+  const { theme, changeTheme } = useTheme(isGuest)
   const { setSpeed } = usePlayer()
   const { signOut } = useSignOut()
 
@@ -160,6 +169,55 @@ export default function SettingsPage() {
       <h1 className="text-2xl font-bold text-on-surface mb-8">{s.settings.heading}</h1>
 
       <div className="space-y-6">
+
+        {/* ─── Appearance ─────────────────────────────────────────── */}
+        <section className="mb-8">
+          <h2 className="text-xs font-semibold text-on-surface-dim uppercase tracking-wider mb-3">
+            Appearance
+          </h2>
+          <div className="bg-surface-container rounded-xl overflow-hidden divide-y divide-outline-variant">
+            <div className="px-4 py-3 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-on-surface">Theme</p>
+                <p className="text-xs text-on-surface-variant mt-0.5">Choose your accent color</p>
+              </div>
+              <div className="flex items-center gap-2.5 flex-shrink-0">
+                {THEMES.map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => changeTheme(t)}
+                    title={THEME_META[t].label}
+                    aria-label={`${THEME_META[t].label} theme${theme === t ? ' (active)' : ''}`}
+                    className="w-6 h-6 rounded-full transition-all"
+                    style={{
+                      background: THEME_META[t].color,
+                      outline: theme === t ? `2px solid white` : 'none',
+                      outlineOffset: '2px',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+            {/* Mini preview strip */}
+            <div className="px-4 py-2.5 flex items-center gap-3 bg-surface-container-low">
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center text-on-brand text-xs flex-shrink-0"
+                style={{ background: THEME_META[theme].color }}
+              >
+                ▶
+              </div>
+              <div className="flex-1">
+                <div className="h-1.5 rounded-full bg-surface-container-high overflow-hidden">
+                  <div
+                    className="h-1.5 rounded-full w-2/5 transition-colors"
+                    style={{ background: THEME_META[theme].color }}
+                  />
+                </div>
+              </div>
+              <span className="text-xs text-on-surface-variant">{THEME_META[theme].label}</span>
+            </div>
+          </div>
+        </section>
 
         {/* ── Playback Defaults ──────────────────────────────────────────── */}
         <section>
