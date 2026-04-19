@@ -13,7 +13,7 @@ Color roles are defined as `--md-*` CSS custom properties in `web/src/app/global
 ```css
 /* globals.css */
 :root {
-  --md-primary: #a78bfa;  /* violet-400 — text accents only */
+  --md-primary: #fda4af;  /* rose-300 (default theme) — text accents only */
   --md-surface: #030712;
   /* ... */
 }

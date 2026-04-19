@@ -23,7 +23,7 @@ supabase functions deploy <function-name> --project-ref dqqybduklxwxtcahqswh  # 
 
 ## Theming
 
-Both web and mobile use **Material3** color roles as the shared design vocabulary. Source color: `#7c3aed` (violet-600). Web uses `--md-*` CSS custom properties; mobile uses `MaterialTheme.colorScheme.*`. Neither platform ever hardcodes hex or rgba values in components.
+Both web and mobile use **Material3** color roles as the shared design vocabulary. The app supports 4 themes: **Rose** (default, `#f43f5e`), **Amber** (`#f59e0b`), **Sky** (`#0ea5e9`), and **Violet** (`#7c3aed`). Web uses `--md-*` CSS custom properties via `[data-theme]` on `<html>`; mobile uses `MaterialTheme.colorScheme.*`. Neither platform ever hardcodes hex or rgba values in components. See `docs/theming.md` for the full token table and theme-switching implementation notes.
 
 ## Documentation
 
