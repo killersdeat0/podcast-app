@@ -1,18 +1,18 @@
 @import "tailwindcss";
 
 /* ─── Material3 dark color scheme ────────────────────────────────────────────
-   Source color: #7c3aed (violet-600)
+   Default source color: #f43f5e (rose-500)
    To regenerate: https://material-foundation.github.io/material-theme-builder/
    ─────────────────────────────────────────────────────────────────────────── */
 :root {
-  --md-primary:               #a78bfa;
-  --md-on-primary:            #1e0070;
-  --md-primary-container:     #4f378b;
-  --md-on-primary-container:  #eaddff;
+  --md-primary:               #fda4af;
+  --md-on-primary:            #4c0519;
+  --md-primary-container:     #9f1239;
+  --md-on-primary-container:  #ffe4e6;
 
   /* ── Brand (vivid source color — for filled buttons, active nav, badges) ── */
-  --md-brand:      #7c3aed;
-  --md-brand-dark: #5b21b6;
+  --md-brand:      #f43f5e;
+  --md-brand-dark: #e11d48;
   --md-on-brand:   #ffffff;
 
   --md-secondary:               #cbc2db;
@@ -69,6 +69,37 @@
   --md-on-warning:           #1f1a00;
   --md-warning-container:    rgba(232, 195, 57, 0.15);
   --md-on-warning-container: #fce589;
+}
+
+/* ─── Theme overrides ─────────────────────────────────────────────────────── */
+[data-theme="amber"] {
+  --md-primary:               #fcd34d;
+  --md-on-primary:            #451a03;
+  --md-primary-container:     #92400e;
+  --md-on-primary-container:  #fef3c7;
+  --md-brand:                 #f59e0b;
+  --md-brand-dark:            #d97706;
+  --md-on-brand:              #ffffff;
+}
+
+[data-theme="sky"] {
+  --md-primary:               #7dd3fc;
+  --md-on-primary:            #082f49;
+  --md-primary-container:     #075985;
+  --md-on-primary-container:  #e0f2fe;
+  --md-brand:                 #0ea5e9;
+  --md-brand-dark:            #0284c7;
+  --md-on-brand:              #ffffff;
+}
+
+[data-theme="violet"] {
+  --md-primary:               #a78bfa;
+  --md-on-primary:            #1e0070;
+  --md-primary-container:     #4f378b;
+  --md-on-primary-container:  #eaddff;
+  --md-brand:                 #7c3aed;
+  --md-brand-dark:            #5b21b6;
+  --md-on-brand:              #ffffff;
 }
 
 /* ─── Tailwind v4 design tokens (maps --md-* → Tailwind utilities) ───────────
