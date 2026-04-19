@@ -27,10 +27,11 @@ describe('useTheme', () => {
     expect(document.documentElement.dataset.theme).toBeUndefined()
   })
 
-  it('reads stored theme from localStorage on init', () => {
+  it('reads stored theme from localStorage on init', async () => {
     localStorageMock.setItem('theme', 'amber')
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ theme: 'amber' }) }))
     const { result } = renderHook(() => useTheme(false))
+    await act(async () => {})
     expect(result.current.theme).toBe('amber')
   })
 

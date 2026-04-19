@@ -24,10 +24,20 @@ function readStoredTheme(): Theme {
 }
 
 export function useTheme(isGuest: boolean) {
-  const [theme, setTheme] = useState<Theme>(readStoredTheme)
+  // Initialize with 'rose' on both server and client to avoid hydration mismatch.
+  // localStorage is read in useEffect (client-only).
+  const [theme, setTheme] = useState<Theme>('rose')
   const userChangedRef = useRef(false)
 
   useEffect(() => {
+    // Step 1: sync from localStorage (fast, no network)
+    const stored = readStoredTheme()
+    if (!userChangedRef.current) {
+      setTheme(stored)
+      applyTheme(stored)
+    }
+
+    // Step 2: reconcile with DB (authoritative)
     if (isGuest) return
     let cancelled = false
     const controller = new AbortController()
