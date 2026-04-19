@@ -27,6 +27,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         )}
       </head>
       <body className={`${geist.variable} font-sans antialiased`}>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('theme');if(t&&t!=='rose')document.documentElement.dataset.theme=t}catch(e){}`,
+          }}
+        />
         <PlayerProvider>{children}</PlayerProvider>
         <Toaster theme="dark" position="bottom-right" />
       </body>
