@@ -140,7 +140,7 @@ export default function BookmarksPage() {
                         <button
                           onClick={() => handleSeek(b)}
                           title={s.bookmarks.seek}
-                          className="flex items-center gap-1.5 text-xs font-mono text-primary hover:text-primary/80 transition-colors flex-shrink-0"
+                          className="flex items-center gap-1.5 text-xs font-mono text-primary hover:text-on-surface-variant transition-colors flex-shrink-0"
                         >
                           <Play className="w-3 h-3" />
                           {formatTime(b.positionSeconds)}

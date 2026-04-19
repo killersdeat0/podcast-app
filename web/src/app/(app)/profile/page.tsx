@@ -281,7 +281,7 @@ export default function ProfilePage() {
           {/* ── Stats sneak peek ─────────────────────────────────────────── */}
           <Link
             href="/stats"
-            className="block bg-surface-container-low border border-outline-variant rounded-xl p-5 hover:border-primary/40 transition-colors group"
+            className="block bg-surface-container-low border border-outline-variant rounded-xl p-5 hover:border-outline transition-colors group"
           >
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs text-on-surface-variant uppercase tracking-wider">{strings.profile.stats_section}</p>
@@ -385,12 +385,12 @@ export default function ProfilePage() {
                           {sub.title}
                         </span>
                         {sub.episode_filter === '*' && (
-                          <span className="text-[11px] text-primary bg-primary/10 px-1.5 py-0.5 rounded mt-0.5 inline-block">
+                          <span className="text-[11px] text-primary bg-primary-container px-1.5 py-0.5 rounded mt-0.5 inline-block">
                             📻 All episodes
                           </span>
                         )}
                         {sub.episode_filter && sub.episode_filter !== '*' && (
-                          <span className="text-[11px] text-primary bg-primary/10 px-1.5 py-0.5 rounded mt-0.5 inline-block truncate max-w-full">
+                          <span className="text-[11px] text-primary bg-primary-container px-1.5 py-0.5 rounded mt-0.5 inline-block truncate max-w-full">
                             🎯 {sub.episode_filter}
                           </span>
                         )}

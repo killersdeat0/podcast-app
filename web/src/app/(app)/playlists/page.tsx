@@ -128,7 +128,7 @@ export default function PlaylistsPage() {
             <div key={pl.id} className="relative group bg-surface-container-low rounded-xl p-4 border border-outline-variant hover:border-outline-variant transition-colors">
               <Link href={`/playlist/${pl.id}`} prefetch={false} className="block">
                 <div className="flex items-start gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary-container/40 flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center flex-shrink-0">
                     <ListMusic className="w-5 h-5 text-primary" />
                   </div>
                   <div className="min-w-0 flex-1">

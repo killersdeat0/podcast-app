@@ -254,12 +254,12 @@ function AddByUrl() {
               }}
               placeholder={strings.discover.add_by_url_placeholder}
               autoFocus
-              className="flex-1 bg-surface-container text-on-surface rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/50 transition-all min-w-0 placeholder:text-on-surface-variant"
+              className="flex-1 bg-surface-container text-on-surface rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary transition-all min-w-0 placeholder:text-on-surface-variant"
             />
             <button
               type="submit"
               disabled={fetching || !urlInput.trim()}
-              className="px-4 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 disabled:opacity-40 transition-colors shrink-0"
+              className="px-4 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-medium hover:bg-primary disabled:opacity-40 transition-colors shrink-0"
             >
               {fetching ? strings.discover.add_by_url_fetching : strings.discover.add_by_url_fetch}
             </button>
@@ -283,7 +283,7 @@ function AddByUrl() {
                 type="button"
                 onClick={handleSubscribe}
                 disabled={subscribing || subscribed}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 disabled:opacity-60 transition-all shrink-0"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-on-primary text-sm font-medium hover:bg-primary disabled:opacity-60 transition-all shrink-0"
               >
                 {subscribed && <CheckCircle2 size={14} />}
                 {subscribed
@@ -561,14 +561,14 @@ export default function DiscoverPage() {
               if (query.trim()) setShowDropdown(true)
             }}
             placeholder={strings.discover.search_placeholder}
-            className="w-full bg-surface-container text-on-surface rounded-xl pl-11 pr-14 px-5 py-3.5 text-base outline-none border border-outline-variant focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+            className="w-full bg-surface-container text-on-surface rounded-xl pl-11 pr-14 px-5 py-3.5 text-base outline-none border border-outline-variant focus:ring-2 focus:ring-primary focus:border-primary transition-all"
           />
           {/* Icon-only submit button on the right */}
           <button
             type="submit"
             disabled={loading}
             aria-label={strings.discover.search_button}
-            className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary hover:bg-primary/90 disabled:opacity-50 text-on-primary rounded-lg p-2 transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary hover:bg-primary disabled:opacity-50 text-on-primary rounded-lg p-2 transition-colors"
           >
             <Search size={18} />
           </button>
@@ -656,7 +656,7 @@ export default function DiscoverPage() {
       {featuredPodcast && (
         <Link
           href={`/podcast/${featuredPodcast.collectionId}?feed=${encodeURIComponent(featuredPodcast.feedUrl)}`}
-          className="flex gap-5 bg-primary-container hover:bg-primary-container/80 rounded-2xl p-5 mb-4 transition-colors"
+          className="flex gap-5 bg-primary-container hover:bg-surface-container-high rounded-2xl p-5 mb-4 transition-colors"
         >
           <PodcastArtwork
             src={featuredPodcast.artworkUrl600}
@@ -664,17 +664,17 @@ export default function DiscoverPage() {
             className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
           />
           <div className="overflow-hidden flex flex-col justify-center">
-            <p className="text-xs font-medium text-on-primary-container/70 uppercase tracking-wide mb-1">
+            <p className="text-xs font-medium text-on-primary-container uppercase tracking-wide mb-1">
               {strings.discover.featured}
             </p>
             <p className="text-lg font-bold text-on-primary-container leading-snug line-clamp-1">
               {featuredPodcast.collectionName}
             </p>
-            <p className="text-sm text-on-primary-container/80 mt-0.5 truncate">
+            <p className="text-sm text-on-primary-container mt-0.5 truncate">
               {featuredPodcast.artistName}
             </p>
             {featuredPodcast.primaryGenreName && (
-              <p className="text-sm text-on-primary-container/70 mt-1.5">
+              <p className="text-sm text-on-primary-container mt-1.5">
                 {featuredPodcast.primaryGenreName}
               </p>
             )}
@@ -729,7 +729,7 @@ export default function DiscoverPage() {
                 // Re-trigger the effect by toggling a dummy — simplest is page reload
                 window.location.reload()
               }}
-              className="px-2 py-1 rounded bg-error/20 text-error font-mono hover:bg-error/30 transition-colors"
+              className="px-2 py-1 rounded bg-error-container text-error font-mono hover:bg-error-container transition-colors"
             >
               clear cache + refetch
             </button>

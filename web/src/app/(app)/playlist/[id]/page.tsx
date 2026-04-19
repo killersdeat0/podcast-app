@@ -658,7 +658,7 @@ export default function PlaylistDetailPage() {
                 {isOwner && (
                   <button
                     onClick={handleDelete}
-                    className="flex items-center gap-2 px-3 py-2 bg-surface-container hover:bg-error-container/50 text-on-surface-dim hover:text-error rounded-lg text-sm transition-colors"
+                    className="flex items-center gap-2 px-3 py-2 bg-surface-container hover:bg-error-container text-on-surface-dim hover:text-error rounded-lg text-sm transition-colors"
                     title={strings.playlists.delete}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -687,9 +687,9 @@ export default function PlaylistDetailPage() {
 
       {/* Over-limit warning */}
       {overLimit && (
-        <div className="mb-4 p-3 bg-yellow-900/30 border border-yellow-700/50 rounded-lg text-sm text-yellow-300">
+        <div className="mb-4 p-3 bg-warning-container border border-warning rounded-lg text-sm text-on-warning-container">
           {strings.playlists.over_limit_episodes}{' '}
-          <Link href="/upgrade" className="underline hover:text-yellow-200">{strings.playlists.upgrade_cta}</Link>
+          <Link href="/upgrade" className="underline hover:text-on-warning-container">{strings.playlists.upgrade_cta}</Link>
         </div>
       )}
 

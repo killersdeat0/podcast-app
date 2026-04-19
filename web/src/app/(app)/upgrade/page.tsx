@@ -72,7 +72,7 @@ export default function UpgradePage() {
       )}
 
       {message && (
-        <div className="mb-6 px-4 py-3 rounded-lg bg-primary-container/40 border border-primary text-on-primary-container text-sm">
+        <div className="mb-6 px-4 py-3 rounded-lg bg-primary-container border border-primary text-on-primary-container text-sm">
           {message}
         </div>
       )}

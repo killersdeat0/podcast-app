@@ -782,7 +782,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
                   key={ch.startTime}
                   title={ch.title}
                   onClick={() => seek(ch.startTime)}
-                  className="absolute top-1/2 -translate-y-1/2 w-1 h-3 bg-primary/70 rounded-full cursor-pointer pointer-events-auto"
+                  className="absolute top-1/2 -translate-y-1/2 w-1 h-3 bg-primary rounded-full cursor-pointer pointer-events-auto"
                   style={{ left: `${(ch.startTime / duration) * 100}%` }}
                 />
               ))}
