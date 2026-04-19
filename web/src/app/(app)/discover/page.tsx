@@ -259,7 +259,7 @@ function AddByUrl() {
             <button
               type="submit"
               disabled={fetching || !urlInput.trim()}
-              className="px-4 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-medium hover:bg-primary disabled:opacity-40 transition-colors shrink-0"
+              className="px-4 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-40 shrink-0"
             >
               {fetching ? strings.discover.add_by_url_fetching : strings.discover.add_by_url_fetch}
             </button>
@@ -283,7 +283,7 @@ function AddByUrl() {
                 type="button"
                 onClick={handleSubscribe}
                 disabled={subscribing || subscribed}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-on-primary text-sm font-medium hover:bg-primary disabled:opacity-60 transition-all shrink-0"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-on-primary text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-60 shrink-0"
               >
                 {subscribed && <CheckCircle2 size={14} />}
                 {subscribed
@@ -568,7 +568,7 @@ export default function DiscoverPage() {
             type="submit"
             disabled={loading}
             aria-label={strings.discover.search_button}
-            className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary hover:bg-primary disabled:opacity-50 text-on-primary rounded-lg p-2 transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary disabled:opacity-50 text-on-primary rounded-lg p-2 hover:opacity-90 transition-opacity"
           >
             <Search size={18} />
           </button>

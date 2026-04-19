@@ -910,7 +910,7 @@ export default function PodcastPage() {
                 className={`px-6 py-2 rounded-full text-sm font-semibold transition-colors disabled:opacity-50 ${
                   subscribed
                     ? 'bg-surface-container-high hover:bg-surface-container-highest text-on-surface ring-1 ring-outline-variant'
-                    : 'bg-primary hover:bg-primary text-on-primary'
+                    : 'bg-primary hover:opacity-90 transition-opacity text-on-primary'
                 }`}
               >
                 {subscribing ? '...' : subscribed ? s.podcast_page.subscribed : s.podcast_page.subscribe}

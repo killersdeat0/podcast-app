@@ -41,7 +41,7 @@ export function PodcastArtwork({ src, title, className }: PodcastArtworkProps) {
         className={`${className ?? ''} flex items-center justify-center select-none [container-type:size]`}
         style={{ backgroundColor: color }}
       >
-        <span className="font-bold text-[45cqmin] leading-none" style={{ color: 'white' }}>
+        <span className="font-bold text-[45cqmin] leading-none" style={{ color: 'var(--md-on-brand)' }}>
           {letter}
         </span>
       </div>
@@ -56,7 +56,7 @@ export function PodcastArtwork({ src, title, className }: PodcastArtworkProps) {
       {!imgLoaded && (
         <span
           className="absolute inset-0 flex items-center justify-center font-bold text-[45cqmin] leading-none select-none"
-          style={{ color: 'white' }}
+          style={{ color: 'var(--md-on-brand)' }}
         >
           {letter}
         </span>
