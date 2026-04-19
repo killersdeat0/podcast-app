@@ -27,6 +27,9 @@ node_modules
 # local AI agent configs
 .agents/
 
+# git worktrees
+.worktrees/
+
 # Claude Code local config
 .claude/settings.local.json
 .claude/worktrees/
