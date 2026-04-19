@@ -91,6 +91,32 @@ Podcast/episode descriptions from RSS feeds may contain HTML (from CDATA section
 - Use `DOMPurify.sanitize()` — never render raw RSS HTML without sanitization
 - Apply Tailwind child selectors (`[&_a]:`, `[&_p]:`, etc.) on the container to style the rendered HTML using semantic tokens
 
+## Sidebar nav active state
+
+The sidebar uses a **left-border + dim-background** style for the active nav item — not a solid fill. This keeps the brand color visible while staying theme-compatible.
+
+**Expanded sidebar** (`border-l-2` on every item, brand-colored when active):
+
+```tsx
+const cls = `flex items-center gap-3 py-2 rounded-lg text-sm font-medium transition-colors w-full border-l-2 ${
+  isActive
+    ? 'border-brand bg-surface-container text-on-surface px-[10px]'
+    : 'border-transparent text-on-surface-variant hover:bg-surface-container hover:text-on-surface px-3'
+}`
+```
+
+`px-[10px]` on active items compensates for the 2px border so text stays aligned with inactive items at `px-3` (12px).
+
+**Collapsed sidebar** (icon-only, uses a dim filled square):
+
+```tsx
+const cls = `flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
+  isActive ? 'bg-surface-container-high text-on-surface' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+}`
+```
+
+Do not use `bg-brand` as a nav active fill — it clashes with the theme-switching architecture where `bg-brand` shifts per-theme and a solid fill would be visually heavy across all themes.
+
 ## Toasts
 
 Use **sonner** via the single `<AppToasts />` component in the app shell layout (`web/src/app/(app)/layout.tsx`). Do not create standalone toast components — add new toast triggers inside `AppToasts`.

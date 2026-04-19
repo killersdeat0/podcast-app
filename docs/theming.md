@@ -56,7 +56,7 @@ This generates Tailwind utilities for every role:
 
 | Token | Value | Usage |
 |---|---|---|
-| `bg-brand` / `text-brand` | `#7c3aed` | Filled buttons, active nav pill, badges — replaces `bg-violet-600` |
+| `bg-brand` / `text-brand` | `#7c3aed` | Filled buttons, nav active left-border accent, badges — replaces `bg-violet-600` |
 | `hover:bg-brand-dark` | `#5b21b6` | Hover state on brand fills and slider accent |
 | `text-primary` | `#a78bfa` | Violet accent text — replaces `text-violet-400` |
 | `accent-brand` | `#7c3aed` | `input[type=range]` slider track color |
