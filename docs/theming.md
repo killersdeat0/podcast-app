@@ -107,6 +107,35 @@ Use `MaterialTheme.colorScheme.*` for all colors in Composables — never hardco
 
 ---
 
+## Theme switching (web)
+
+The active theme is stored in `localStorage` under the key `'theme'`. Valid values: `'rose'` (default), `'amber'`, `'sky'`, `'violet'`.
+
+Themes are applied by setting `document.documentElement.dataset.theme` to the stored value. The `:root` CSS defines the rose palette, and `[data-theme="amber"]` / `[data-theme="sky"]` / `[data-theme="violet"]` selectors in `globals.css` override the `--md-*` tokens. When the theme is `'rose'` (or absent), no attribute is set — rose is the CSS default.
+
+### Flash-of-wrong-theme prevention
+
+`web/src/app/layout.tsx` injects an inline `<script>` as the **first child of `<body>`** — before React hydrates — to restore the stored theme attribute synchronously:
+
+```tsx
+<script
+  dangerouslySetInnerHTML={{
+    __html: `try{var t=localStorage.getItem('theme');if(t&&t!=='rose')document.documentElement.dataset.theme=t}catch(e){}`,
+  }}
+/>
+```
+
+This is the standard FOWT-prevention pattern. The `try/catch` guards against environments where `localStorage` is unavailable (e.g. private-browsing restrictions). No external library (e.g. `next-themes`) is used — the script is intentionally minimal.
+
+### Adding a new theme
+
+1. Add a `[data-theme="<name>"]` block to `globals.css` overriding the `--md-*` tokens.
+2. Add `'<name>'` to the `Theme` type in `src/lib/theme.ts` (or equivalent).
+3. Add an entry to the theme picker UI in Settings.
+4. No changes to `layout.tsx` are needed — the script reads whatever is in localStorage.
+
+---
+
 ## Adding a light theme later
 
 Web: wrap the `--md-*` variables in a `[data-theme="light"]` selector and use `next-themes` to toggle the attribute.
