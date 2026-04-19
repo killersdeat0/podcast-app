@@ -229,7 +229,7 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
           {navItems.filter(({ href }) => !(href === '/upgrade' && tier === 'paid')).map(({ href, label, icon, guestModal }) => {
             const isActive = pathname.startsWith(href)
             const cls = `flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
-              isActive ? 'bg-brand text-on-surface' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+              isActive ? 'bg-surface-container-high text-on-surface' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
             }`
             if (isGuest && guestModal) {
               return (
@@ -262,8 +262,10 @@ export default function Sidebar({ defaultOpen = true }: { defaultOpen?: boolean 
           <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
             {navItems.filter(({ href }) => !(href === '/upgrade' && tier === 'paid')).map(({ href, label, icon, guestModal }) => {
               const isActive = pathname.startsWith(href)
-              const cls = `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full ${
-                isActive ? 'bg-brand text-on-surface' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+              const cls = `flex items-center gap-3 py-2 rounded-lg text-sm font-medium transition-colors w-full border-l-2 ${
+                isActive
+                  ? 'border-brand bg-surface-container text-on-surface px-[10px]'
+                  : 'border-transparent text-on-surface-variant hover:bg-surface-container hover:text-on-surface px-3'
               }`
               if (isGuest && guestModal) {
                 return (
