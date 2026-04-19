@@ -12,7 +12,7 @@ export async function GET() {
   const [profileResult, listeningResult, completedResult, streakResult] = await Promise.all([
     supabase
       .from('user_profiles')
-      .select('tier, default_volume, skip_back_seconds, skip_forward_seconds')
+      .select('tier, default_volume, skip_back_seconds, skip_forward_seconds, theme')
       .eq('user_id', user.id)
       .single(),
     supabase
@@ -61,7 +61,8 @@ export async function GET() {
   const defaultVolume = profileResult.data?.default_volume ?? null
   const skipBackSeconds = profileResult.data?.skip_back_seconds ?? null
   const skipForwardSeconds = profileResult.data?.skip_forward_seconds ?? null
-  return NextResponse.json({ email: user.email, tier, listeningSeconds, completedThisWeek, streakDays, defaultVolume, skipBackSeconds, skipForwardSeconds })
+  const theme = profileResult.data?.theme ?? 'rose'
+  return NextResponse.json({ email: user.email, tier, listeningSeconds, completedThisWeek, streakDays, defaultVolume, skipBackSeconds, skipForwardSeconds, theme })
 }
 
 export async function PATCH(request: NextRequest) {
@@ -70,7 +71,7 @@ export async function PATCH(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json()
-  const update: Record<string, number | null> = {}
+  const update: Record<string, number | string | null> = {}
 
   if (body.defaultVolume !== undefined) {
     const v = Number(body.defaultVolume)
@@ -85,6 +86,14 @@ export async function PATCH(request: NextRequest) {
   if (body.skipForwardSeconds !== undefined) {
     const v = Number(body.skipForwardSeconds)
     update.skip_forward_seconds = isNaN(v) ? null : Math.max(1, v)
+  }
+
+  const VALID_THEMES = ['rose', 'amber', 'sky', 'violet'] as const
+  if (body.theme !== undefined) {
+    if (!VALID_THEMES.includes(body.theme)) {
+      return NextResponse.json({ error: 'Invalid theme' }, { status: 400 })
+    }
+    update.theme = body.theme
   }
 
   if (Object.keys(update).length === 0) {
