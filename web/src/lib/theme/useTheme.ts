@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 export type Theme = 'rose' | 'amber' | 'sky' | 'violet'
 export const THEMES: Theme[] = ['rose', 'amber', 'sky', 'violet']
@@ -25,12 +25,20 @@ function readStoredTheme(): Theme {
 
 export function useTheme(isGuest: boolean) {
   const [theme, setTheme] = useState<Theme>(readStoredTheme)
+  const userChangedRef = useRef(false)
 
   useEffect(() => {
     if (isGuest) return
-    fetch('/api/profile')
-      .then((r) => r.json())
+    let cancelled = false
+    const controller = new AbortController()
+
+    fetch('/api/profile', { signal: controller.signal })
+      .then((r) => {
+        if (!r.ok) throw new Error(r.statusText)
+        return r.json()
+      })
       .then((data: { theme?: Theme }) => {
+        if (cancelled || userChangedRef.current) return
         if (data.theme && (THEMES as string[]).includes(data.theme)) {
           setTheme(data.theme)
           applyTheme(data.theme)
@@ -38,9 +46,15 @@ export function useTheme(isGuest: boolean) {
         }
       })
       .catch(() => {})
+
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
   }, [isGuest])
 
   function changeTheme(next: Theme) {
+    userChangedRef.current = true
     setTheme(next)
     applyTheme(next)
     try { localStorage.setItem(STORAGE_KEY, next) } catch {}
