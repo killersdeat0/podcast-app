@@ -80,6 +80,7 @@ private data class EpisodeUpsertRow(
     @SerialName("title") val title: String,
     @SerialName("audio_url") val audioUrl: String,
     @SerialName("duration") val duration: Int?,
+    @SerialName("pub_date") val pubDate: String?,
     @SerialName("podcast_title") val podcastTitle: String,
     @SerialName("artwork_url") val artworkUrl: String?,
 )
@@ -117,12 +118,15 @@ class SupabasePlaylistRepository(
             }.decodeList<PlaylistEpisodeLinkRow>()
 
         val allGuids = linkRows.map { it.episodeGuid }.distinct()
-        val artworkMap = if (allGuids.isNotEmpty()) {
-            supabaseClient.from("episodes")
-                .select(Columns.list("guid", "artwork_url")) {
-                    filter { isIn("guid", allGuids) }
-                }.decodeList<EpisodeMetaRow>().associate { it.guid to it.artworkUrl }
-        } else emptyMap()
+        val artworkDeferred = async {
+            if (allGuids.isNotEmpty()) {
+                supabaseClient.from("episodes")
+                    .select(Columns.list("guid", "artwork_url")) {
+                        filter { isIn("guid", allGuids) }
+                    }.decodeList<EpisodeMetaRow>().associate { it.guid to it.artworkUrl }
+            } else emptyMap()
+        }
+        val artworkMap = artworkDeferred.await()
 
         val linksByPlaylist = linkRows.groupBy { it.playlistId }
 
@@ -144,7 +148,7 @@ class SupabasePlaylistRepository(
     override suspend fun createPlaylist(name: String, description: String?): Playlist {
         val userId = supabaseClient.auth.currentUserOrNull()?.id ?: throw Exception("Not authenticated")
         val positions = supabaseClient.from("playlists")
-            .select(Columns.list("position")) { }
+            .select(Columns.list("position")) { filter { eq("user_id", userId) } }
             .decodeList<PositionRow>()
         val nextPosition = (positions.maxOfOrNull { it.position } ?: -1) + 1
         val row = supabaseClient.from("playlists").insert(
@@ -233,6 +237,7 @@ class SupabasePlaylistRepository(
             EpisodeUpsertRow(
                 guid = episode.guid, feedUrl = episode.feedUrl, title = episode.title,
                 audioUrl = episode.audioUrl, duration = episode.durationSeconds,
+                pubDate = episode.pubDate,
                 podcastTitle = episode.podcastTitle, artworkUrl = episode.artworkUrl,
             )
         ) { onConflict = "feed_url,guid" }

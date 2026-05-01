@@ -39,4 +39,5 @@ data class EpisodePayload(
     val artworkUrl: String?,
     val audioUrl: String,
     val durationSeconds: Int?,
+    val pubDate: String? = null,
 )
