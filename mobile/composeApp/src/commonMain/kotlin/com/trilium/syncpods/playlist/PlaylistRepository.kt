@@ -1,5 +1,7 @@
 package com.trilium.syncpods.playlist
 
+// ── Interface ─────────────────────────────────────────────────────────────────
+
 interface PlaylistRepository {
     suspend fun getPlaylists(): List<Playlist>
     suspend fun createPlaylist(name: String, description: String? = null): Playlist

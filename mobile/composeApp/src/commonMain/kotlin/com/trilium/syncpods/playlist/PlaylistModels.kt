@@ -1,5 +1,7 @@
 package com.trilium.syncpods.playlist
 
+// ── Domain models ─────────────────────────────────────────────────────────────
+
 data class Playlist(
     val id: String,
     val name: String,
@@ -11,7 +13,7 @@ data class Playlist(
 )
 
 data class PlaylistEpisode(
-    val id: String,
+    val id: String, // playlist_episodes row id (join table); use guid for episode identity
     val guid: String,
     val feedUrl: String,
     val position: Int,
@@ -24,6 +26,8 @@ data class PlaylistEpisode(
     val positionPct: Float?,
     val completed: Boolean,
 )
+
+// ── Payload ───────────────────────────────────────────────────────────────────
 
 // Payload for adding an episode to a playlist from any screen.
 // Callers map their local episode model to this before calling addEpisode.
