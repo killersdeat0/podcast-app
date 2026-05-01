@@ -15,7 +15,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class LibraryFeatureTest {
@@ -147,9 +146,8 @@ class LibraryFeatureTest {
 
         feature.effects.test {
             feature.process(LibraryEvent.PlaylistTapped("abc"))
-            val effect = awaitItem()
-            assertIs<LibraryEffect.NavigateToPlaylist>(effect)
-            assertEquals("abc", (effect as LibraryEffect.NavigateToPlaylist).id)
+            val effect = assertIs<LibraryEffect.NavigateToPlaylist>(awaitItem())
+            assertEquals("abc", effect.id)
             cancelAndIgnoreRemainingEvents()
         }
     }
