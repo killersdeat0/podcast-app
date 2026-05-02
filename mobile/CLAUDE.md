@@ -113,6 +113,13 @@ iosMain/kotlin/com/trilium/syncpods/
 - `SupabaseQueueRepository` — authenticated queue via Supabase
 - `DelegatingQueueRepository` — switches between local/remote based on `client.auth.currentUserOrNull()`; migrates local queue to Supabase on sign-in
 
+**Playlist feature (Library tab):** The Library tab hosts two sections — subscriptions strip and playlists list. Key files:
+- `playlist/PlaylistModels.kt` — `Playlist`, `PlaylistEpisode`, `EpisodePayload` domain models
+- `playlist/PlaylistRepository.kt` — interface + `SupabasePlaylistRepository` impl
+- `library/LibraryFeature.kt` — full UDF pipeline; `LibraryScreen` sends `ScreenVisible` internally (no AppShell LaunchedEffect needed)
+- `playlistdetail/PlaylistDetailViewModel.kt` — uses `SavedStateHandle.get<String>("id")` (same pattern as `PodcastDetailViewModel`) to extract the route arg; AppShell sends `ScreenVisible(viewModel.playlistId)`
+- `addtoplaylist/AddToPlaylistViewModel.kt` — simple ViewModel (no StandardFeature) shared by PodcastDetail, Queue, and History screens via `koinViewModel<AddToPlaylistViewModel>()`; screens hold `var episodeForPlaylistSheet by remember { mutableStateOf<EpisodePayload?>(null) }` to drive `AddToPlaylistSheet`
+
 ### Class Design Rules
 
 - **Features are pure**: no Android imports, no UI references, no side-effectful constructors

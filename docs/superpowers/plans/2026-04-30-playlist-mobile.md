@@ -50,7 +50,7 @@ Base path for all test files: `composeApp/src/commonTest/kotlin/com/trilium/sync
 - Create: `commonMain/.../playlist/PlaylistModels.kt`
 - Create: `commonMain/.../playlist/PlaylistRepository.kt`
 
-- [ ] **Step 1: Create PlaylistModels.kt**
+- [x] **Step 1: Create PlaylistModels.kt**
 
 ```kotlin
 // composeApp/src/commonMain/kotlin/com/trilium/syncpods/playlist/PlaylistModels.kt
@@ -94,7 +94,7 @@ data class EpisodePayload(
 )
 ```
 
-- [ ] **Step 2: Create PlaylistRepository.kt interface**
+- [x] **Step 2: Create PlaylistRepository.kt interface**
 
 ```kotlin
 // composeApp/src/commonMain/kotlin/com/trilium/syncpods/playlist/PlaylistRepository.kt
@@ -114,7 +114,7 @@ interface PlaylistRepository {
 }
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/trilium/syncpods/playlist/
@@ -128,7 +128,7 @@ git commit -m "feat: add PlaylistModels and PlaylistRepository interface"
 **Files:**
 - Modify: `commonMain/.../playlist/PlaylistRepository.kt` (append implementation)
 
-- [ ] **Step 1: Add Supabase row types and SupabasePlaylistRepository to PlaylistRepository.kt**
+- [x] **Step 1: Add Supabase row types and SupabasePlaylistRepository to PlaylistRepository.kt**
 
 Append to the bottom of `PlaylistRepository.kt`:
 
@@ -383,7 +383,7 @@ class SupabasePlaylistRepository(
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/trilium/syncpods/playlist/PlaylistRepository.kt
@@ -398,7 +398,7 @@ git commit -m "feat: add SupabasePlaylistRepository"
 - Create: `commonMain/.../library/LibraryFeature.kt`
 - Create: `commonTest/.../library/LibraryFeatureTest.kt`
 
-- [ ] **Step 1: Write LibraryFeatureTest.kt (failing tests first)**
+- [x] **Step 1: Write LibraryFeatureTest.kt (failing tests first)**
 
 ```kotlin
 // composeApp/src/commonTest/kotlin/com/trilium/syncpods/library/LibraryFeatureTest.kt
@@ -636,7 +636,7 @@ internal fun testPlaylist(
 ) = Playlist(id = id, name = name, description = null, isPublic = false, position = 0, episodeCount = 0, artworkUrls = emptyList())
 ```
 
-- [ ] **Step 2: Run tests — expect compile failure (LibraryFeature doesn't exist yet)**
+- [x] **Step 2: Run tests — expect compile failure (LibraryFeature doesn't exist yet)**
 
 ```bash
 ./gradlew :composeApp:testDebugUnitTest --tests "com.trilium.syncpods.library.LibraryFeatureTest"
@@ -644,7 +644,7 @@ internal fun testPlaylist(
 
 Expected: compilation error — `LibraryFeature`, `LibraryEvent`, `LibraryEffect` not found.
 
-- [ ] **Step 3: Create LibraryFeature.kt**
+- [x] **Step 3: Create LibraryFeature.kt**
 
 ```kotlin
 // composeApp/src/commonMain/kotlin/com/trilium/syncpods/library/LibraryFeature.kt
@@ -856,7 +856,7 @@ class LibraryFeature(
 }
 ```
 
-- [ ] **Step 4: Run tests — expect all to pass**
+- [x] **Step 4: Run tests — expect all to pass**
 
 ```bash
 ./gradlew :composeApp:testDebugUnitTest --tests "com.trilium.syncpods.library.LibraryFeatureTest"
@@ -864,7 +864,7 @@ class LibraryFeature(
 
 Expected: BUILD SUCCESSFUL, all 9 tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/trilium/syncpods/library/LibraryFeature.kt \
@@ -880,7 +880,7 @@ git commit -m "feat: add LibraryFeature with tests"
 - Create: `commonMain/.../library/LibraryViewModel.kt`
 - Create: `commonMain/.../library/LibraryScreen.kt`
 
-- [ ] **Step 1: Create LibraryViewModel.kt**
+- [x] **Step 1: Create LibraryViewModel.kt**
 
 ```kotlin
 // composeApp/src/commonMain/kotlin/com/trilium/syncpods/library/LibraryViewModel.kt
@@ -901,7 +901,7 @@ class LibraryViewModel(
 }
 ```
 
-- [ ] **Step 2: Create LibraryScreen.kt**
+- [x] **Step 2: Create LibraryScreen.kt**
 
 ```kotlin
 // composeApp/src/commonMain/kotlin/com/trilium/syncpods/library/LibraryScreen.kt
@@ -1129,11 +1129,11 @@ private fun PlaylistCoverArt(artworkUrls: List<String>) {
 }
 ```
 
-- [ ] **Step 3: Add drag-to-reorder for playlists list**
+- [x] **Step 3: Add drag-to-reorder for playlists list**
 
 The spec requires drag-to-reorder for the playlists list in LibraryScreen. `LibraryEvent.PlaylistsReordered` and the feature handler are already implemented. For the UI, follow the exact same drag-to-reorder approach used in `QueueScreen.kt` (look for the library it uses — likely `sh.calvin.reorderable` or `androidx.compose.foundation` drag helpers). Replace the `items(state.playlists)` block with the reorderable equivalent, emitting `LibraryEvent.PlaylistsReordered(newOrder)` on drop.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/trilium/syncpods/library/
@@ -1148,7 +1148,7 @@ git commit -m "feat: add LibraryViewModel and LibraryScreen"
 - Create: `commonMain/.../playlistdetail/PlaylistDetailFeature.kt`
 - Create: `commonTest/.../playlistdetail/PlaylistDetailFeatureTest.kt`
 
-- [ ] **Step 1: Write PlaylistDetailFeatureTest.kt (failing tests first)**
+- [x] **Step 1: Write PlaylistDetailFeatureTest.kt (failing tests first)**
 
 ```kotlin
 // composeApp/src/commonTest/kotlin/com/trilium/syncpods/playlistdetail/PlaylistDetailFeatureTest.kt
@@ -1340,7 +1340,7 @@ private fun testEpisode(guid: String) = PlaylistEpisode(
 )
 ```
 
-- [ ] **Step 2: Run tests — expect compile failure**
+- [x] **Step 2: Run tests — expect compile failure**
 
 ```bash
 ./gradlew :composeApp:testDebugUnitTest --tests "com.trilium.syncpods.playlistdetail.PlaylistDetailFeatureTest"
@@ -1348,7 +1348,7 @@ private fun testEpisode(guid: String) = PlaylistEpisode(
 
 Expected: compilation error — `PlaylistDetailFeature`, `PlaylistDetailEvent`, `PlaylistDetailEffect` not found.
 
-- [ ] **Step 3: Create PlaylistDetailFeature.kt**
+- [x] **Step 3: Create PlaylistDetailFeature.kt**
 
 ```kotlin
 // composeApp/src/commonMain/kotlin/com/trilium/syncpods/playlistdetail/PlaylistDetailFeature.kt
@@ -1559,7 +1559,7 @@ class PlaylistDetailFeature(
 }
 ```
 
-- [ ] **Step 4: Run tests — expect all to pass**
+- [x] **Step 4: Run tests — expect all to pass**
 
 ```bash
 ./gradlew :composeApp:testDebugUnitTest --tests "com.trilium.syncpods.playlistdetail.PlaylistDetailFeatureTest"
@@ -1567,7 +1567,7 @@ class PlaylistDetailFeature(
 
 Expected: BUILD SUCCESSFUL, all 8 tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/trilium/syncpods/playlistdetail/PlaylistDetailFeature.kt \
@@ -1583,7 +1583,7 @@ git commit -m "feat: add PlaylistDetailFeature with tests"
 - Create: `commonMain/.../playlistdetail/PlaylistDetailViewModel.kt`
 - Create: `commonMain/.../playlistdetail/PlaylistDetailScreen.kt`
 
-- [ ] **Step 1: Create PlaylistDetailViewModel.kt**
+- [x] **Step 1: Create PlaylistDetailViewModel.kt**
 
 ```kotlin
 // composeApp/src/commonMain/kotlin/com/trilium/syncpods/playlistdetail/PlaylistDetailViewModel.kt
@@ -1604,7 +1604,7 @@ class PlaylistDetailViewModel(
 }
 ```
 
-- [ ] **Step 2: Create PlaylistDetailScreen.kt**
+- [x] **Step 2: Create PlaylistDetailScreen.kt**
 
 ```kotlin
 // composeApp/src/commonMain/kotlin/com/trilium/syncpods/playlistdetail/PlaylistDetailScreen.kt
@@ -1830,11 +1830,11 @@ private fun EpisodeRow(
 }
 ```
 
-- [ ] **Step 3: Add drag-to-reorder for episode list**
+- [x] **Step 3: Add drag-to-reorder for episode list**
 
 The spec requires drag-to-reorder for the episode list in PlaylistDetailScreen. `PlaylistDetailEvent.EpisodesReordered` and the feature handler are already implemented. Follow the exact same drag-to-reorder approach from `QueueScreen.kt`. Replace the `items(state.episodes)` block with the reorderable equivalent, emitting `PlaylistDetailEvent.EpisodesReordered(newOrder)` on drop.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/trilium/syncpods/playlistdetail/
@@ -1849,7 +1849,7 @@ git commit -m "feat: add PlaylistDetailViewModel and PlaylistDetailScreen"
 - Create: `commonMain/.../addtoplaylist/AddToPlaylistViewModel.kt`
 - Create: `commonMain/.../addtoplaylist/AddToPlaylistSheet.kt`
 
-- [ ] **Step 1: Create AddToPlaylistViewModel.kt**
+- [x] **Step 1: Create AddToPlaylistViewModel.kt**
 
 ```kotlin
 // composeApp/src/commonMain/kotlin/com/trilium/syncpods/addtoplaylist/AddToPlaylistViewModel.kt
@@ -1907,7 +1907,7 @@ class AddToPlaylistViewModel(
 }
 ```
 
-- [ ] **Step 2: Create AddToPlaylistSheet.kt**
+- [x] **Step 2: Create AddToPlaylistSheet.kt**
 
 ```kotlin
 // composeApp/src/commonMain/kotlin/com/trilium/syncpods/addtoplaylist/AddToPlaylistSheet.kt
@@ -1999,7 +1999,7 @@ private fun PlaylistSheetRow(
 }
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/trilium/syncpods/addtoplaylist/
@@ -2015,7 +2015,7 @@ git commit -m "feat: add AddToPlaylistViewModel and AddToPlaylistSheet"
 - Modify: `commonMain/.../shell/AppShell.kt`
 - Modify: `commonMain/.../di/AppModule.kt`
 
-- [ ] **Step 1: Add PlaylistDetail route to AppRoutes.kt**
+- [x] **Step 1: Add PlaylistDetail route to AppRoutes.kt**
 
 In `AppRoutes.kt`, add after the `Library` object:
 
@@ -2029,7 +2029,7 @@ data class PlaylistDetail(val id: String) : AppRoutes("playlist/{id}") {
 
 Also add `PlaylistDetail.ROUTE` to the `isFullScreenRoute` check in `AppShell.kt` in the next step.
 
-- [ ] **Step 2: Update AppShell.kt — imports**
+- [x] **Step 2: Update AppShell.kt — imports**
 
 Add these imports to `AppShell.kt`:
 
@@ -2044,7 +2044,7 @@ import com.trilium.syncpods.playlistdetail.PlaylistDetailViewModel
 import com.trilium.syncpods.player.PlayerEvent
 ```
 
-- [ ] **Step 3: Update isFullScreenRoute in AppShell.kt**
+- [x] **Step 3: Update isFullScreenRoute in AppShell.kt**
 
 Add `PlaylistDetail` to the full-screen route check (no bottom nav on this screen):
 
@@ -2059,7 +2059,7 @@ val isFullScreenRoute = currentDestination?.route == AppRoutes.Search.ROUTE
     || currentDestination?.route == AppRoutes.VerifyEmail.ROUTE
 ```
 
-- [ ] **Step 4: Replace Library stub composable in AppShell.kt**
+- [x] **Step 4: Replace Library stub composable in AppShell.kt**
 
 Find and replace the current Library composable stub:
 
@@ -2098,7 +2098,7 @@ composable(AppRoutes.Library.route) {
 }
 ```
 
-- [ ] **Step 5: Add PlaylistDetail composable to AppShell.kt NavHost**
+- [x] **Step 5: Add PlaylistDetail composable to AppShell.kt NavHost**
 
 After the Library composable, add:
 
@@ -2137,7 +2137,7 @@ composable(AppRoutes.PlaylistDetail.ROUTE) { backStackEntry ->
 }
 ```
 
-- [ ] **Step 6: Register new dependencies in AppModule.kt**
+- [x] **Step 6: Register new dependencies in AppModule.kt**
 
 Add these registrations to `appModule` in `AppModule.kt`:
 
@@ -2156,7 +2156,7 @@ viewModelOf(::PlaylistDetailViewModel)
 viewModelOf(::AddToPlaylistViewModel)
 ```
 
-- [ ] **Step 7: Build to verify no compile errors**
+- [x] **Step 7: Build to verify no compile errors**
 
 ```bash
 ./gradlew :composeApp:assembleDebug
@@ -2164,7 +2164,7 @@ viewModelOf(::AddToPlaylistViewModel)
 
 Expected: BUILD SUCCESSFUL
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/trilium/syncpods/navigation/AppRoutes.kt \
@@ -2186,7 +2186,7 @@ For each screen: add a state variable to track which episode has the sheet open,
 
 ### PodcastDetailScreen.kt
 
-- [ ] **Step 1: Add imports to PodcastDetailScreen.kt**
+- [x] **Step 1: Add imports to PodcastDetailScreen.kt**
 
 ```kotlin
 import com.trilium.syncpods.addtoplaylist.AddToPlaylistSheet
@@ -2196,7 +2196,7 @@ import androidx.compose.material.icons.filled.PlaylistAdd
 import org.koin.compose.viewmodel.koinViewModel
 ```
 
-- [ ] **Step 2: Add AddToPlaylistViewModel and sheet state to PodcastDetailScreen composable**
+- [x] **Step 2: Add AddToPlaylistViewModel and sheet state to PodcastDetailScreen composable**
 
 Inside `PodcastDetailScreen`, after the existing `val state by feature.state.collectAsState()`:
 
@@ -2213,7 +2213,7 @@ episodeForPlaylistSheet?.let { payload ->
 }
 ```
 
-- [ ] **Step 3: Add "Add to Playlist" icon to episode rows in PodcastDetailScreen**
+- [x] **Step 3: Add "Add to Playlist" icon to episode rows in PodcastDetailScreen**
 
 Find where episode action buttons are rendered (look for `PlaylistAdd`/`PlaylistRemove` icons — already present for queue). Add another `IconButton` next to them:
 
@@ -2238,7 +2238,7 @@ IconButton(onClick = {
 
 ### QueueScreen.kt
 
-- [ ] **Step 4: Add AddToPlaylist support to QueueScreen**
+- [x] **Step 4: Add AddToPlaylist support to QueueScreen**
 
 Add the same pattern — import `AddToPlaylistSheet`, `AddToPlaylistViewModel`, `EpisodePayload`; add `val addToPlaylistViewModel = koinViewModel<AddToPlaylistViewModel>()`; add `var episodeForPlaylistSheet by remember { mutableStateOf<EpisodePayload?>(null) }` and the sheet composable.
 
@@ -2262,7 +2262,7 @@ IconButton(onClick = {
 
 ### HistoryScreen.kt
 
-- [ ] **Step 5: Add AddToPlaylist support to HistoryScreen**
+- [x] **Step 5: Add AddToPlaylist support to HistoryScreen**
 
 Same pattern as QueueScreen. Map `HistoryItem` to `EpisodePayload`:
 
@@ -2278,7 +2278,7 @@ episodeForPlaylistSheet = EpisodePayload(
 )
 ```
 
-- [ ] **Step 6: Build to verify no compile errors**
+- [x] **Step 6: Build to verify no compile errors**
 
 ```bash
 ./gradlew :composeApp:assembleDebug
@@ -2286,7 +2286,7 @@ episodeForPlaylistSheet = EpisodePayload(
 
 Expected: BUILD SUCCESSFUL
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/trilium/syncpods/podcastdetail/PodcastDetailScreen.kt \
@@ -2303,7 +2303,7 @@ git commit -m "feat: add Add to Playlist action to PodcastDetail, Queue, and His
 - Modify: `commonMain/.../profile/ProfileFeature.kt`
 - Modify: `docs/superpowers/specs/2026-04-30-playlist-design.md` (mark complete)
 
-- [ ] **Step 1: Wire ProfileAction.NavigateToViewAll in ProfileFeature.kt**
+- [x] **Step 1: Wire ProfileAction.NavigateToViewAll in ProfileFeature.kt**
 
 Find `ProfileAction.NavigateToViewAll` in `ProfileFeature.kt` (currently a stub). Emit a `ProfileEffect` that navigates to the Library tab. First check if a `NavigateToLibrary` effect already exists; if not, add it.
 
@@ -2326,7 +2326,7 @@ Add `NavigateToLibrary` to `ProfileEffect` if not present:
 data object NavigateToLibrary : ProfileEffect()
 ```
 
-- [ ] **Step 2: Handle NavigateToLibrary effect in AppShell.kt ProfileScreen section**
+- [x] **Step 2: Handle NavigateToLibrary effect in AppShell.kt ProfileScreen section**
 
 In `AppShell.kt`, in the Profile composable's effect collection (add a `LaunchedEffect` for profile effects if one doesn't exist):
 
@@ -2344,7 +2344,7 @@ LaunchedEffect(viewModel.feature.effects) {
 }
 ```
 
-- [ ] **Step 3: Run all tests**
+- [x] **Step 3: Run all tests**
 
 ```bash
 ./gradlew :composeApp:testDebugUnitTest
@@ -2352,7 +2352,7 @@ LaunchedEffect(viewModel.feature.effects) {
 
 Expected: BUILD SUCCESSFUL, all tests pass (LibraryFeatureTest + PlaylistDetailFeatureTest + all pre-existing tests).
 
-- [ ] **Step 4: Do a final build**
+- [x] **Step 4: Do a final build**
 
 ```bash
 ./gradlew :composeApp:assembleDebug
@@ -2360,7 +2360,7 @@ Expected: BUILD SUCCESSFUL, all tests pass (LibraryFeatureTest + PlaylistDetailF
 
 Expected: BUILD SUCCESSFUL
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add composeApp/src/commonMain/kotlin/com/trilium/syncpods/profile/ \
@@ -2368,7 +2368,7 @@ git add composeApp/src/commonMain/kotlin/com/trilium/syncpods/profile/ \
 git commit -m "feat: wire Profile View All Subscriptions to Library tab"
 ```
 
-- [ ] **Step 6: Update CLAUDE.md with new Library tab section**
+- [x] **Step 6: Update CLAUDE.md with new Library tab section**
 
 In `mobile/CLAUDE.md`, in the Package Structure section, replace the Library entry:
 
@@ -2379,7 +2379,7 @@ In `mobile/CLAUDE.md`, in the Package Structure section, replace the Library ent
 ├── playlist/                (PlaylistModels, PlaylistRepository)
 ```
 
-- [ ] **Step 7: Final commit**
+- [x] **Step 7: Final commit**
 
 ```bash
 git add mobile/CLAUDE.md
