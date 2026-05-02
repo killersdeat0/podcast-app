@@ -70,9 +70,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.trilium.syncpods.addtoplaylist.AddToPlaylistSheet
+import com.trilium.syncpods.addtoplaylist.AddToPlaylistViewModel
 import com.trilium.syncpods.auth.LoginPromptReason
 import com.trilium.syncpods.auth.LoginPromptSheet
 import com.trilium.syncpods.player.NowPlaying
+import com.trilium.syncpods.playlist.EpisodePayload
+import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,6 +94,16 @@ fun PodcastDetailScreen(
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var showUpgradeSheet by remember { mutableStateOf(false) }
+    val addToPlaylistViewModel = koinViewModel<AddToPlaylistViewModel>()
+    var episodeForPlaylistSheet by remember { mutableStateOf<EpisodePayload?>(null) }
+
+    episodeForPlaylistSheet?.let { payload ->
+        AddToPlaylistSheet(
+            episode = payload,
+            viewModel = addToPlaylistViewModel,
+            onDismiss = { episodeForPlaylistSheet = null },
+        )
+    }
 
     LaunchedEffect(Unit) {
         feature.process(PodcastDetailEvent.ScreenVisible)
@@ -365,6 +379,18 @@ fun PodcastDetailScreen(
                                             isQueued = episode.guid in state.queuedGuids,
                                             onPlayTapped = { feature.process(PodcastDetailEvent.EpisodePlayTapped(episode)) },
                                             onQueueToggleTapped = { feature.process(PodcastDetailEvent.EpisodeQueueToggleTapped(episode)) },
+                                            onAddToPlaylistTapped = {
+                                                episodeForPlaylistSheet = EpisodePayload(
+                                                    guid = episode.guid,
+                                                    feedUrl = state.feedUrl,
+                                                    title = episode.title,
+                                                    podcastTitle = state.podcastTitle,
+                                                    artworkUrl = state.artworkUrl,
+                                                    audioUrl = episode.audioUrl,
+                                                    durationSeconds = episode.duration,
+                                                    pubDate = episode.pubDate,
+                                                )
+                                            },
                                         )
                                     }
                                 }
@@ -467,6 +493,7 @@ private fun EpisodeCard(
     isQueued: Boolean,
     onPlayTapped: () -> Unit,
     onQueueToggleTapped: () -> Unit,
+    onAddToPlaylistTapped: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -539,6 +566,18 @@ private fun EpisodeCard(
                         contentDescription = if (isQueued) "Remove from queue" else "Add to queue",
                         modifier = Modifier.size(18.dp),
                         tint = if (isQueued) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                // Add to playlist
+                IconButton(
+                    onClick = onAddToPlaylistTapped,
+                    modifier = Modifier.size(32.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
+                        contentDescription = "Add to playlist",
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Spacer(modifier = Modifier.width(4.dp))

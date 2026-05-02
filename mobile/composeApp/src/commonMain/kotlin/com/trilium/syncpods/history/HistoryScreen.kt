@@ -15,9 +15,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -25,6 +29,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,7 +41,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.trilium.syncpods.addtoplaylist.AddToPlaylistSheet
+import com.trilium.syncpods.addtoplaylist.AddToPlaylistViewModel
 import com.trilium.syncpods.player.NowPlaying
+import com.trilium.syncpods.playlist.EpisodePayload
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun HistoryScreen(
@@ -44,6 +55,16 @@ fun HistoryScreen(
     bottomContentPadding: Dp = 0.dp,
 ) {
     val state by feature.state.collectAsState()
+    val addToPlaylistViewModel = koinViewModel<AddToPlaylistViewModel>()
+    var episodeForPlaylistSheet by remember { mutableStateOf<EpisodePayload?>(null) }
+
+    episodeForPlaylistSheet?.let { payload ->
+        AddToPlaylistSheet(
+            episode = payload,
+            viewModel = addToPlaylistViewModel,
+            onDismiss = { episodeForPlaylistSheet = null },
+        )
+    }
 
     LaunchedEffect(Unit) {
         feature.effects.collect { effect ->
@@ -104,6 +125,17 @@ fun HistoryScreen(
                     HistoryAllContent(
                         groups = state.allGroups,
                         onEpisodeTapped = { feature.process(HistoryEvent.EpisodeTapped(it)) },
+                        onAddToPlaylist = { item ->
+                            episodeForPlaylistSheet = EpisodePayload(
+                                guid = item.guid,
+                                feedUrl = item.feedUrl,
+                                title = item.title,
+                                podcastTitle = item.podcastTitle,
+                                artworkUrl = item.artworkUrl,
+                                audioUrl = item.audioUrl,
+                                durationSeconds = item.durationSeconds,
+                            )
+                        },
                         bottomContentPadding = bottomContentPadding,
                     )
                 }
@@ -115,6 +147,17 @@ fun HistoryScreen(
                     HistoryInProgressContent(
                         items = state.inProgressItems,
                         onEpisodeTapped = { feature.process(HistoryEvent.EpisodeTapped(it)) },
+                        onAddToPlaylist = { item ->
+                            episodeForPlaylistSheet = EpisodePayload(
+                                guid = item.guid,
+                                feedUrl = item.feedUrl,
+                                title = item.title,
+                                podcastTitle = item.podcastTitle,
+                                artworkUrl = item.artworkUrl,
+                                audioUrl = item.audioUrl,
+                                durationSeconds = item.durationSeconds,
+                            )
+                        },
                         bottomContentPadding = bottomContentPadding,
                     )
                 }
@@ -143,6 +186,7 @@ private fun HistoryTabPill(label: String, active: Boolean, onClick: () -> Unit) 
 private fun HistoryAllContent(
     groups: List<DateGroup>,
     onEpisodeTapped: (HistoryItem) -> Unit,
+    onAddToPlaylist: (HistoryItem) -> Unit,
     bottomContentPadding: Dp,
 ) {
     LazyColumn(
@@ -163,6 +207,7 @@ private fun HistoryAllContent(
                 EpisodeRow(
                     item = item,
                     onTap = { onEpisodeTapped(item) },
+                    onAddToPlaylist = { onAddToPlaylist(item) },
                     modifier = Modifier.animateItem().padding(horizontal = 8.dp, vertical = 2.dp),
                 )
             }
@@ -174,6 +219,7 @@ private fun HistoryAllContent(
 private fun HistoryInProgressContent(
     items: List<HistoryItem>,
     onEpisodeTapped: (HistoryItem) -> Unit,
+    onAddToPlaylist: (HistoryItem) -> Unit,
     bottomContentPadding: Dp,
 ) {
     LazyColumn(
@@ -185,6 +231,7 @@ private fun HistoryInProgressContent(
             EpisodeRow(
                 item = item,
                 onTap = { onEpisodeTapped(item) },
+                onAddToPlaylist = { onAddToPlaylist(item) },
                 modifier = Modifier.animateItem().padding(horizontal = 8.dp),
             )
         }
@@ -192,7 +239,12 @@ private fun HistoryInProgressContent(
 }
 
 @Composable
-private fun EpisodeRow(item: HistoryItem, onTap: () -> Unit, modifier: Modifier = Modifier) {
+private fun EpisodeRow(
+    item: HistoryItem,
+    onTap: () -> Unit,
+    onAddToPlaylist: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val isPlayed = item.completed || (item.positionPct != null && item.positionPct >= 98f)
     Card(
         onClick = onTap,
@@ -201,7 +253,7 @@ private fun EpisodeRow(item: HistoryItem, onTap: () -> Unit, modifier: Modifier 
         modifier = modifier.fillMaxWidth(),
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             AsyncImage(
@@ -247,6 +299,14 @@ private fun EpisodeRow(item: HistoryItem, onTap: () -> Unit, modifier: Modifier 
                         )
                     }
                 }
+            }
+
+            IconButton(onClick = onAddToPlaylist) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
+                    contentDescription = "Add to playlist",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

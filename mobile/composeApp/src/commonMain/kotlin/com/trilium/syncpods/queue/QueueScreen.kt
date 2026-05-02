@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.PlayArrow
@@ -49,9 +50,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.trilium.syncpods.addtoplaylist.AddToPlaylistSheet
+import com.trilium.syncpods.addtoplaylist.AddToPlaylistViewModel
 import com.trilium.syncpods.auth.LoginPromptReason
 import com.trilium.syncpods.auth.LoginPromptSheet
 import com.trilium.syncpods.player.NowPlaying
+import com.trilium.syncpods.playlist.EpisodePayload
+import org.koin.compose.viewmodel.koinViewModel
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -66,6 +71,16 @@ fun QueueScreen(
 ) {
     val state by feature.state.collectAsState()
     var showUpgradeSheet by remember { mutableStateOf(false) }
+    val addToPlaylistViewModel = koinViewModel<AddToPlaylistViewModel>()
+    var episodeForPlaylistSheet by remember { mutableStateOf<EpisodePayload?>(null) }
+
+    episodeForPlaylistSheet?.let { payload ->
+        AddToPlaylistSheet(
+            episode = payload,
+            viewModel = addToPlaylistViewModel,
+            onDismiss = { episodeForPlaylistSheet = null },
+        )
+    }
 
     LaunchedEffect(Unit) {
         feature.process(QueueEvent.ScreenVisible)
@@ -113,6 +128,17 @@ fun QueueScreen(
                 state = state,
                 feature = feature,
                 bottomContentPadding = bottomContentPadding,
+                onAddToPlaylist = { item ->
+                    episodeForPlaylistSheet = EpisodePayload(
+                        guid = item.guid,
+                        feedUrl = item.feedUrl,
+                        title = item.title,
+                        podcastTitle = item.podcastTitle,
+                        artworkUrl = item.artworkUrl,
+                        audioUrl = item.audioUrl,
+                        durationSeconds = item.durationSeconds,
+                    )
+                },
             )
         }
     }
@@ -175,6 +201,7 @@ private fun QueueList(
     state: QueueState,
     feature: QueueFeature,
     bottomContentPadding: Dp,
+    onAddToPlaylist: (QueueItem) -> Unit,
 ) {
     var items by remember(state.items) { mutableStateOf(state.items) }
 
@@ -210,6 +237,7 @@ private fun QueueList(
                     isDragging = isDragging,
                     onTap = { feature.process(QueueEvent.EpisodeTapped(item.guid)) },
                     onRemove = { feature.process(QueueEvent.EpisodeRemoved(item.guid)) },
+                    onAddToPlaylist = { onAddToPlaylist(item) },
                     dragHandle = {
                         IconButton(
                             modifier = Modifier.draggableHandle(
@@ -239,6 +267,7 @@ private fun QueueEpisodeCard(
     isDragging: Boolean,
     onTap: () -> Unit,
     onRemove: () -> Unit,
+    onAddToPlaylist: () -> Unit,
     dragHandle: @Composable () -> Unit,
 ) {
     val backgroundColor = if (isDragging) {
@@ -309,6 +338,14 @@ private fun QueueEpisodeCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+
+        IconButton(onClick = onAddToPlaylist) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
+                contentDescription = "Add to playlist",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
 
         IconButton(onClick = onRemove) {
