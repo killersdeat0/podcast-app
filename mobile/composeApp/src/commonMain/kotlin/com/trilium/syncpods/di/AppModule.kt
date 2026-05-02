@@ -32,9 +32,14 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.status.SessionStatus
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
+import com.trilium.syncpods.addtoplaylist.AddToPlaylistViewModel
 import com.trilium.syncpods.history.HistoryRepository
 import com.trilium.syncpods.history.HistoryViewModel
 import com.trilium.syncpods.history.SupabaseHistoryRepository
+import com.trilium.syncpods.library.LibraryViewModel
+import com.trilium.syncpods.playlist.PlaylistRepository
+import com.trilium.syncpods.playlist.SupabasePlaylistRepository
+import com.trilium.syncpods.playlistdetail.PlaylistDetailViewModel
 import com.trilium.syncpods.queue.DelegatingQueueRepository
 import com.trilium.syncpods.queue.LocalQueueRepository
 import com.trilium.syncpods.queue.QueueRepository
@@ -118,4 +123,8 @@ val appModule = module {
     viewModel { PlayerViewModel(get<AudioPlayer>(), get<ProgressRepository>(), get<ProfileRepository>()) }
     single<HistoryRepository> { SupabaseHistoryRepository(supabaseClient = get()) }
     viewModel { HistoryViewModel(get(), get(), get()) }
+    single<PlaylistRepository> { SupabasePlaylistRepository(supabaseClient = get()) }
+    viewModel { LibraryViewModel(get(), get()) }
+    viewModelOf(::PlaylistDetailViewModel)
+    viewModelOf(::AddToPlaylistViewModel)
 }

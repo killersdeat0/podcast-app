@@ -3,7 +3,6 @@ package com.trilium.syncpods.shell
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -55,6 +54,12 @@ import com.trilium.syncpods.profile.ProfileViewModel
 import com.trilium.syncpods.history.HistoryEvent
 import com.trilium.syncpods.history.HistoryScreen
 import com.trilium.syncpods.history.HistoryViewModel
+import com.trilium.syncpods.library.LibraryScreen
+import com.trilium.syncpods.library.LibraryViewModel
+import com.trilium.syncpods.playlistdetail.PlaylistDetailEvent
+import com.trilium.syncpods.playlistdetail.PlaylistDetailScreen
+import com.trilium.syncpods.playlistdetail.PlaylistDetailViewModel
+import com.trilium.syncpods.player.NowPlaying
 import com.trilium.syncpods.queue.QueueScreen
 import com.trilium.syncpods.queue.QueueViewModel
 import com.trilium.syncpods.search.SearchScreen
@@ -83,6 +88,7 @@ fun AppShell() {
 
     val isFullScreenRoute = currentDestination?.route == AppRoutes.Search.ROUTE
         || currentDestination?.route == AppRoutes.PodcastDetail.ROUTE
+        || currentDestination?.route == AppRoutes.PlaylistDetail.ROUTE
         || currentDestination?.route == AppRoutes.Settings.route
         || currentDestination?.route == AppRoutes.Login.route
         || currentDestination?.route == AppRoutes.SignUp.route
@@ -168,7 +174,7 @@ fun AppShell() {
     val playerViewModel = koinViewModel<PlayerViewModel>()
     val playerState by playerViewModel.feature.state.collectAsState()
 
-    val onPlayEpisode = { nowPlaying: com.trilium.syncpods.player.NowPlaying ->
+    val onPlayEpisode = { nowPlaying: NowPlaying ->
         playerViewModel.feature.process(PlayerEvent.Play(nowPlaying))
     }
 
@@ -242,9 +248,41 @@ fun AppShell() {
             }
 
             composable(AppRoutes.Library.route) {
-                Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-                    Text("Library — coming soon")
+                val viewModel = koinViewModel<LibraryViewModel>()
+                LibraryScreen(
+                    feature = viewModel.feature,
+                    onNavigateToPlaylist = { id -> navController.navigate("playlist/$id") },
+                    onNavigateToPodcast = { feedUrl -> navController.navigate("podcast/${feedUrl.encodeURLPathPart()}") },
+                    modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
+                    bottomContentPadding = innerPadding.calculateBottomPadding(),
+                )
+            }
+
+            composable(AppRoutes.PlaylistDetail.ROUTE) {
+                val viewModel = koinViewModel<PlaylistDetailViewModel>()
+                LaunchedEffect(viewModel) {
+                    viewModel.feature.process(PlaylistDetailEvent.ScreenVisible(viewModel.playlistId))
                 }
+                PlaylistDetailScreen(
+                    feature = viewModel.feature,
+                    onPlayEpisode = { episode ->
+                        onPlayEpisode(
+                            NowPlaying(
+                                guid = episode.guid,
+                                title = episode.title,
+                                podcastName = episode.podcastTitle,
+                                artworkUrl = episode.artworkUrl.orEmpty(),
+                                audioUrl = episode.audioUrl,
+                                feedUrl = episode.feedUrl,
+                                durationSeconds = episode.durationSeconds,
+                                positionSeconds = episode.positionSeconds,
+                            )
+                        )
+                    },
+                    onBack = { navController.popBackStack() },
+                    topContentPadding = innerPadding.calculateTopPadding(),
+                    bottomContentPadding = innerPadding.calculateBottomPadding(),
+                )
             }
 
             composable(AppRoutes.Queue.route) {
