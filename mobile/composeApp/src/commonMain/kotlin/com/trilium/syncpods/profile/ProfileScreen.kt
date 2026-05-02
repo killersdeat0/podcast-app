@@ -57,6 +57,7 @@ fun ProfileScreen(
     onNavigateToPodcast: (String) -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToSignIn: () -> Unit,
+    onNavigateToLibrary: () -> Unit = {},
     modifier: Modifier = Modifier,
     bottomContentPadding: Dp = 0.dp,
 ) {
@@ -70,6 +71,7 @@ fun ProfileScreen(
                 is ProfileEffect.NavigateToSettings -> onNavigateToSettings()
                 is ProfileEffect.ShowUpgradeSheet -> showUpgradeSheet = true
                 is ProfileEffect.NavigateToSignIn -> onNavigateToSignIn()
+                is ProfileEffect.NavigateToLibrary -> onNavigateToLibrary()
                 is ProfileEffect.NavigateToCreateAccount -> { /* stub: create-account screen not yet implemented */ }
             }
         }

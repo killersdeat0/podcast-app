@@ -327,6 +327,15 @@ fun AppShell() {
                         navController.navigate(AppRoutes.Settings.route)
                     },
                     onNavigateToSignIn = { navController.navigate(AppRoutes.Login.route) },
+                    onNavigateToLibrary = {
+                        navController.navigate(AppRoutes.Library.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
                     modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
                     bottomContentPadding = innerPadding.calculateBottomPadding(),
                 )

@@ -70,6 +70,7 @@ sealed class ProfileEffect {
     data object NavigateToCreateAccount : ProfileEffect()
     data class NavigateToPodcastDetail(val feedUrl: String) : ProfileEffect()
     data object NavigateToSettings : ProfileEffect()
+    data object NavigateToLibrary : ProfileEffect()
     data object ShowUpgradeSheet : ProfileEffect()
 }
 
@@ -155,7 +156,7 @@ class ProfileFeature(
                 }
 
                 is ProfileAction.NavigateToViewAll -> flow<ProfileResult> {
-                    // stub — Library screen not yet implemented
+                    _effects.emit(ProfileEffect.NavigateToLibrary)
                 }
 
                 is ProfileAction.ShowUpgrade -> flow<ProfileResult> {
