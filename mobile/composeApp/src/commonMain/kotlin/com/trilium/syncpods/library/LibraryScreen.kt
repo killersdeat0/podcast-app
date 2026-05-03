@@ -48,9 +48,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.text.style.TextAlign
 import com.composure.arch.Feature
-import com.trilium.syncpods.auth.LoginPromptReason
-import com.trilium.syncpods.auth.LoginPromptSheet
 import com.trilium.syncpods.playlist.Playlist
 import com.trilium.syncpods.profile.SubscriptionSummary
 import sh.calvin.reorderable.ReorderableItem
@@ -63,6 +64,8 @@ fun LibraryScreen(
     feature: Feature<LibraryState, LibraryEvent, LibraryEffect>,
     onNavigateToPlaylist: (id: String) -> Unit,
     onNavigateToPodcast: (feedUrl: String) -> Unit,
+    onNavigateToSignIn: () -> Unit,
+    onNavigateToCreateAccount: () -> Unit,
     modifier: Modifier = Modifier,
     bottomContentPadding: Dp = 0.dp,
 ) {
@@ -76,16 +79,6 @@ fun LibraryScreen(
                 is LibraryEffect.NavigateToPodcast -> onNavigateToPodcast(effect.feedUrl)
             }
         }
-    }
-
-    // ── Login prompt ──────────────────────────────────────────────────────────
-    if (state.showLoginPrompt) {
-        LoginPromptSheet(
-            reason = LoginPromptReason.SUBSCRIBE,
-            onDismiss = { feature.process(LibraryEvent.LoginPromptDismissed) },
-            onSignIn = {},
-            onCreateAccount = {},
-        )
     }
 
     // ── Create playlist dialog ────────────────────────────────────────────────
@@ -121,12 +114,57 @@ fun LibraryScreen(
     // ── Main content ──────────────────────────────────────────────────────────
     when {
         state.isLoading -> LoadingContent(modifier = modifier)
+        state.showLoginPrompt -> GuestContent(
+            onSignIn = onNavigateToSignIn,
+            onCreateAccount = onNavigateToCreateAccount,
+            modifier = modifier,
+        )
         else -> LibraryContent(
             state = state,
             feature = feature,
             modifier = modifier,
             bottomContentPadding = bottomContentPadding,
         )
+    }
+}
+
+// ── Guest content ─────────────────────────────────────────────────────────────
+
+@Composable
+private fun GuestContent(
+    onSignIn: () -> Unit,
+    onCreateAccount: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(horizontal = 32.dp),
+        ) {
+            Text(
+                text = "Sign in to access your Library",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                text = "Save your favorite podcasts, create playlists, and more.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(8.dp))
+            Button(onClick = onSignIn, modifier = Modifier.fillMaxWidth()) {
+                Text("Sign In")
+            }
+            OutlinedButton(onClick = onCreateAccount, modifier = Modifier.fillMaxWidth()) {
+                Text("Create Account")
+            }
+        }
     }
 }
 

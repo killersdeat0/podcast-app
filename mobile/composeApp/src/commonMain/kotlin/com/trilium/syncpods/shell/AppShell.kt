@@ -253,6 +253,8 @@ fun AppShell() {
                     feature = viewModel.feature,
                     onNavigateToPlaylist = { id -> navController.navigate("playlist/$id") },
                     onNavigateToPodcast = { feedUrl -> navController.navigate("podcast/${feedUrl.encodeURLPathPart()}") },
+                    onNavigateToSignIn = { navController.navigate(AppRoutes.Login.route) },
+                    onNavigateToCreateAccount = { navController.navigate(AppRoutes.SignUp.route) },
                     modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
                     bottomContentPadding = innerPadding.calculateBottomPadding(),
                 )

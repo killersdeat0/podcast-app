@@ -42,7 +42,6 @@ sealed class LibraryEvent {
     data class PlaylistDeleted(val id: String) : LibraryEvent()
     data class PlaylistsReordered(val orderedIds: List<String>) : LibraryEvent()
     data class SubscriptionTapped(val feedUrl: String) : LibraryEvent()
-    data object LoginPromptDismissed : LibraryEvent()
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────
@@ -58,7 +57,6 @@ sealed class LibraryAction {
     data class RenamePlaylist(val id: String, val name: String) : LibraryAction()
     data class ReorderPlaylists(val orderedIds: List<String>) : LibraryAction()
     data class NavigateToPodcast(val feedUrl: String) : LibraryAction()
-    data object DismissLoginPrompt : LibraryAction()
 }
 
 // ── Results ───────────────────────────────────────────────────────────────────
@@ -79,7 +77,6 @@ sealed class LibraryResult {
     data class PlaylistDeleted(val id: String) : LibraryResult()
     data class PlaylistRenamed(val id: String, val name: String) : LibraryResult()
     data class PlaylistsReordered(val orderedIds: List<String>) : LibraryResult()
-    data object LoginPromptDismissed : LibraryResult()
 }
 
 // ── Effects ───────────────────────────────────────────────────────────────────
@@ -115,7 +112,6 @@ class LibraryFeature(
             events.filterIsInstance<LibraryEvent.PlaylistRenamed>().map { LibraryAction.RenamePlaylist(it.id, it.name) },
             events.filterIsInstance<LibraryEvent.PlaylistsReordered>().map { LibraryAction.ReorderPlaylists(it.orderedIds) },
             events.filterIsInstance<LibraryEvent.SubscriptionTapped>().map { LibraryAction.NavigateToPodcast(it.feedUrl) },
-            events.filterIsInstance<LibraryEvent.LoginPromptDismissed>().map { LibraryAction.DismissLoginPrompt },
         )
     }
 
@@ -167,7 +163,6 @@ class LibraryFeature(
                 is LibraryAction.NavigateToPodcast -> flow<LibraryResult> {
                     _effects.emit(LibraryEffect.NavigateToPodcast(action.feedUrl))
                 }
-                LibraryAction.DismissLoginPrompt -> flowOf(LibraryResult.LoginPromptDismissed)
             }
         }
     }
@@ -201,6 +196,5 @@ class LibraryFeature(
             val order = result.orderedIds.withIndex().associate { (i, id) -> id to i }
             previous.copy(playlists = previous.playlists.sortedBy { order[it.id] ?: Int.MAX_VALUE })
         }
-        LibraryResult.LoginPromptDismissed -> previous.copy(showLoginPrompt = false)
     }
 }
