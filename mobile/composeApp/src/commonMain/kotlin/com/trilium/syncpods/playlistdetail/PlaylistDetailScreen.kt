@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.RemoveCircleOutline
@@ -36,6 +37,8 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -45,14 +48,18 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import coil3.compose.AsyncImage
 import com.composure.arch.Feature
 import com.trilium.syncpods.playlist.PlaylistEpisode
@@ -70,6 +77,17 @@ fun PlaylistDetailScreen(
     bottomContentPadding: Dp = 0.dp,
 ) {
     val state by feature.state.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val clipboardManager = LocalClipboardManager.current
+    val playlist = state.playlist
+    val onTogglePublic = { feature.process(PlaylistDetailEvent.PublicPrivateToggled(!(playlist?.isPublic ?: false))) }
+    val onCopyLink: (() -> Unit)? = playlist?.takeIf { it.isPublic }?.let { p ->
+        {
+            clipboardManager.setText(AnnotatedString("https://syncpods.app/playlist/${p.id}"))
+            coroutineScope.launch { snackbarHostState.showSnackbar("Link copied") }
+        }
+    }
 
     // ── Effect collection ──────────────────────────────────────────────────────
     LaunchedEffect(Unit) {
@@ -113,6 +131,7 @@ fun PlaylistDetailScreen(
 
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -131,17 +150,6 @@ fun PlaylistDetailScreen(
                     }
                 },
                 actions = {
-                    // Public/private toggle
-                    val isPublic = state.playlist?.isPublic ?: false
-                    IconButton(
-                        onClick = { feature.process(PlaylistDetailEvent.PublicPrivateToggled(!isPublic)) },
-                    ) {
-                        Icon(
-                            imageVector = if (isPublic) Icons.Default.LockOpen else Icons.Default.Lock,
-                            contentDescription = if (isPublic) "Make private" else "Make public",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
                     TextButton(onClick = { feature.process(PlaylistDetailEvent.RenameTapped) }) {
                         Text("Rename")
                     }
@@ -184,6 +192,8 @@ fun PlaylistDetailScreen(
                             name = playlist.name,
                             episodeCount = playlist.episodeCount,
                             isPublic = playlist.isPublic,
+                            onTogglePublic = onTogglePublic,
+                            onCopyLink = onCopyLink,
                         )
                     }
                     Box(
@@ -207,6 +217,8 @@ fun PlaylistDetailScreen(
                     feature = feature,
                     topPadding = topPadding,
                     bottomPadding = bottomPadding,
+                    onTogglePublic = onTogglePublic,
+                    onCopyLink = onCopyLink,
                 )
             }
         }
@@ -221,6 +233,8 @@ private fun PlaylistHeader(
     name: String,
     episodeCount: Int,
     isPublic: Boolean,
+    onTogglePublic: () -> Unit,
+    onCopyLink: (() -> Unit)?,
 ) {
     Row(
         modifier = Modifier
@@ -248,17 +262,32 @@ private fun PlaylistHeader(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(8.dp))
-            AssistChip(
-                onClick = {},
-                label = { Text(if (isPublic) "Public" else "Private") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = if (isPublic) Icons.Default.LockOpen else Icons.Default.Lock,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AssistChip(
+                    onClick = onTogglePublic,
+                    label = { Text(if (isPublic) "Public" else "Private") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = if (isPublic) Icons.Default.LockOpen else Icons.Default.Lock,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    },
+                )
+                if (onCopyLink != null) {
+                    AssistChip(
+                        onClick = onCopyLink,
+                        label = { Text("Copy Link") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Link,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        },
                     )
-                },
-            )
+                }
+            }
         }
     }
 }
@@ -367,6 +396,8 @@ private fun EpisodeList(
     feature: Feature<PlaylistDetailState, PlaylistDetailEvent, PlaylistDetailEffect>,
     topPadding: Dp,
     bottomPadding: Dp,
+    onTogglePublic: () -> Unit,
+    onCopyLink: (() -> Unit)?,
 ) {
     var items by remember(state.episodes) { mutableStateOf(state.episodes) }
 
@@ -396,6 +427,8 @@ private fun EpisodeList(
                     name = playlist.name,
                     episodeCount = playlist.episodeCount,
                     isPublic = playlist.isPublic,
+                    onTogglePublic = onTogglePublic,
+                    onCopyLink = onCopyLink,
                 )
             }
         }
