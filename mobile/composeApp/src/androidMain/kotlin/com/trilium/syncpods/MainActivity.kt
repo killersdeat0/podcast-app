@@ -8,6 +8,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.trilium.syncpods.di.appModule
+import com.trilium.syncpods.deeplink.PendingDeepLink
+import com.trilium.syncpods.deeplink.parsePlaylistDeepLink
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.handleDeeplinks
 import org.koin.android.ext.android.inject
@@ -18,6 +20,7 @@ import org.koin.core.context.startKoin
 class MainActivity : ComponentActivity() {
 
     private val supabaseClient: SupabaseClient by inject()
+    private val pendingDeepLink: PendingDeepLink by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -31,6 +34,7 @@ class MainActivity : ComponentActivity() {
         }
 
         handleAuthIntent(intent)
+        handlePlaylistIntent(intent)
 
         setContent {
             App()
@@ -40,10 +44,17 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleAuthIntent(intent)
+        handlePlaylistIntent(intent)
     }
 
     private fun handleAuthIntent(intent: Intent) {
         supabaseClient.handleDeeplinks(intent)
+    }
+
+    private fun handlePlaylistIntent(intent: Intent) {
+        val url = intent.data?.toString() ?: return
+        val route = parsePlaylistDeepLink(url) ?: return
+        pendingDeepLink.set(route)
     }
 }
 
