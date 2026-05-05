@@ -40,6 +40,7 @@ import com.trilium.syncpods.auth.SignUpScreen
 import com.trilium.syncpods.auth.SignUpViewModel
 import com.trilium.syncpods.auth.VerifyEmailScreen
 import com.trilium.syncpods.auth.VerifyEmailViewModel
+import com.trilium.syncpods.deeplink.PendingDeepLink
 import com.trilium.syncpods.discover.DiscoverScreen
 import com.trilium.syncpods.discover.DiscoverViewModel
 import com.trilium.syncpods.navigation.AppRoutes
@@ -70,6 +71,7 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.ktor.http.encodeURLPathPart
+import kotlinx.coroutines.flow.filterNotNull
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -83,6 +85,7 @@ private data class TabItem(
 @Composable
 fun AppShell() {
     val navController = rememberNavController()
+    val pendingDeepLink = koinInject<PendingDeepLink>()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
