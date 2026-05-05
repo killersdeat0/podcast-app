@@ -103,8 +103,11 @@ class SupabasePlaylistRepository(
 ) : PlaylistRepository {
 
     override suspend fun getPlaylists(): List<Playlist> = coroutineScope {
+        val userId = supabaseClient.auth.currentUserOrNull()?.id
+            ?: return@coroutineScope emptyList()
         val playlistRows = supabaseClient.from("playlists")
             .select(Columns.list("id", "name", "description", "is_public", "position")) {
+                filter { eq("user_id", userId) }
                 order("position", order = Order.ASCENDING)
             }.decodeList<PlaylistRow>()
 

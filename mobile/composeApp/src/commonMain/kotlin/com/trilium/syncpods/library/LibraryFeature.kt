@@ -95,6 +95,10 @@ class LibraryFeature(
     private val profileRepository: ProfileRepository,
 ) : StandardFeature<LibraryState, LibraryEvent, LibraryAction, LibraryResult, LibraryEffect>(scope) {
 
+    companion object {
+        const val FREE_PLAYLIST_LIMIT = 3
+    }
+
     private val _effects = MutableSharedFlow<LibraryEffect>(extraBufferCapacity = 8)
     override val effects: SharedFlow<LibraryEffect> get() = _effects
 
@@ -136,6 +140,7 @@ class LibraryFeature(
                 LibraryAction.CreatePlaylist -> flow {
                     val name = state.value.createDialogName.trim()
                     if (name.isBlank()) return@flow
+                    if (state.value.tier == "free" && state.value.playlists.size >= FREE_PLAYLIST_LIMIT) return@flow
                     try {
                         val playlist = playlistRepository.createPlaylist(name)
                         emit(LibraryResult.PlaylistCreated(playlist))

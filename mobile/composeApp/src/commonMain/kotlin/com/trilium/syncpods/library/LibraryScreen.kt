@@ -57,7 +57,7 @@ import com.trilium.syncpods.profile.SubscriptionSummary
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
-private const val FREE_PLAYLIST_LIMIT = 3
+private val FREE_PLAYLIST_LIMIT = LibraryFeature.FREE_PLAYLIST_LIMIT
 
 @Composable
 fun LibraryScreen(
