@@ -1,6 +1,7 @@
 package com.trilium.syncpods.di
 
 import com.trilium.syncpods.createSupabaseClient
+import com.trilium.syncpods.deeplink.PendingDeepLink
 import com.trilium.syncpods.discover.DiscoverViewModel
 import com.trilium.syncpods.discover.PodcastRepository
 import com.trilium.syncpods.discover.PodcastRepositoryImpl
@@ -58,6 +59,7 @@ val appModule = module {
     single { createPlatformHttpClient() }
     single { createSupabaseClient() }
     single { PodcastSummaryCache() }
+    single { PendingDeepLink() }
     single<PodcastRepository> {
         PodcastRepositoryImpl(
             httpClient = get(),
