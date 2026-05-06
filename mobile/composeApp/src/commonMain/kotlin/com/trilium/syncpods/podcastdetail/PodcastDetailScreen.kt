@@ -294,8 +294,16 @@ fun PodcastDetailScreen(
                                     modifier = Modifier.size(16.dp),
                                     strokeWidth = 2.dp,
                                 )
+                            } else if (state.isFollowing) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Subscribed")
                             } else {
-                                Text(if (state.isFollowing) "Following" else "+ Follow")
+                                Text("Subscribe")
                             }
                         }
                     }

@@ -293,7 +293,7 @@ private fun SubscriptionsStrip(
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "Following",
+            text = "Subscriptions",
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         )

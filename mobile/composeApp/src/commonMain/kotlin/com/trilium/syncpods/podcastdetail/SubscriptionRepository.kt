@@ -1,6 +1,7 @@
 package com.trilium.syncpods.podcastdetail
 
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -18,6 +19,7 @@ private data class SubscriptionRow(
 
 @Serializable
 private data class SubscriptionInsert(
+    @SerialName("user_id") val userId: String,
     @SerialName("feed_url") val feedUrl: String,
     val title: String,
     @SerialName("artwork_url") val artworkUrl: String,
@@ -42,8 +44,11 @@ class SubscriptionRepositoryImpl(
         artworkUrl: String,
         collectionId: Long,
     ) {
+        val userId = supabaseClient.auth.currentUserOrNull()?.id
+            ?: throw IllegalStateException("Cannot subscribe: not authenticated")
         supabaseClient.from("subscriptions").upsert(
             SubscriptionInsert(
+                userId = userId,
                 feedUrl = feedUrl,
                 title = title,
                 artworkUrl = artworkUrl,
