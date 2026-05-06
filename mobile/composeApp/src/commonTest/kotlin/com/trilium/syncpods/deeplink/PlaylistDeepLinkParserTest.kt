@@ -35,4 +35,14 @@ class PlaylistDeepLinkParserTest {
     fun `returns null for blank string`() {
         assertNull(parsePlaylistDeepLink(""))
     }
+
+    @Test
+    fun `returns nav route and strips query parameters`() {
+        assertEquals("playlist/abc-123", parsePlaylistDeepLink("https://syncpods.app/playlist/abc-123?utm_source=share"))
+    }
+
+    @Test
+    fun `returns nav route and strips fragment`() {
+        assertEquals("playlist/abc-123", parsePlaylistDeepLink("https://syncpods.app/playlist/abc-123#section"))
+    }
 }
