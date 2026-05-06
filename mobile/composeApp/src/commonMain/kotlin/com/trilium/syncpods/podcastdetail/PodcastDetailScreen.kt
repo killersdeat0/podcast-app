@@ -30,16 +30,15 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
-import androidx.compose.material.icons.filled.PlaylistRemove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -92,7 +91,6 @@ fun PodcastDetailScreen(
 ) {
     val state by feature.state.collectAsState()
     val coroutineScope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
     var showUpgradeSheet by remember { mutableStateOf(false) }
     val addToPlaylistViewModel = koinViewModel<AddToPlaylistViewModel>()
     var episodeForPlaylistSheet by remember { mutableStateOf<EpisodePayload?>(null) }
@@ -109,10 +107,8 @@ fun PodcastDetailScreen(
         feature.process(PodcastDetailEvent.ScreenVisible)
         feature.effects.collect { effect ->
             when (effect) {
-                is PodcastDetailEffect.EpisodeQueuedAdded ->
-                    coroutineScope.launch { snackbarHostState.showSnackbar("Added to queue") }
-                is PodcastDetailEffect.EpisodeQueuedRemoved ->
-                    coroutineScope.launch { snackbarHostState.showSnackbar("Removed from queue") }
+                is PodcastDetailEffect.EpisodeQueuedAdded -> Unit
+                is PodcastDetailEffect.EpisodeQueuedRemoved -> Unit
                 is PodcastDetailEffect.NavigateBack -> onBack()
                 is PodcastDetailEffect.NavigateToSignIn -> onNavigateToSignIn()
                 is PodcastDetailEffect.NavigateToCreateAccount -> onNavigateToCreateAccount()
@@ -441,11 +437,6 @@ fun PodcastDetailScreen(
             }
         }
 
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = bottomContentPadding),
-        )
-
         // Overlay back button
         IconButton(
             onClick = onBack,
@@ -562,7 +553,7 @@ private fun EpisodeCard(
                     modifier = Modifier.size(32.dp),
                 ) {
                     Icon(
-                        imageVector = if (isQueued) Icons.Default.PlaylistRemove else Icons.AutoMirrored.Filled.PlaylistAdd,
+                        imageVector = if (isQueued) Icons.Default.Check else Icons.Default.Add,
                         contentDescription = if (isQueued) "Remove from queue" else "Add to queue",
                         modifier = Modifier.size(18.dp),
                         tint = if (isQueued) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
