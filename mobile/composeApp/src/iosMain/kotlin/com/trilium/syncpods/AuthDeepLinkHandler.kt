@@ -7,7 +7,7 @@ import kotlinx.coroutines.launch
 import platform.Foundation.NSURL
 import com.trilium.syncpods.deeplink.PendingDeepLink
 import com.trilium.syncpods.deeplink.parsePlaylistDeepLink
-import org.koin.core.context.GlobalContext
+import org.koin.mp.KoinPlatform
 
 private var deepLinkClient: SupabaseClient? = null
 
@@ -28,7 +28,7 @@ fun handleAuthDeepLink(urlString: String) {
 fun handleDeepLink(urlString: String) {
     val route = parsePlaylistDeepLink(urlString)
     if (route != null) {
-        GlobalContext.get().get<PendingDeepLink>().set(route)
+        KoinPlatform.getKoin().get<PendingDeepLink>().set(route)
         return
     }
     val client = deepLinkClient ?: return

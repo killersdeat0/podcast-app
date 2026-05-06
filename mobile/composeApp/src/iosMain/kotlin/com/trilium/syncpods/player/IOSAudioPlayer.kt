@@ -1,8 +1,13 @@
+@file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
+
 package com.trilium.syncpods.player
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import platform.AVFoundation.AVPlayer
+import platform.AVFoundation.currentItem
+import platform.AVFoundation.currentTime
+import platform.AVFoundation.duration
 import platform.AVFoundation.pause
 import platform.AVFoundation.play
 import platform.CoreMedia.CMTimeGetSeconds
