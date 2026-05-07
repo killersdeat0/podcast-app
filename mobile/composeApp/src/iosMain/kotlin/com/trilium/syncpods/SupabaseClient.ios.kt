@@ -24,4 +24,4 @@ actual fun createSupabaseClient(): SupabaseClient = createSupabaseClient(
             serverClientId = NSBundle.mainBundle.objectForInfoDictionaryKey("GOOGLE_WEB_CLIENT_ID") as? String ?: ""
         )
     }
-}
+}.installJwtRefreshInterceptor()

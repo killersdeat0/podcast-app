@@ -21,4 +21,4 @@ actual fun createSupabaseClient(): SupabaseClient = createSupabaseClient(
     install(ComposeAuth) {
         googleNativeLogin(serverClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID)
     }
-}
+}.installJwtRefreshInterceptor()
