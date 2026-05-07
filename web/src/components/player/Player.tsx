@@ -54,6 +54,45 @@ function ScrollingText({ text, className }: { text: string; className?: string }
   )
 }
 
+function useWakeLock(active: boolean) {
+  const lockRef = useRef<WakeLockSentinel | null>(null)
+
+  useEffect(() => {
+    if (!('wakeLock' in navigator)) return
+
+    async function acquire() {
+      try {
+        lockRef.current = await navigator.wakeLock.request('screen')
+      } catch {
+        // Silently ignore — permission denied or browser doesn't support it
+      }
+    }
+
+    async function release() {
+      if (lockRef.current) {
+        await lockRef.current.release().catch(() => {})
+        lockRef.current = null
+      }
+    }
+
+    if (active) {
+      acquire()
+    } else {
+      release()
+    }
+
+    // Browsers auto-release wake locks when the tab is hidden; re-acquire on visibility restore
+    function onVisibilityChange() {
+      if (document.visibilityState === 'visible' && active) acquire()
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [active])
+}
+
 export default function Player({ isFreeTier = false }: { isFreeTier?: boolean }) {
   const { nowPlaying, playing, speed, play, togglePlay, seek, setSpeed, audioRef, clientQueue, prependClient, dequeueClient, updatePlaylistEpisodes } = usePlayer()
   const { isGuest } = useUser()
@@ -169,6 +208,21 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
   const previousEpisodeRef = useRef<{ episode: NowPlaying; positionSeconds: number; source: 'queue' | 'playlist' | 'guest' } | null>(null)
   const pendingSeekRef = useRef<number | null>(null)
   const [sliderValue, setSliderValue] = useState(0)
+
+  useWakeLock(playing)
+
+  // Sleep recovery: when the OS sleeps it drops the network connection, which can
+  // leave the audio element paused on wake even though we're in playing state.
+  // On visibility restore, nudge it back to playing if needed.
+  useEffect(() => {
+    function onVisibilityChange() {
+      if (document.visibilityState === 'visible' && playingRef.current && audioRef.current?.paused) {
+        audioRef.current.play().catch(() => {})
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [audioRef])
 
   useEffect(() => {
     nowPlayingRef.current = nowPlaying
