@@ -397,10 +397,12 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
         const next = freshEpisodes[idx + 1]
         if (next) {
           play({ ...next, playlistContext: { playlistId, episodes: freshEpisodes } })
+        } else {
+          togglePlay()
         }
       })
       .catch(() => {})
-  }, [play])
+  }, [play, togglePlay])
 
   const skipToNext = useCallback((np: NowPlaying) => {
     const audio = audioRef.current
@@ -551,11 +553,13 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
             audioUrl: next.episode.audio_url,
             duration: next.episode.duration ?? 0,
           })
+        } else {
+          togglePlay()
         }
       })
       .catch(() => {})
   // eslint-disable-next-line react-hooks/exhaustive-deps -- restorePreviousEpisode is a stable ref-based callback; including it causes a double-trigger
-  }, [audioRef, play, advancePlaylist, restorePreviousEpisode])
+  }, [audioRef, play, advancePlaylist, togglePlay, restorePreviousEpisode])
 
   useEffect(() => {
     const audio = audioRef.current
