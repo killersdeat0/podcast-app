@@ -2,6 +2,12 @@ package com.trilium.syncpods.profile
 
 import com.composure.arch.Interactor
 import com.composure.arch.StandardFeature
+import com.trilium.syncpods.billing.BillingRepository
+import com.trilium.syncpods.billing.PurchaseResult
+import com.trilium.syncpods.billing.RestoreResult
+import com.trilium.syncpods.billing.SubscriptionProduct
+import com.trilium.syncpods.billing.MONTHLY_PRODUCT_ID
+import com.trilium.syncpods.billing.ANNUAL_PRODUCT_ID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -22,6 +28,9 @@ data class ProfileState(
     val tier: String = "free",
     val subscriptions: List<SubscriptionSummary> = emptyList(),
     val error: String? = null,
+    val products: List<SubscriptionProduct> = emptyList(),
+    val isPurchasing: Boolean = false,
+    val isRestoring: Boolean = false,
 )
 
 // ── Events ────────────────────────────────────────────────────────────────────
@@ -32,21 +41,26 @@ sealed class ProfileEvent {
     data object CreateAccountTapped : ProfileEvent()
     data class SubscriptionTapped(val feedUrl: String) : ProfileEvent()
     data object ViewAllSubscriptionsTapped : ProfileEvent()
-    data object UpgradeTapped : ProfileEvent()
     data object SettingsTapped : ProfileEvent()
     data object RetryTapped : ProfileEvent()
+    data object SubscribeMonthlyTapped : ProfileEvent()
+    data object SubscribeAnnuallyTapped : ProfileEvent()
+    data object RestorePurchasesTapped : ProfileEvent()
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 
 sealed class ProfileAction {
     data object LoadProfile : ProfileAction()
+    data object LoadProducts : ProfileAction()
     data object NavigateToSignIn : ProfileAction()
     data object NavigateToCreateAccount : ProfileAction()
     data class NavigateToPodcast(val feedUrl: String) : ProfileAction()
     data object NavigateToViewAll : ProfileAction()
-    data object ShowUpgrade : ProfileAction()
     data object NavigateToSettings : ProfileAction()
+    data object PurchaseMonthly : ProfileAction()
+    data object PurchaseAnnual : ProfileAction()
+    data object RestorePurchases : ProfileAction()
 }
 
 // ── Results ───────────────────────────────────────────────────────────────────
@@ -61,6 +75,15 @@ sealed class ProfileResult {
         val subscriptions: List<SubscriptionSummary>,
     ) : ProfileResult()
     data class LoadError(val message: String) : ProfileResult()
+    data class ProductsLoaded(val products: List<SubscriptionProduct>) : ProfileResult()
+    data object PurchaseStarted : ProfileResult()
+    data object PurchaseSuccess : ProfileResult()
+    data object PurchaseCancelled : ProfileResult()
+    data class PurchaseFailed(val message: String) : ProfileResult()
+    data object RestoreStarted : ProfileResult()
+    data object RestoreSuccess : ProfileResult()
+    data object RestoreNothing : ProfileResult()
+    data class RestoreFailed(val message: String) : ProfileResult()
 }
 
 // ── Effects ───────────────────────────────────────────────────────────────────
@@ -71,7 +94,10 @@ sealed class ProfileEffect {
     data class NavigateToPodcastDetail(val feedUrl: String) : ProfileEffect()
     data object NavigateToSettings : ProfileEffect()
     data object NavigateToLibrary : ProfileEffect()
-    data object ShowUpgradeSheet : ProfileEffect()
+    data object ShowPurchaseSuccess : ProfileEffect()
+    data class ShowPurchaseError(val message: String) : ProfileEffect()
+    data object ShowRestoreSuccess : ProfileEffect()
+    data object ShowRestoreNothing : ProfileEffect()
 }
 
 // ── Feature ───────────────────────────────────────────────────────────────────
@@ -80,6 +106,7 @@ sealed class ProfileEffect {
 class ProfileFeature(
     scope: CoroutineScope,
     private val repository: ProfileRepository,
+    private val billingRepository: BillingRepository,
 ) : StandardFeature<ProfileState, ProfileEvent, ProfileAction, ProfileResult, ProfileEffect>(scope) {
 
     private val _effects = MutableSharedFlow<ProfileEffect>(extraBufferCapacity = 8)
@@ -92,8 +119,14 @@ class ProfileFeature(
             events.filterIsInstance<ProfileEvent.ScreenVisible>()
                 .map { ProfileAction.LoadProfile },
 
+            events.filterIsInstance<ProfileEvent.ScreenVisible>()
+                .map { ProfileAction.LoadProducts },
+
             events.filterIsInstance<ProfileEvent.RetryTapped>()
                 .map { ProfileAction.LoadProfile },
+
+            events.filterIsInstance<ProfileEvent.RetryTapped>()
+                .map { ProfileAction.LoadProducts },
 
             repository.authStateChanges()
                 .map { ProfileAction.LoadProfile },
@@ -110,11 +143,17 @@ class ProfileFeature(
             events.filterIsInstance<ProfileEvent.ViewAllSubscriptionsTapped>()
                 .map { ProfileAction.NavigateToViewAll },
 
-            events.filterIsInstance<ProfileEvent.UpgradeTapped>()
-                .map { ProfileAction.ShowUpgrade },
-
             events.filterIsInstance<ProfileEvent.SettingsTapped>()
                 .map { ProfileAction.NavigateToSettings },
+
+            events.filterIsInstance<ProfileEvent.SubscribeMonthlyTapped>()
+                .map { ProfileAction.PurchaseMonthly },
+
+            events.filterIsInstance<ProfileEvent.SubscribeAnnuallyTapped>()
+                .map { ProfileAction.PurchaseAnnual },
+
+            events.filterIsInstance<ProfileEvent.RestorePurchasesTapped>()
+                .map { ProfileAction.RestorePurchases },
         )
     }
 
@@ -159,13 +198,22 @@ class ProfileFeature(
                     _effects.emit(ProfileEffect.NavigateToLibrary)
                 }
 
-                is ProfileAction.ShowUpgrade -> flow<ProfileResult> {
-                    _effects.emit(ProfileEffect.ShowUpgradeSheet)
-                }
-
                 is ProfileAction.NavigateToSettings -> flow<ProfileResult> {
                     _effects.emit(ProfileEffect.NavigateToSettings)
                 }
+
+                is ProfileAction.LoadProducts -> flow {
+                    try {
+                        val products = billingRepository.getProducts()
+                        emit(ProfileResult.ProductsLoaded(products))
+                    } catch (_: Exception) {
+                        emit(ProfileResult.ProductsLoaded(emptyList()))
+                    }
+                }
+
+                is ProfileAction.PurchaseMonthly -> flow<ProfileResult> { }
+                is ProfileAction.PurchaseAnnual -> flow<ProfileResult> { }
+                is ProfileAction.RestorePurchases -> flow<ProfileResult> { }
             }
         }
     }
@@ -196,5 +244,15 @@ class ProfileFeature(
         )
 
         is ProfileResult.LoadError -> previous.copy(isLoading = false, error = result.message)
+
+        is ProfileResult.ProductsLoaded -> previous.copy(products = result.products)
+        is ProfileResult.PurchaseStarted -> previous.copy(isPurchasing = true)
+        is ProfileResult.PurchaseSuccess -> previous.copy(isPurchasing = false, tier = "paid")
+        is ProfileResult.PurchaseCancelled -> previous.copy(isPurchasing = false)
+        is ProfileResult.PurchaseFailed -> previous.copy(isPurchasing = false)
+        is ProfileResult.RestoreStarted -> previous.copy(isRestoring = true)
+        is ProfileResult.RestoreSuccess -> previous.copy(isRestoring = false, tier = "paid")
+        is ProfileResult.RestoreNothing -> previous.copy(isRestoring = false)
+        is ProfileResult.RestoreFailed -> previous.copy(isRestoring = false)
     }
 }
