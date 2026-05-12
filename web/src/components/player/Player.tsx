@@ -481,12 +481,13 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
             action: { label: 'Undo', onClick: () => restorePreviousEpisode() },
           })
         } else {
-          // No next episode — clear the snapshot so undo isn't offered
+          // No next episode — clear the snapshot so undo isn't offered, and stop playback
           previousEpisodeRef.current = null
+          togglePlay()
         }
       })
       .catch(() => {})
-  }, [audioRef, play, advancePlaylist, restorePreviousEpisode])
+  }, [audioRef, play, togglePlay, advancePlaylist, restorePreviousEpisode])
 
   const completeAndAdvance = useCallback((np: NowPlaying) => {
     const audio = audioRef.current
@@ -634,6 +635,8 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
         const next = queue[idx + 1] ?? queue[0]
         if (next && next.guid !== np.guid) {
           play(next)
+        } else {
+          togglePlay()
         }
         return
       }
@@ -667,7 +670,7 @@ export default function Player({ isFreeTier = false }: { isFreeTier?: boolean })
       audio.removeEventListener('seeked', onSeeked)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- completeAndAdvance is intentionally excluded: it uses refs internally and including it causes unwanted re-registration of audio event listeners
-  }, [audioRef, play, isGuest, dequeueClient, restorePreviousEpisode])
+  }, [audioRef, play, togglePlay, isGuest, dequeueClient, restorePreviousEpisode])
 
   function startSleepTimer(minutes: number) {
     if (sleepTimer.current) clearTimeout(sleepTimer.current)
