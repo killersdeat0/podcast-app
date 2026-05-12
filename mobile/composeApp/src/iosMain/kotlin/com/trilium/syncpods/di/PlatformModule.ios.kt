@@ -1,5 +1,7 @@
 package com.trilium.syncpods.di
 
+import com.trilium.syncpods.billing.BillingHandler
+import com.trilium.syncpods.billing.IOSBillingHandler
 import com.trilium.syncpods.player.AudioPlayer
 import com.trilium.syncpods.player.IOSAudioPlayer
 import io.ktor.client.HttpClient
@@ -18,4 +20,8 @@ actual val supabaseAnonKey: String
 
 actual fun audioPlayerModule(): Module = module {
     single<AudioPlayer> { IOSAudioPlayer() }
+}
+
+actual fun billingHandlerModule(): Module = module {
+    single<BillingHandler> { IOSBillingHandler() }
 }

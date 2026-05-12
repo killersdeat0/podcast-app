@@ -17,6 +17,8 @@ import com.trilium.syncpods.auth.LoginRepositoryImpl
 import com.trilium.syncpods.auth.LoginViewModel
 import com.trilium.syncpods.auth.SignUpViewModel
 import com.trilium.syncpods.auth.VerifyEmailViewModel
+import com.trilium.syncpods.billing.BillingRepository
+import com.trilium.syncpods.billing.BillingRepositoryImpl
 import com.trilium.syncpods.profile.ProfileRepository
 import com.trilium.syncpods.profile.ProfileRepositoryImpl
 import com.trilium.syncpods.profile.ProfileViewModel
@@ -55,7 +57,7 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 val appModule = module {
-    includes(audioPlayerModule())
+    includes(audioPlayerModule(), billingHandlerModule())
     single { createPlatformHttpClient() }
     single { createSupabaseClient() }
     single { PodcastSummaryCache() }
@@ -80,6 +82,7 @@ val appModule = module {
     single<ProfileRepository> {
         ProfileRepositoryImpl(supabaseClient = get())
     }
+    single<BillingRepository> { BillingRepositoryImpl(billingHandler = get(), supabase = get()) }
     single<LoginRepository> {
         LoginRepositoryImpl(supabaseClient = get())
     }
@@ -109,7 +112,7 @@ val appModule = module {
         QueueViewModel(get(), get(), authSignal)
     }
     single<SettingsRepository> { SettingsRepositoryImpl(supabaseClient = get()) }
-    viewModelOf(::ProfileViewModel)
+    viewModel { ProfileViewModel(get(), get()) }
     viewModel { SettingsViewModel(get()) }
     viewModel { LoginViewModel(get()) }
     viewModel { ForgotPasswordViewModel(repository = get()) }

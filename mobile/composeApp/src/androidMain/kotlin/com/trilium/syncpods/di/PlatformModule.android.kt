@@ -1,6 +1,8 @@
 package com.trilium.syncpods.di
 
 import com.trilium.syncpods.BuildConfig
+import com.trilium.syncpods.billing.AndroidBillingHandler
+import com.trilium.syncpods.billing.BillingHandler
 import com.trilium.syncpods.player.AndroidAudioPlayer
 import com.trilium.syncpods.player.AudioPlayer
 import io.ktor.client.HttpClient
@@ -16,4 +18,8 @@ actual val supabaseAnonKey: String get() = BuildConfig.SUPABASE_ANON_KEY
 
 actual fun audioPlayerModule(): Module = module {
     single<AudioPlayer> { AndroidAudioPlayer(androidContext()) }
+}
+
+actual fun billingHandlerModule(): Module = module {
+    single<BillingHandler> { AndroidBillingHandler(androidContext()) }
 }
