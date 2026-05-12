@@ -3,6 +3,8 @@ package com.trilium.syncpods.billing
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 
 const val MONTHLY_PRODUCT_ID = "com.trilium.syncpods.monthly"
 const val ANNUAL_PRODUCT_ID = "com.trilium.syncpods.annual"
@@ -35,9 +37,11 @@ class BillingRepositoryImpl(
 
     private suspend fun updateTierPaid() {
         val userId = supabase.auth.currentUserOrNull()?.id ?: return
-        supabase.from("user_profiles")
-            .update({ set("tier", "paid") }) {
-                filter { eq("user_id", userId) }
-            }
+        withContext(NonCancellable) {
+            supabase.from("user_profiles")
+                .update({ set("tier", "paid") }) {
+                    filter { eq("user_id", userId) }
+                }
+        }
     }
 }
