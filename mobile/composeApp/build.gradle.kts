@@ -31,6 +31,7 @@ kotlin {
             isStatic = true
         }
     }
+
     
     sourceSets {
         androidMain.dependencies {
@@ -42,6 +43,7 @@ kotlin {
             implementation(libs.credentials)
             implementation(libs.credentials.play.services)
             implementation(libs.googleid)
+            implementation("com.android.billingclient:billing-ktx:7.1.1")
         }
         commonMain.dependencies {
             implementation(libs.supabase.compose.auth)
