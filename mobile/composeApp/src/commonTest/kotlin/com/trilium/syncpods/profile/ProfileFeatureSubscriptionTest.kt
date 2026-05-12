@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertIs
 
 class ProfileFeatureSubscriptionTest {
 
@@ -32,6 +34,133 @@ class ProfileFeatureSubscriptionTest {
             var latest = awaitItem()
             while (latest.products.isEmpty()) latest = awaitItem()
             assertEquals(listOf(monthlyProduct, annualProduct), latest.products)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `SubscribeMonthlyTapped on success emits ShowPurchaseSuccess effect`() = runTest {
+        val feature = ProfileFeature(
+            scope = backgroundScope,
+            repository = FakeProfileRepository(),
+            billingRepository = FakeBillingRepository(purchaseResult = PurchaseResult.Success),
+        )
+
+        feature.effects.test {
+            feature.process(ProfileEvent.SubscribeMonthlyTapped)
+            assertIs<ProfileEffect.ShowPurchaseSuccess>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `SubscribeMonthlyTapped on success sets tier to paid in state`() = runTest {
+        val feature = ProfileFeature(
+            scope = backgroundScope,
+            repository = FakeProfileRepository(profile = UserProfile("User", "u@e.com", "free")),
+            billingRepository = FakeBillingRepository(purchaseResult = PurchaseResult.Success),
+        )
+
+        feature.state.test {
+            awaitItem() // initial
+            feature.process(ProfileEvent.SubscribeMonthlyTapped)
+            var latest = awaitItem()
+            while (latest.tier != "paid") latest = awaitItem()
+            assertEquals("paid", latest.tier)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `SubscribeMonthlyTapped on cancelled resets isPurchasing without changing tier`() = runTest {
+        val feature = ProfileFeature(
+            scope = backgroundScope,
+            repository = FakeProfileRepository(profile = UserProfile("User", "u@e.com", "free")),
+            billingRepository = FakeBillingRepository(purchaseResult = PurchaseResult.Cancelled),
+        )
+
+        feature.state.test {
+            awaitItem() // initial
+            feature.process(ProfileEvent.SubscribeMonthlyTapped)
+            var latest = awaitItem()
+            while (latest.isPurchasing) latest = awaitItem()
+            assertEquals("free", latest.tier)
+            assertFalse(latest.isPurchasing)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `SubscribeMonthlyTapped on error emits ShowPurchaseError with message`() = runTest {
+        val feature = ProfileFeature(
+            scope = backgroundScope,
+            repository = FakeProfileRepository(),
+            billingRepository = FakeBillingRepository(
+                purchaseResult = PurchaseResult.Error("billing unavailable")
+            ),
+        )
+
+        feature.effects.test {
+            feature.process(ProfileEvent.SubscribeMonthlyTapped)
+            val effect = awaitItem()
+            assertIs<ProfileEffect.ShowPurchaseError>(effect)
+            assertEquals("billing unavailable", effect.message)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `SubscribeAnnuallyTapped on success sets tier to paid`() = runTest {
+        val feature = ProfileFeature(
+            scope = backgroundScope,
+            repository = FakeProfileRepository(profile = UserProfile("User", "u@e.com", "free")),
+            billingRepository = FakeBillingRepository(purchaseResult = PurchaseResult.Success),
+        )
+
+        feature.state.test {
+            awaitItem() // initial
+            feature.process(ProfileEvent.SubscribeAnnuallyTapped)
+            var latest = awaitItem()
+            while (latest.tier != "paid") latest = awaitItem()
+            assertEquals("paid", latest.tier)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `SubscribeAnnuallyTapped on cancelled resets isPurchasing without changing tier`() = runTest {
+        val feature = ProfileFeature(
+            scope = backgroundScope,
+            repository = FakeProfileRepository(profile = UserProfile("User", "u@e.com", "free")),
+            billingRepository = FakeBillingRepository(purchaseResult = PurchaseResult.Cancelled),
+        )
+
+        feature.state.test {
+            awaitItem() // initial
+            feature.process(ProfileEvent.SubscribeAnnuallyTapped)
+            var latest = awaitItem()
+            while (latest.isPurchasing) latest = awaitItem()
+            assertEquals("free", latest.tier)
+            assertFalse(latest.isPurchasing)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `SubscribeAnnuallyTapped on error emits ShowPurchaseError with message`() = runTest {
+        val feature = ProfileFeature(
+            scope = backgroundScope,
+            repository = FakeProfileRepository(),
+            billingRepository = FakeBillingRepository(
+                purchaseResult = PurchaseResult.Error("annual billing unavailable")
+            ),
+        )
+
+        feature.effects.test {
+            feature.process(ProfileEvent.SubscribeAnnuallyTapped)
+            val effect = awaitItem()
+            assertIs<ProfileEffect.ShowPurchaseError>(effect)
+            assertEquals("annual billing unavailable", effect.message)
             cancelAndIgnoreRemainingEvents()
         }
     }

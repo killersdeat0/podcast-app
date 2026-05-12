@@ -211,8 +211,38 @@ class ProfileFeature(
                     }
                 }
 
-                is ProfileAction.PurchaseMonthly -> flow<ProfileResult> { }
-                is ProfileAction.PurchaseAnnual -> flow<ProfileResult> { }
+                is ProfileAction.PurchaseMonthly -> flow {
+                    emit(ProfileResult.PurchaseStarted)
+                    val result = billingRepository.purchase(MONTHLY_PRODUCT_ID)
+                    when (result) {
+                        PurchaseResult.Success -> {
+                            _effects.emit(ProfileEffect.ShowPurchaseSuccess)
+                            emit(ProfileResult.PurchaseSuccess)
+                        }
+                        PurchaseResult.Cancelled -> emit(ProfileResult.PurchaseCancelled)
+                        is PurchaseResult.Error -> {
+                            _effects.emit(ProfileEffect.ShowPurchaseError(result.message))
+                            emit(ProfileResult.PurchaseFailed(result.message))
+                        }
+                    }
+                }
+
+                is ProfileAction.PurchaseAnnual -> flow {
+                    emit(ProfileResult.PurchaseStarted)
+                    val result = billingRepository.purchase(ANNUAL_PRODUCT_ID)
+                    when (result) {
+                        PurchaseResult.Success -> {
+                            _effects.emit(ProfileEffect.ShowPurchaseSuccess)
+                            emit(ProfileResult.PurchaseSuccess)
+                        }
+                        PurchaseResult.Cancelled -> emit(ProfileResult.PurchaseCancelled)
+                        is PurchaseResult.Error -> {
+                            _effects.emit(ProfileEffect.ShowPurchaseError(result.message))
+                            emit(ProfileResult.PurchaseFailed(result.message))
+                        }
+                    }
+                }
+
                 is ProfileAction.RestorePurchases -> flow<ProfileResult> { }
             }
         }
