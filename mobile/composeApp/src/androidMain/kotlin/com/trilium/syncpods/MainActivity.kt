@@ -7,6 +7,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import com.trilium.syncpods.billing.AndroidBillingHandler
+import com.trilium.syncpods.billing.BillingHandler
 import com.trilium.syncpods.di.appModule
 import com.trilium.syncpods.deeplink.PendingDeepLink
 import com.trilium.syncpods.deeplink.parsePlaylistDeepLink
@@ -21,6 +23,7 @@ class MainActivity : ComponentActivity() {
 
     private val supabaseClient: SupabaseClient by inject()
     private val pendingDeepLink: PendingDeepLink by inject()
+    private val billingHandler: BillingHandler by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -55,6 +58,16 @@ class MainActivity : ComponentActivity() {
         val url = intent.data?.toString() ?: return
         val route = parsePlaylistDeepLink(url) ?: return
         pendingDeepLink.set(route)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (billingHandler as? AndroidBillingHandler)?.onActivityResumed(this)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        (billingHandler as? AndroidBillingHandler)?.onActivityPaused()
     }
 }
 
