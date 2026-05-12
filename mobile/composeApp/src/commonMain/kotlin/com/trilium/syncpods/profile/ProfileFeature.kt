@@ -243,7 +243,21 @@ class ProfileFeature(
                     }
                 }
 
-                is ProfileAction.RestorePurchases -> flow<ProfileResult> { }
+                is ProfileAction.RestorePurchases -> flow {
+                    emit(ProfileResult.RestoreStarted)
+                    val result = billingRepository.restorePurchases()
+                    when (result) {
+                        RestoreResult.Restored -> {
+                            _effects.emit(ProfileEffect.ShowRestoreSuccess)
+                            emit(ProfileResult.RestoreSuccess)
+                        }
+                        RestoreResult.NothingToRestore -> {
+                            _effects.emit(ProfileEffect.ShowRestoreNothing)
+                            emit(ProfileResult.RestoreNothing)
+                        }
+                        is RestoreResult.Error -> emit(ProfileResult.RestoreFailed(result.message))
+                    }
+                }
             }
         }
     }

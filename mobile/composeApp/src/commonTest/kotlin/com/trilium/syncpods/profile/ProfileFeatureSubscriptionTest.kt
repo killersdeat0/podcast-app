@@ -164,6 +164,54 @@ class ProfileFeatureSubscriptionTest {
             cancelAndIgnoreRemainingEvents()
         }
     }
+
+    @Test
+    fun `RestorePurchasesTapped on Restored emits ShowRestoreSuccess`() = runTest {
+        val feature = ProfileFeature(
+            scope = backgroundScope,
+            repository = FakeProfileRepository(),
+            billingRepository = FakeBillingRepository(restoreResult = RestoreResult.Restored),
+        )
+
+        feature.effects.test {
+            feature.process(ProfileEvent.RestorePurchasesTapped)
+            assertIs<ProfileEffect.ShowRestoreSuccess>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `RestorePurchasesTapped on Restored sets tier to paid`() = runTest {
+        val feature = ProfileFeature(
+            scope = backgroundScope,
+            repository = FakeProfileRepository(profile = UserProfile("User", "u@e.com", "free")),
+            billingRepository = FakeBillingRepository(restoreResult = RestoreResult.Restored),
+        )
+
+        feature.state.test {
+            awaitItem()
+            feature.process(ProfileEvent.RestorePurchasesTapped)
+            var latest = awaitItem()
+            while (latest.tier != "paid") latest = awaitItem()
+            assertEquals("paid", latest.tier)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `RestorePurchasesTapped on NothingToRestore emits ShowRestoreNothing`() = runTest {
+        val feature = ProfileFeature(
+            scope = backgroundScope,
+            repository = FakeProfileRepository(),
+            billingRepository = FakeBillingRepository(restoreResult = RestoreResult.NothingToRestore),
+        )
+
+        feature.effects.test {
+            feature.process(ProfileEvent.RestorePurchasesTapped)
+            assertIs<ProfileEffect.ShowRestoreNothing>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 }
 
 // ── Test doubles ────────────────────────────────────────────────────────────────
