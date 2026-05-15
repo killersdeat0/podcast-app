@@ -14,6 +14,36 @@
 
 ---
 
+## ✅ Status: ALL TASKS COMPLETE (2026-05-11)
+
+All 11 tasks implemented on branch `reid-dev`. Final commits:
+- `cd9ffc5` feat: add BillingHandler and BillingRepository contracts
+- `3d09d81` feat: add LoadProducts flow and billing types to ProfileFeature
+- `38a5c72` feat: implement purchase flows in ProfileFeature
+- `8d5cf11` feat: implement restore flow in ProfileFeature; remove upgrade stub
+- `6bfbb21` feat: implement BillingRepositoryImpl with Supabase tier update on purchase
+- `135bbfe` feat: implement AndroidBillingHandler with Google Play Billing 7
+- `a37fc9e` feat: implement IOSBillingHandler with StoreKit 1
+- `626f7d2` feat: wire BillingRepository and BillingHandler into DI
+- `3abe150` feat: add BILLING permission and lifecycle wiring for Android billing
+- `96eee70` feat: replace PremiumCard with SubscriptionPlansSection on Profile screen
+- `f964de0` docs: document billing package and BillingHandler expect/actual pattern
+- `f82a027` fix: guard Supabase tier upsert against coroutine cancellation
+
+**Notable deviations from plan:**
+- Billing library used is `7.1.1` (not 6.x) — API surface is compatible, 7.x uses `PendingPurchasesParams.newBuilder().enableOneTimeProducts()` instead of the 6.x zero-arg overload
+- `AndroidBillingHandler` gained: concurrent-purchase guard, observable acknowledgement via `suspendCancellableCoroutine`, `ensureConnected()` cancels on disconnect
+- `IOSBillingHandler` gained: concurrent-purchase guard, `@file:OptIn(ExperimentalForeignApi::class)`, `NSObject()` base class (required for ObjC protocol conformance), correct `SKPaymentTransactionState.SKPaymentTransactionStatePurchased` enum syntax
+- `BillingRepository.updateTierPaid()` wrapped in `withContext(NonCancellable)` to survive `flatMapLatest` cancellation if a concurrent action (e.g. `LoadProfile` from `authStateChanges()`) fires mid-purchase
+- Test suite extended: annual purchase cancelled + error paths added (8 total purchase tests, not 6)
+- Feature bullet list items prefixed with `"• "` in UI
+
+**Known open items (out of scope for this branch):**
+- Guest users who purchase before signing in will not get their tier updated (early return in `updateTierPaid()` when `currentUserOrNull()` is null) — needs a restore-on-sign-in flow or a guard blocking purchase for guests
+- Real product IDs need to be configured in App Store Connect and Google Play Console before release (currently placeholder IDs: `com.trilium.syncpods.monthly` / `com.trilium.syncpods.annual`)
+
+---
+
 ## File Map
 
 **New files:**
