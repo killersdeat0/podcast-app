@@ -87,15 +87,6 @@ class HistoryFeature(
         }
     }
 
-    private val _effects = MutableSharedFlow<HistoryEffect>(extraBufferCapacity = 8)
-    override val effects: SharedFlow<HistoryEffect> get() = _effects
-
-    init {
-        scope.launch {
-            progressUpdates.collect { process(HistoryEvent.ProgressSaved) }
-        }
-    }
-
     override val initial = HistoryState()
 
     override val eventToAction: Interactor<HistoryEvent, HistoryAction> = { events ->
