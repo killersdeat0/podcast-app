@@ -65,6 +65,9 @@ import com.trilium.syncpods.queue.QueueScreen
 import com.trilium.syncpods.queue.QueueViewModel
 import com.trilium.syncpods.search.SearchScreen
 import com.trilium.syncpods.search.SearchViewModel
+import com.trilium.syncpods.devsettings.DevSettingsScreen
+import com.trilium.syncpods.devsettings.DevSettingsViewModel
+import com.trilium.syncpods.isDebug
 import com.trilium.syncpods.settings.SettingsScreen
 import com.trilium.syncpods.settings.SettingsViewModel
 import io.github.jan.supabase.SupabaseClient
@@ -97,6 +100,7 @@ fun AppShell() {
         || currentDestination?.route == AppRoutes.SignUp.route
         || currentDestination?.route == AppRoutes.ForgotPassword.route
         || currentDestination?.route == AppRoutes.VerifyEmail.ROUTE
+        || currentDestination?.route == AppRoutes.DevSettings.route
 
     val supabaseClient = koinInject<SupabaseClient>()
     val sessionStatus by supabaseClient.auth.sessionStatus.collectAsState()
@@ -358,7 +362,20 @@ fun AppShell() {
                             restoreState = false
                         }
                     },
+                    onNavigateToDevSettings = {
+                        navController.navigate(AppRoutes.DevSettings.route)
+                    },
                 )
+            }
+
+            if (isDebug) {
+                composable(AppRoutes.DevSettings.route) {
+                    val viewModel = koinViewModel<DevSettingsViewModel>()
+                    DevSettingsScreen(
+                        feature = viewModel.feature,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
             }
 
             composable(AppRoutes.Login.route) {

@@ -36,6 +36,10 @@ import io.github.jan.supabase.auth.status.SessionStatus
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
 import com.trilium.syncpods.addtoplaylist.AddToPlaylistViewModel
+import com.trilium.syncpods.devsettings.DevSettingsRepository
+import com.trilium.syncpods.devsettings.DevSettingsRepositoryImpl
+import com.trilium.syncpods.devsettings.DevSettingsViewModel
+import com.trilium.syncpods.isDebug
 import com.trilium.syncpods.history.HistoryRepository
 import com.trilium.syncpods.history.HistoryViewModel
 import com.trilium.syncpods.history.SupabaseHistoryRepository
@@ -132,4 +136,8 @@ val appModule = module {
     viewModel { LibraryViewModel(get(), get()) }
     viewModelOf(::PlaylistDetailViewModel)
     viewModelOf(::AddToPlaylistViewModel)
+    if (isDebug) {
+        single<DevSettingsRepository> { DevSettingsRepositoryImpl(settings = get()) }
+        viewModel { DevSettingsViewModel(get()) }
+    }
 }
