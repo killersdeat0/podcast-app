@@ -9,4 +9,5 @@ class IOSPlatform: Platform {
 
 actual fun getPlatform(): Platform = IOSPlatform()
 
+@OptIn(kotlin.experimental.ExperimentalNativeApi::class)
 actual val isDebug: Boolean get() = KNPlatform.isDebugBinary

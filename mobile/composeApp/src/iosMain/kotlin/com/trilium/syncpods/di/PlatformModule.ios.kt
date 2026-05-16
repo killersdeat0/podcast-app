@@ -27,6 +27,7 @@ object SelectedEnvironment {
     var key: String = ""
 }
 
+@OptIn(kotlin.experimental.ExperimentalNativeApi::class)
 fun initSelectedEnvironment() {
     val bundle = NSBundle.mainBundle
     val devUrl = bundle.objectForInfoDictionaryKey("SUPABASE_URL") as? String ?: ""
@@ -36,7 +37,7 @@ fun initSelectedEnvironment() {
 
     val userDefaults = NSUserDefaults.standardUserDefaults
     val env = userDefaults.stringForKey(DEV_SETTINGS_ENV_KEY) ?: "dev"
-    val useProd = KNPlatform.isDebugBinary && env == "prod"
+    val useProd = !KNPlatform.isDebugBinary || env == "prod"
 
     SelectedEnvironment.url = if (useProd) prodUrl else devUrl
     SelectedEnvironment.key = if (useProd) prodKey else devKey
