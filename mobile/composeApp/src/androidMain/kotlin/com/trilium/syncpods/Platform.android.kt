@@ -9,3 +9,8 @@ class AndroidPlatform : Platform {
 actual fun getPlatform(): Platform = AndroidPlatform()
 
 actual val isDebug: Boolean get() = BuildConfig.DEBUG
+
+object SelectedEnvironment {
+    var url: String = BuildConfig.SUPABASE_URL
+    var key: String = BuildConfig.SUPABASE_ANON_KEY
+}

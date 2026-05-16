@@ -1,5 +1,6 @@
 package com.trilium.syncpods
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -30,6 +31,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         if (GlobalContext.getOrNull() == null) {
+            if (BuildConfig.DEBUG) {
+                val prefs = getSharedPreferences("${packageName}_preferences", Context.MODE_PRIVATE)
+                val env = prefs.getString("dev_settings_env", "dev")
+                SelectedEnvironment.url = if (env == "prod") BuildConfig.PROD_SUPABASE_URL else BuildConfig.DEV_SUPABASE_URL
+                SelectedEnvironment.key = if (env == "prod") BuildConfig.PROD_SUPABASE_ANON_KEY else BuildConfig.DEV_SUPABASE_ANON_KEY
+            }
             startKoin {
                 androidContext(this@MainActivity)
                 modules(appModule)

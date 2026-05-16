@@ -1,6 +1,7 @@
 package com.trilium.syncpods.di
 
 import com.trilium.syncpods.BuildConfig
+import com.trilium.syncpods.SelectedEnvironment
 import com.trilium.syncpods.billing.AndroidBillingHandler
 import com.trilium.syncpods.billing.BillingHandler
 import com.trilium.syncpods.player.AndroidAudioPlayer
@@ -13,8 +14,8 @@ import org.koin.dsl.module
 
 actual fun createPlatformHttpClient(): HttpClient = HttpClient(Android)
 
-actual val supabaseUrl: String get() = BuildConfig.SUPABASE_URL
-actual val supabaseAnonKey: String get() = BuildConfig.SUPABASE_ANON_KEY
+actual val supabaseUrl: String get() = SelectedEnvironment.url
+actual val supabaseAnonKey: String get() = SelectedEnvironment.key
 
 actual fun audioPlayerModule(): Module = module {
     single<AudioPlayer> { AndroidAudioPlayer(androidContext()) }
