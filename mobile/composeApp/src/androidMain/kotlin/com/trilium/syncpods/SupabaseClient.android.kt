@@ -1,6 +1,5 @@
 package com.trilium.syncpods
 
-import com.trilium.syncpods.SelectedEnvironment
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.auth.Auth

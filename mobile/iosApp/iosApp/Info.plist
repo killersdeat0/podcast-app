@@ -8,6 +8,10 @@
 	<string>https://nuvadoybccdqipyhdhns.supabase.co</string>
 	<key>SUPABASE_ANON_KEY</key>
 	<string>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51dmFkb3liY2NkcWlweWhkaG5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MjE2MzEsImV4cCI6MjA4ODQ5NzYzMX0.ESzA7Zf2UNrAKleTjlscx94KOZHtJ4PWfsaR4FdSQjk</string>
+	<key>PROD_SUPABASE_URL</key>
+	<string>https://dqqybduklxwxtcahqswh.supabase.co</string>
+	<key>PROD_SUPABASE_ANON_KEY</key>
+	<string>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxcXliZHVrbHh3eHRjYWhxc3doIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyMzg1NTUsImV4cCI6MjA4OTgxNDU1NX0.FjWqyS1H5Ywsq8CpgI_8_8Ve7HoBo5jOTNmsbxxNZGs</string>
 	<key>GOOGLE_WEB_CLIENT_ID</key>
 	<string>$(GOOGLE_WEB_CLIENT_ID)</string>
 	<key>GOOGLE_IOS_CLIENT_ID</key>
