@@ -1,7 +1,10 @@
 package com.trilium.syncpods.settings
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,14 +42,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.trilium.syncpods.isDebug
 import kotlinx.coroutines.delay
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SettingsScreen(
     feature: SettingsFeature,
     onBack: () -> Unit,
     onSignedOut: () -> Unit = {},
+    onNavigateToDevSettings: () -> Unit = {},
 ) {
     val state by feature.state.collectAsState()
     LaunchedEffect(Unit) {
@@ -153,11 +158,31 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(
-                        text = "Podcast App v1.0.0 (Build 1)",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            modifier = if (isDebug) {
+                                Modifier.combinedClickable(
+                                    onClick = {},
+                                    onLongClick = onNavigateToDevSettings,
+                                )
+                            } else {
+                                Modifier
+                            },
+                        ) {
+                            Text(
+                                text = "SyncPods v1.0.0 (Build 1)",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        if (isDebug) {
+                            Text(
+                                text = "long-press to open dev tools",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            )
+                        }
+                    }
                 }
                 Spacer(Modifier.height(16.dp))
             }
