@@ -4,7 +4,6 @@ import com.composure.arch.Interactor
 import com.composure.arch.StandardFeature
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.filterIsInstance
@@ -77,9 +76,6 @@ class DevSettingsFeature(
 
                 is DevSettingsAction.CommitAndRestart -> flow<DevSettingsResult> {
                     repository.saveEnvironment(action.environment)
-                    // SharedPreferences.apply() (Android) and NSUserDefaults (iOS) flush async —
-                    // wait before killing the process so the disk write completes.
-                    delay(300)
                     _effects.emit(DevSettingsEffect.RestartApp)
                 }
             }

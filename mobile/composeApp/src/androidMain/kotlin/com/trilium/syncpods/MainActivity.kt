@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.trilium.syncpods.billing.AndroidBillingHandler
 import com.trilium.syncpods.billing.BillingHandler
+import com.trilium.syncpods.devsettings.DEV_SETTINGS_ENV_KEY
 import com.trilium.syncpods.di.appModule
 import com.trilium.syncpods.deeplink.PendingDeepLink
 import com.trilium.syncpods.deeplink.parsePlaylistDeepLink
@@ -33,7 +34,7 @@ class MainActivity : ComponentActivity() {
         if (GlobalContext.getOrNull() == null) {
             if (BuildConfig.DEBUG) {
                 val prefs = getSharedPreferences("${packageName}_preferences", Context.MODE_PRIVATE)
-                val env = prefs.getString("dev_settings_env", "dev")
+                val env = prefs.getString(DEV_SETTINGS_ENV_KEY, "dev")
                 SelectedEnvironment.url = if (env == "prod") BuildConfig.PROD_SUPABASE_URL else BuildConfig.DEV_SUPABASE_URL
                 SelectedEnvironment.key = if (env == "prod") BuildConfig.PROD_SUPABASE_ANON_KEY else BuildConfig.DEV_SUPABASE_ANON_KEY
             }

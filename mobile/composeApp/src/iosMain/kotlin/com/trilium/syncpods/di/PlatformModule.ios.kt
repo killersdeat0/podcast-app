@@ -2,6 +2,8 @@ package com.trilium.syncpods.di
 
 import com.trilium.syncpods.billing.BillingHandler
 import com.trilium.syncpods.billing.IOSBillingHandler
+import com.trilium.syncpods.devsettings.DEV_SETTINGS_ENV_KEY
+import com.trilium.syncpods.devsettings.DevSettingsStorage
 import com.trilium.syncpods.player.AudioPlayer
 import com.trilium.syncpods.player.IOSAudioPlayer
 import io.ktor.client.HttpClient
@@ -11,6 +13,14 @@ import org.koin.dsl.module
 import platform.Foundation.NSBundle
 import platform.Foundation.NSUserDefaults
 import kotlin.native.Platform as KNPlatform
+
+private class IOSDevSettingsStorage : DevSettingsStorage {
+    override fun getEnv(): String? = NSUserDefaults.standardUserDefaults.stringForKey(DEV_SETTINGS_ENV_KEY)
+    override fun putEnvSync(value: String) {
+        NSUserDefaults.standardUserDefaults.setObject(value, DEV_SETTINGS_ENV_KEY)
+        NSUserDefaults.standardUserDefaults.synchronize()
+    }
+}
 
 object SelectedEnvironment {
     var url: String = ""
@@ -25,7 +35,7 @@ fun initSelectedEnvironment() {
     val prodKey = bundle.objectForInfoDictionaryKey("PROD_SUPABASE_ANON_KEY") as? String ?: ""
 
     val userDefaults = NSUserDefaults.standardUserDefaults
-    val env = userDefaults.stringForKey("dev_settings_env") ?: "dev"
+    val env = userDefaults.stringForKey(DEV_SETTINGS_ENV_KEY) ?: "dev"
     val useProd = KNPlatform.isDebugBinary && env == "prod"
 
     SelectedEnvironment.url = if (useProd) prodUrl else devUrl
@@ -43,4 +53,8 @@ actual fun audioPlayerModule(): Module = module {
 
 actual fun billingHandlerModule(): Module = module {
     single<BillingHandler> { IOSBillingHandler() }
+}
+
+actual fun devSettingsStorageModule(): Module = module {
+    single<DevSettingsStorage> { IOSDevSettingsStorage() }
 }

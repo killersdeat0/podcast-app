@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.map
 import com.trilium.syncpods.addtoplaylist.AddToPlaylistViewModel
 import com.trilium.syncpods.devsettings.DevSettingsRepository
 import com.trilium.syncpods.devsettings.DevSettingsRepositoryImpl
+import com.trilium.syncpods.devsettings.DevSettingsStorage
 import com.trilium.syncpods.devsettings.DevSettingsViewModel
 import com.trilium.syncpods.isDebug
 import com.trilium.syncpods.history.HistoryRepository
@@ -137,7 +138,8 @@ val appModule = module {
     viewModelOf(::PlaylistDetailViewModel)
     viewModelOf(::AddToPlaylistViewModel)
     if (isDebug) {
-        single<DevSettingsRepository> { DevSettingsRepositoryImpl(settings = get()) }
+        includes(devSettingsStorageModule())
+        single<DevSettingsRepository> { DevSettingsRepositoryImpl(get<DevSettingsStorage>()) }
         viewModel { DevSettingsViewModel(get()) }
     }
 }
