@@ -22,6 +22,7 @@ sealed class AppRoutes(val route: String) {
         }
     }
     data object Settings : AppRoutes("settings")
+    data object DevSettings : AppRoutes("dev-settings")
     data object Login : AppRoutes("login")
     data object ForgotPassword : AppRoutes("forgot-password")
     data object SignUp : AppRoutes("signup")
