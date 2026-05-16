@@ -99,6 +99,10 @@ android {
         buildConfigField("String", "SUPABASE_URL", "\"${localProperties["SYNCPODS_SUPABASE_URL"] ?: project.findProperty("SYNCPODS_SUPABASE_URL") ?: ""}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProperties["SYNCPODS_SUPABASE_ANON_KEY"] ?: project.findProperty("SYNCPODS_SUPABASE_ANON_KEY") ?: ""}\"")
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localProperties["GOOGLE_WEB_CLIENT_ID"] ?: ""}\"")
+        buildConfigField("String", "DEV_SUPABASE_URL", "\"${localProperties["SYNCPODS_SUPABASE_URL"] ?: project.findProperty("SYNCPODS_SUPABASE_URL") ?: ""}\"")
+        buildConfigField("String", "DEV_SUPABASE_ANON_KEY", "\"${localProperties["SYNCPODS_SUPABASE_ANON_KEY"] ?: project.findProperty("SYNCPODS_SUPABASE_ANON_KEY") ?: ""}\"")
+        buildConfigField("String", "PROD_SUPABASE_URL", "\"${localProperties["SYNCPODS_PROD_SUPABASE_URL"] ?: project.findProperty("SYNCPODS_PROD_SUPABASE_URL") ?: ""}\"")
+        buildConfigField("String", "PROD_SUPABASE_ANON_KEY", "\"${localProperties["SYNCPODS_PROD_SUPABASE_ANON_KEY"] ?: project.findProperty("SYNCPODS_PROD_SUPABASE_ANON_KEY") ?: ""}\"")
     }
     buildFeatures {
         buildConfig = true
