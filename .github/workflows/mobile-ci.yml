@@ -50,7 +50,7 @@ jobs:
 
   ios-tests:
     name: iOS Unit Tests
-    runs-on: macos-latest
+    runs-on: macos-15
     defaults:
       run:
         working-directory: mobile

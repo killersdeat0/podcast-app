@@ -22,14 +22,12 @@ import platform.StoreKit.SKRequest
 import platform.darwin.NSObject
 import kotlin.coroutines.resume
 
-class IOSBillingHandler : NSObject(), BillingHandler, SKPaymentTransactionObserverProtocol {
+class IOSBillingHandler : BillingHandler {
 
-    private var pendingPurchaseDeferred: CompletableDeferred<PurchaseResult>? = null
-    private var pendingRestoreDeferred: CompletableDeferred<RestoreResult>? = null
-    private var restoredCount = 0
+    private val observer = TransactionObserver()
 
     init {
-        SKPaymentQueue.defaultQueue().addTransactionObserver(this)
+        SKPaymentQueue.defaultQueue().addTransactionObserver(observer)
     }
 
     // ── BillingHandler ────────────────────────────────────────────────────────
@@ -59,7 +57,7 @@ class IOSBillingHandler : NSObject(), BillingHandler, SKPaymentTransactionObserv
         }
 
     override suspend fun purchase(productId: String): PurchaseResult {
-        if (pendingPurchaseDeferred?.isActive == true) return PurchaseResult.Error("A purchase is already in progress")
+        if (observer.pendingPurchaseDeferred?.isActive == true) return PurchaseResult.Error("A purchase is already in progress")
         val skProduct = suspendCancellableCoroutine<SKProduct?> { cont ->
             val identifiers = setOf(productId)
             val request = SKProductsRequest(productIdentifiers = identifiers)
@@ -80,19 +78,39 @@ class IOSBillingHandler : NSObject(), BillingHandler, SKPaymentTransactionObserv
             cont.invokeOnCancellation { request.cancel() }
         } ?: return PurchaseResult.Error("Product not found: $productId")
 
-        pendingPurchaseDeferred = CompletableDeferred()
+        observer.pendingPurchaseDeferred = CompletableDeferred()
         SKPaymentQueue.defaultQueue().addPayment(SKPayment.paymentWithProduct(skProduct))
-        return pendingPurchaseDeferred!!.await()
+        return observer.pendingPurchaseDeferred!!.await()
     }
 
     override suspend fun restorePurchases(): RestoreResult {
-        restoredCount = 0
-        pendingRestoreDeferred = CompletableDeferred()
+        observer.restoredCount = 0
+        observer.pendingRestoreDeferred = CompletableDeferred()
         SKPaymentQueue.defaultQueue().restoreCompletedTransactions()
-        return pendingRestoreDeferred!!.await()
+        return observer.pendingRestoreDeferred!!.await()
     }
 
-    // ── SKPaymentTransactionObserverProtocol ──────────────────────────────────
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private fun SKProduct.toSubscriptionProduct(): SubscriptionProduct {
+        val formatter = NSNumberFormatter().apply {
+            numberStyle = NSNumberFormatterCurrencyStyle
+            locale = priceLocale
+        }
+        return SubscriptionProduct(
+            id = productIdentifier,
+            displayPrice = formatter.stringFromNumber(price) ?: price.stringValue,
+        )
+    }
+}
+
+// ── StoreKit observer (ObjC-only supertypes) ──────────────────────────────────
+
+private class TransactionObserver : NSObject(), SKPaymentTransactionObserverProtocol {
+
+    var pendingPurchaseDeferred: CompletableDeferred<PurchaseResult>? = null
+    var pendingRestoreDeferred: CompletableDeferred<RestoreResult>? = null
+    var restoredCount = 0
 
     override fun paymentQueue(queue: SKPaymentQueue, updatedTransactions: List<Any?>) {
         for (transaction in updatedTransactions.filterIsInstance<SKPaymentTransaction>()) {
@@ -139,18 +157,5 @@ class IOSBillingHandler : NSObject(), BillingHandler, SKPaymentTransactionObserv
             RestoreResult.Error(restoreCompletedTransactionsFailedWithError.localizedDescription)
         )
         pendingRestoreDeferred = null
-    }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
-    private fun SKProduct.toSubscriptionProduct(): SubscriptionProduct {
-        val formatter = NSNumberFormatter().apply {
-            numberStyle = NSNumberFormatterCurrencyStyle
-            locale = priceLocale
-        }
-        return SubscriptionProduct(
-            id = productIdentifier,
-            displayPrice = formatter.stringFromNumber(price) ?: price.stringValue,
-        )
     }
 }
