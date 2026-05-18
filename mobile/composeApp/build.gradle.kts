@@ -141,9 +141,8 @@ android {
 }
 
 play {
-    serviceAccountCredentials.set(
-        file(localProperties["PLAY_SERVICE_ACCOUNT_JSON_PATH"] as? String ?: "play-credentials-not-configured.json")
-    )
+    val credPath = localProperties["PLAY_SERVICE_ACCOUNT_JSON_PATH"] as? String
+    if (credPath != null) serviceAccountCredentials.set(file(credPath))
     track.set("internal")
     defaultToAppBundles.set(true)
 }
