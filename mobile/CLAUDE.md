@@ -91,15 +91,20 @@ commonMain/kotlin/com/trilium/syncpods/
 ├── theme/Theme.kt                 ← SyncPodsTheme, Material3 darkColorScheme
 ├── player/MiniPlayerBar.kt        ← persistent mini player bar
 ├── auth/LoginPromptSheet.kt       ← guest auth prompt sheet
+├── billing/
+│   ├── BillingHandler.kt          ← interface + SubscriptionProduct, PurchaseResult, RestoreResult
+│   └── BillingRepository.kt       ← BillingRepository interface + BillingRepositoryImpl + product ID constants
 └── di/
     ├── AppModule.kt               ← Koin module (ViewModels, repositories, shared scope)
     └── PlatformModule.kt          ← expect declarations (HttpClient, supabaseUrl, supabaseAnonKey, AudioPlayer)
 androidMain/kotlin/com/trilium/syncpods/
 ├── MainActivity.kt                ← Android entry point, initializes Koin
 ├── player/AndroidAudioPlayer.kt   ← AudioPlayer impl using ExoPlayer (media3)
+├── billing/AndroidBillingHandler.kt   ← BillingHandler impl (Google Play Billing 7)
 └── di/
     └── PlatformModule.android.kt  ← actual Android implementations
 iosMain/kotlin/com/trilium/syncpods/
+├── billing/IOSBillingHandler.kt       ← BillingHandler impl (StoreKit 1)
 └── di/
     └── PlatformModule.ios.kt      ← actual iOS implementations
 ```
@@ -108,10 +113,21 @@ iosMain/kotlin/com/trilium/syncpods/
 
 **AudioPlayer expect/actual:** `AudioPlayer` is an interface in commonMain with platform implementations: `AndroidAudioPlayer` (androidMain, uses ExoPlayer/media3) and `IOSAudioPlayer` (iosMain). Registered as a Koin single in `audioPlayerModule()`.
 
+**BillingHandler expect/actual:** `BillingHandler` is an interface in commonMain with `AndroidBillingHandler` (androidMain, Google Play Billing 7) and `IOSBillingHandler` (iosMain, StoreKit 1 ObjC APIs) as platform implementations. `AndroidBillingHandler` holds a `WeakReference<Activity>` updated via `onActivityResumed`/`onActivityPaused` in `MainActivity`. `BillingRepository` wraps the handler and directly upserts `tier = 'paid'` in `user_profiles` on successful purchase. Registered via `billingHandlerModule()` — same expect/actual pattern as `audioPlayerModule()`.
+
+**Naming note:** `BillingRepository` (IAP) is distinct from `podcastdetail.SubscriptionRepository` (podcast-follow). This naming was intentional to avoid Koin type conflicts.
+
 **QueueRepository delegation:** `QueueRepository` has three implementations:
 - `LocalQueueRepository` — guest queue stored via multiplatform-settings (SharedPreferences on Android)
 - `SupabaseQueueRepository` — authenticated queue via Supabase
 - `DelegatingQueueRepository` — switches between local/remote based on `client.auth.currentUserOrNull()`; migrates local queue to Supabase on sign-in
+
+**Playlist feature (Library tab):** The Library tab hosts two sections — subscriptions strip and playlists list. Key files:
+- `playlist/PlaylistModels.kt` — `Playlist`, `PlaylistEpisode`, `EpisodePayload` domain models
+- `playlist/PlaylistRepository.kt` — interface + `SupabasePlaylistRepository` impl
+- `library/LibraryFeature.kt` — full UDF pipeline; `LibraryScreen` sends `ScreenVisible` internally (no AppShell LaunchedEffect needed)
+- `playlistdetail/PlaylistDetailViewModel.kt` — uses `SavedStateHandle.get<String>("id")` (same pattern as `PodcastDetailViewModel`) to extract the route arg; AppShell sends `ScreenVisible(viewModel.playlistId)`
+- `addtoplaylist/AddToPlaylistViewModel.kt` — simple ViewModel (no StandardFeature) shared by PodcastDetail, Queue, and History screens via `koinViewModel<AddToPlaylistViewModel>()`; screens hold `var episodeForPlaylistSheet by remember { mutableStateOf<EpisodePayload?>(null) }` to drive `AddToPlaylistSheet`
 
 ### Class Design Rules
 

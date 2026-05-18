@@ -30,16 +30,15 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
-import androidx.compose.material.icons.filled.PlaylistRemove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -70,9 +69,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.trilium.syncpods.addtoplaylist.AddToPlaylistSheet
+import com.trilium.syncpods.addtoplaylist.AddToPlaylistViewModel
 import com.trilium.syncpods.auth.LoginPromptReason
 import com.trilium.syncpods.auth.LoginPromptSheet
 import com.trilium.syncpods.player.NowPlaying
+import com.trilium.syncpods.playlist.EpisodePayload
+import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,17 +91,24 @@ fun PodcastDetailScreen(
 ) {
     val state by feature.state.collectAsState()
     val coroutineScope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
     var showUpgradeSheet by remember { mutableStateOf(false) }
+    val addToPlaylistViewModel = koinViewModel<AddToPlaylistViewModel>()
+    var episodeForPlaylistSheet by remember { mutableStateOf<EpisodePayload?>(null) }
+
+    episodeForPlaylistSheet?.let { payload ->
+        AddToPlaylistSheet(
+            episode = payload,
+            viewModel = addToPlaylistViewModel,
+            onDismiss = { episodeForPlaylistSheet = null },
+        )
+    }
 
     LaunchedEffect(Unit) {
         feature.process(PodcastDetailEvent.ScreenVisible)
         feature.effects.collect { effect ->
             when (effect) {
-                is PodcastDetailEffect.EpisodeQueuedAdded ->
-                    coroutineScope.launch { snackbarHostState.showSnackbar("Added to queue") }
-                is PodcastDetailEffect.EpisodeQueuedRemoved ->
-                    coroutineScope.launch { snackbarHostState.showSnackbar("Removed from queue") }
+                is PodcastDetailEffect.EpisodeQueuedAdded -> Unit
+                is PodcastDetailEffect.EpisodeQueuedRemoved -> Unit
                 is PodcastDetailEffect.NavigateBack -> onBack()
                 is PodcastDetailEffect.NavigateToSignIn -> onNavigateToSignIn()
                 is PodcastDetailEffect.NavigateToCreateAccount -> onNavigateToCreateAccount()
@@ -284,8 +294,16 @@ fun PodcastDetailScreen(
                                     modifier = Modifier.size(16.dp),
                                     strokeWidth = 2.dp,
                                 )
+                            } else if (state.isFollowing) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Subscribed")
                             } else {
-                                Text(if (state.isFollowing) "Following" else "+ Follow")
+                                Text("Subscribe")
                             }
                         }
                     }
@@ -365,6 +383,18 @@ fun PodcastDetailScreen(
                                             isQueued = episode.guid in state.queuedGuids,
                                             onPlayTapped = { feature.process(PodcastDetailEvent.EpisodePlayTapped(episode)) },
                                             onQueueToggleTapped = { feature.process(PodcastDetailEvent.EpisodeQueueToggleTapped(episode)) },
+                                            onAddToPlaylistTapped = {
+                                                episodeForPlaylistSheet = EpisodePayload(
+                                                    guid = episode.guid,
+                                                    feedUrl = state.feedUrl,
+                                                    title = episode.title,
+                                                    podcastTitle = state.podcastTitle,
+                                                    artworkUrl = state.artworkUrl,
+                                                    audioUrl = episode.audioUrl,
+                                                    durationSeconds = episode.duration,
+                                                    pubDate = episode.pubDate,
+                                                )
+                                            },
                                         )
                                     }
                                 }
@@ -415,11 +445,6 @@ fun PodcastDetailScreen(
             }
         }
 
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = bottomContentPadding),
-        )
-
         // Overlay back button
         IconButton(
             onClick = onBack,
@@ -467,6 +492,7 @@ private fun EpisodeCard(
     isQueued: Boolean,
     onPlayTapped: () -> Unit,
     onQueueToggleTapped: () -> Unit,
+    onAddToPlaylistTapped: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -535,10 +561,22 @@ private fun EpisodeCard(
                     modifier = Modifier.size(32.dp),
                 ) {
                     Icon(
-                        imageVector = if (isQueued) Icons.Default.PlaylistRemove else Icons.AutoMirrored.Filled.PlaylistAdd,
+                        imageVector = if (isQueued) Icons.Default.Check else Icons.Default.Add,
                         contentDescription = if (isQueued) "Remove from queue" else "Add to queue",
                         modifier = Modifier.size(18.dp),
                         tint = if (isQueued) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                // Add to playlist
+                IconButton(
+                    onClick = onAddToPlaylistTapped,
+                    modifier = Modifier.size(32.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
+                        contentDescription = "Add to playlist",
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Spacer(modifier = Modifier.width(4.dp))

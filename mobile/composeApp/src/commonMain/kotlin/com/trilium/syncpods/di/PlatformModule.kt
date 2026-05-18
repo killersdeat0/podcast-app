@@ -9,3 +9,7 @@ expect val supabaseUrl: String
 expect val supabaseAnonKey: String
 
 expect fun audioPlayerModule(): Module
+
+expect fun billingHandlerModule(): Module
+
+expect fun devSettingsStorageModule(): Module

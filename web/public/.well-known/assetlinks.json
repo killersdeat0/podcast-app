@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.trilium.syncpods",
+    "sha256_cert_fingerprints": [
+      "PLACEHOLDER_SHA256 — replace with value from Play Console > Setup > App integrity > App signing key certificate"
+    ]
+  }
+}]

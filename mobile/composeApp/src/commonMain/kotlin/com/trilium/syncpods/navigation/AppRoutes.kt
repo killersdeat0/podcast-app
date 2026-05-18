@@ -16,7 +16,13 @@ sealed class AppRoutes(val route: String) {
             const val ROUTE = "search/{query}"
         }
     }
+    data class PlaylistDetail(val id: String) : AppRoutes("playlist/{id}") {
+        companion object {
+            const val ROUTE = "playlist/{id}"
+        }
+    }
     data object Settings : AppRoutes("settings")
+    data object DevSettings : AppRoutes("dev-settings")
     data object Login : AppRoutes("login")
     data object ForgotPassword : AppRoutes("forgot-password")
     data object SignUp : AppRoutes("signup")

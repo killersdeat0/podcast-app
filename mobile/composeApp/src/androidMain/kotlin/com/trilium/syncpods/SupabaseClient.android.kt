@@ -9,8 +9,8 @@ import io.github.jan.supabase.compose.auth.ComposeAuth
 import io.github.jan.supabase.compose.auth.googleNativeLogin
 
 actual fun createSupabaseClient(): SupabaseClient = createSupabaseClient(
-    supabaseUrl = BuildConfig.SUPABASE_URL,
-    supabaseKey = BuildConfig.SUPABASE_ANON_KEY
+    supabaseUrl = SelectedEnvironment.url,
+    supabaseKey = SelectedEnvironment.key,
 ) {
     install(Postgrest)
     install(Auth) {
@@ -21,4 +21,4 @@ actual fun createSupabaseClient(): SupabaseClient = createSupabaseClient(
     install(ComposeAuth) {
         googleNativeLogin(serverClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID)
     }
-}
+}.installJwtRefreshInterceptor()

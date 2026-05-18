@@ -1,5 +1,6 @@
 package com.trilium.syncpods.profile
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,8 +26,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -45,11 +45,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.trilium.syncpods.billing.ANNUAL_PRODUCT_ID
+import com.trilium.syncpods.billing.MONTHLY_PRODUCT_ID
+import com.trilium.syncpods.billing.SubscriptionProduct
+import kotlinx.coroutines.delay
 
 @Composable
 fun ProfileScreen(
@@ -57,77 +60,98 @@ fun ProfileScreen(
     onNavigateToPodcast: (String) -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToSignIn: () -> Unit,
+    onNavigateToLibrary: () -> Unit = {},
     modifier: Modifier = Modifier,
     bottomContentPadding: Dp = 0.dp,
 ) {
     val state by feature.state.collectAsState()
-    var showUpgradeSheet by remember { mutableStateOf(false) }
+    var feedbackMessage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         feature.effects.collect { effect ->
             when (effect) {
                 is ProfileEffect.NavigateToPodcastDetail -> onNavigateToPodcast(effect.feedUrl)
                 is ProfileEffect.NavigateToSettings -> onNavigateToSettings()
-                is ProfileEffect.ShowUpgradeSheet -> showUpgradeSheet = true
                 is ProfileEffect.NavigateToSignIn -> onNavigateToSignIn()
+                is ProfileEffect.NavigateToLibrary -> onNavigateToLibrary()
                 is ProfileEffect.NavigateToCreateAccount -> { /* stub: create-account screen not yet implemented */ }
+                is ProfileEffect.ShowPurchaseSuccess -> feedbackMessage = "Subscription activated!"
+                is ProfileEffect.ShowPurchaseError -> feedbackMessage = effect.message
+                is ProfileEffect.ShowRestoreSuccess -> feedbackMessage = "Subscription restored!"
+                is ProfileEffect.ShowRestoreNothing -> feedbackMessage = "No previous subscription found."
             }
         }
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        // Top bar
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "Profile",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.weight(1f),
-            )
-            IconButton(onClick = { feature.process(ProfileEvent.SettingsTapped) }) {
-                Icon(Icons.Default.Settings, contentDescription = "Settings")
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Top bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Profile",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = { feature.process(ProfileEvent.SettingsTapped) }) {
+                    Icon(Icons.Default.Settings, contentDescription = "Settings")
+                }
+            }
+
+            when {
+                state.isLoading -> LoadingContent()
+                state.error != null -> ErrorContent(
+                    message = state.error!!,
+                    onRetry = { feature.process(ProfileEvent.RetryTapped) },
+                )
+                state.isGuest -> GuestContent(
+                    state = state,
+                    feature = feature,
+                    bottomContentPadding = bottomContentPadding,
+                )
+                else -> LoggedInContent(
+                    state = state,
+                    feature = feature,
+                    bottomContentPadding = bottomContentPadding,
+                )
             }
         }
 
-        when {
-            state.isLoading -> LoadingContent()
-            state.error != null -> ErrorContent(
-                message = state.error!!,
-                onRetry = { feature.process(ProfileEvent.RetryTapped) },
-            )
-            state.isGuest -> GuestContent(
-                feature = feature,
-                bottomContentPadding = bottomContentPadding,
-            )
-            else -> LoggedInContent(
-                state = state,
-                feature = feature,
-                bottomContentPadding = bottomContentPadding,
-            )
+        feedbackMessage?.let { msg ->
+            LaunchedEffect(msg) {
+                delay(3000)
+                feedbackMessage = null
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = bottomContentPadding + 16.dp),
+                contentAlignment = Alignment.BottomCenter,
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.inverseSurface,
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                ) {
+                    Text(
+                        text = msg,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.inverseOnSurface,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                    )
+                }
+            }
         }
-    }
-
-    if (showUpgradeSheet) {
-        AlertDialog(
-            onDismissRequest = { showUpgradeSheet = false },
-            title = { Text("Upgrade to Premium") },
-            text = { Text("Unlock unlimited queue & downloads, silence skipping, and full listening stats for $4.99/mo.") },
-            confirmButton = {
-                TextButton(onClick = { showUpgradeSheet = false }) { Text("View Plans") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showUpgradeSheet = false }) { Text("Not now") }
-            },
-        )
     }
 }
 
 @Composable
 private fun GuestContent(
+    state: ProfileState,
     feature: ProfileFeature,
     bottomContentPadding: Dp,
 ) {
@@ -182,10 +206,13 @@ private fun GuestContent(
 
         Spacer(Modifier.height(24.dp))
 
-        PremiumCard(
-            title = "Premium Subscription",
-            buttonLabel = "Upgrade for \$4.99/mo",
-            onUpgradeTapped = { feature.process(ProfileEvent.UpgradeTapped) },
+        SubscriptionPlansSection(
+            products = state.products,
+            isPurchasing = state.isPurchasing,
+            isRestoring = state.isRestoring,
+            onSubscribeMonthly = { feature.process(ProfileEvent.SubscribeMonthlyTapped) },
+            onSubscribeAnnual = { feature.process(ProfileEvent.SubscribeAnnuallyTapped) },
+            onRestorePurchases = { feature.process(ProfileEvent.RestorePurchasesTapped) },
         )
 
         Spacer(Modifier.height(24.dp))
@@ -266,10 +293,13 @@ private fun LoggedInContent(
 
         // Upgrade card (free tier only)
         if (state.tier != "paid") {
-            PremiumCard(
-                title = "Upgrade to Premium",
-                buttonLabel = "Subscribe for \$4.99/mo",
-                onUpgradeTapped = { feature.process(ProfileEvent.UpgradeTapped) },
+            SubscriptionPlansSection(
+                products = state.products,
+                isPurchasing = state.isPurchasing,
+                isRestoring = state.isRestoring,
+                onSubscribeMonthly = { feature.process(ProfileEvent.SubscribeMonthlyTapped) },
+                onSubscribeAnnual = { feature.process(ProfileEvent.SubscribeAnnuallyTapped) },
+                onRestorePurchases = { feature.process(ProfileEvent.RestorePurchasesTapped) },
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
             Spacer(Modifier.height(20.dp))
@@ -356,63 +386,175 @@ private fun SubscriptionScrollItem(
 }
 
 @Composable
-private fun PremiumCard(
-    title: String,
-    buttonLabel: String,
-    onUpgradeTapped: () -> Unit,
+private fun SubscriptionPlansSection(
+    products: List<SubscriptionProduct>,
+    isPurchasing: Boolean,
+    isRestoring: Boolean,
+    onSubscribeMonthly: () -> Unit,
+    onSubscribeAnnual: () -> Unit,
+    onRestorePurchases: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val primaryContainer = MaterialTheme.colorScheme.primaryContainer
-    val secondaryContainer = MaterialTheme.colorScheme.secondaryContainer
+    val monthlyProduct = products.find { it.id == MONTHLY_PRODUCT_ID }
+    val annualProduct = products.find { it.id == ANNUAL_PRODUCT_ID }
 
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(primaryContainer, secondaryContainer),
-                )
-            )
-            .padding(16.dp),
-    ) {
-        Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp),
-                )
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = "Unlock all features: unlimited queue, full playback speed range, complete history, and no ads.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(16.dp))
+
+        PlanCard(
+            title = "Monthly",
+            price = monthlyProduct?.displayPrice ?: "$4.99",
+            priceSuffix = " / month",
+            badge = null,
+            monthlyEquiv = null,
+            isPurchasing = isPurchasing,
+            buttonLabel = "Subscribe Monthly",
+            onSubscribe = onSubscribeMonthly,
+            isHighlighted = false,
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        PlanCard(
+            title = "Annual",
+            price = annualProduct?.displayPrice ?: "$50.00",
+            priceSuffix = " / year",
+            badge = "Save 17%",
+            monthlyEquiv = "~$4.17/month",
+            isPurchasing = isPurchasing,
+            buttonLabel = "Subscribe Annually",
+            onSubscribe = onSubscribeAnnual,
+            isHighlighted = true,
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (isRestoring) {
+                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                 Spacer(Modifier.width(8.dp))
+            }
+            TextButton(
+                onClick = onRestorePurchases,
+                enabled = !isRestoring && !isPurchasing,
+            ) {
+                Text(
+                    text = "Restore Purchases",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlanCard(
+    title: String,
+    price: String,
+    priceSuffix: String,
+    badge: String?,
+    monthlyEquiv: String?,
+    isPurchasing: Boolean,
+    buttonLabel: String,
+    onSubscribe: () -> Unit,
+    isHighlighted: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val borderColor = if (isHighlighted) MaterialTheme.colorScheme.primary
+                      else MaterialTheme.colorScheme.outlineVariant
+
+    Box(modifier = modifier.fillMaxWidth()) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            border = BorderStroke(1.dp, borderColor),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        text = price,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = priceSuffix,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (monthlyEquiv != null) {
+                    Text(
+                        text = monthlyEquiv,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+                listOf("Unlimited queue", "All playback speeds", "Full history", "No ads").forEach {
+                    Text(
+                        text = "• $it",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(Modifier.height(16.dp))
+                Button(
+                    onClick = onSubscribe,
+                    enabled = !isPurchasing,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                ) {
+                    if (isPurchasing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        Text(text = buttonLabel)
+                    }
+                }
             }
-            Spacer(Modifier.height(12.dp))
-            listOf(
-                "Unlimited queue & downloads",
-                "Silence skipping",
-                "Full listening stats",
-            ).forEach { feature ->
-                Text(
-                    text = "• $feature",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-            }
-            Spacer(Modifier.height(16.dp))
-            Button(
-                onClick = onUpgradeTapped,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
+        }
+
+        if (badge != null) {
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = 12.dp)
+                    .offset(y = (-12).dp),
             ) {
-                Text(buttonLabel)
+                Text(
+                    text = badge,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                )
             }
         }
     }

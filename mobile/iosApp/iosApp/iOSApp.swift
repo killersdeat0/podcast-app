@@ -7,7 +7,7 @@ struct iOSApp: App {
         WindowGroup {
             ContentView()
                 .onOpenURL { url in
-                    AuthDeepLinkHandlerKt.handleAuthDeepLink(urlString: url.absoluteString)
+                    AuthDeepLinkHandlerKt.handleDeepLink(urlString: url.absoluteString)
                 }
         }
     }

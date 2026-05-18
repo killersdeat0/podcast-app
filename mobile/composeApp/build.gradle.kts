@@ -13,6 +13,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.gradlePlayPublisher)
 }
 
 kotlin {
@@ -31,6 +32,7 @@ kotlin {
             isStatic = true
         }
     }
+
     
     sourceSets {
         androidMain.dependencies {
@@ -42,6 +44,7 @@ kotlin {
             implementation(libs.credentials)
             implementation(libs.credentials.play.services)
             implementation(libs.googleid)
+            implementation("com.android.billingclient:billing-ktx:7.1.1")
         }
         commonMain.dependencies {
             implementation(libs.supabase.compose.auth)
@@ -78,6 +81,7 @@ kotlin {
             implementation(libs.turbine)
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.multiplatform.settings.test)
+            implementation(libs.ktor.client.mock)
         }
     }
 }
@@ -90,11 +94,13 @@ android {
         applicationId = "com.trilium.syncpods"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0"
-        buildConfigField("String", "SUPABASE_URL", "\"${localProperties["SYNCPODS_SUPABASE_URL"] ?: project.findProperty("SYNCPODS_SUPABASE_URL") ?: ""}\"")
-        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProperties["SYNCPODS_SUPABASE_ANON_KEY"] ?: project.findProperty("SYNCPODS_SUPABASE_ANON_KEY") ?: ""}\"")
+        versionCode = (project.findProperty("versionCode") as String?)?.toInt() ?: 1
+        versionName = project.findProperty("versionName") as String? ?: "1.0"
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localProperties["GOOGLE_WEB_CLIENT_ID"] ?: ""}\"")
+        buildConfigField("String", "DEV_SUPABASE_URL", "\"${localProperties["SYNCPODS_SUPABASE_URL"] ?: project.findProperty("SYNCPODS_SUPABASE_URL") ?: ""}\"")
+        buildConfigField("String", "DEV_SUPABASE_ANON_KEY", "\"${localProperties["SYNCPODS_SUPABASE_ANON_KEY"] ?: project.findProperty("SYNCPODS_SUPABASE_ANON_KEY") ?: ""}\"")
+        buildConfigField("String", "PROD_SUPABASE_URL", "\"${localProperties["SYNCPODS_PROD_SUPABASE_URL"] ?: project.findProperty("SYNCPODS_PROD_SUPABASE_URL") ?: ""}\"")
+        buildConfigField("String", "PROD_SUPABASE_ANON_KEY", "\"${localProperties["SYNCPODS_PROD_SUPABASE_ANON_KEY"] ?: project.findProperty("SYNCPODS_PROD_SUPABASE_ANON_KEY") ?: ""}\"")
     }
     buildFeatures {
         buildConfig = true
@@ -104,15 +110,42 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    val keystorePath = localProperties["KEYSTORE_PATH"] as? String
+    if (!keystorePath.isNullOrEmpty()) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = localProperties["KEYSTORE_PASSWORD"] as? String ?: ""
+                keyAlias = localProperties["KEY_ALIAS"] as? String ?: ""
+                keyPassword = localProperties["KEY_PASSWORD"] as? String ?: ""
+            }
+        }
+    }
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            if (!keystorePath.isNullOrEmpty()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+}
+
+play {
+    serviceAccountCredentials.set(
+        file(localProperties["PLAY_SERVICE_ACCOUNT_JSON_PATH"] as? String ?: "play-credentials-not-configured.json")
+    )
+    track.set("internal")
+    defaultToAppBundles.set(true)
 }
 
 dependencies {

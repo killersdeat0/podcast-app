@@ -7,11 +7,12 @@ import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.compose.auth.ComposeAuth
 import io.github.jan.supabase.compose.auth.googleNativeLogin
+import com.trilium.syncpods.di.SelectedEnvironment
 import platform.Foundation.NSBundle
 
 actual fun createSupabaseClient(): SupabaseClient = createSupabaseClient(
-    supabaseUrl = NSBundle.mainBundle.objectForInfoDictionaryKey("SUPABASE_URL") as? String ?: "",
-    supabaseKey = NSBundle.mainBundle.objectForInfoDictionaryKey("SUPABASE_ANON_KEY") as? String ?: ""
+    supabaseUrl = SelectedEnvironment.url,
+    supabaseKey = SelectedEnvironment.key,
 ) {
     install(Postgrest)
     install(Auth) {
@@ -24,4 +25,4 @@ actual fun createSupabaseClient(): SupabaseClient = createSupabaseClient(
             serverClientId = NSBundle.mainBundle.objectForInfoDictionaryKey("GOOGLE_WEB_CLIENT_ID") as? String ?: ""
         )
     }
-}
+}.installJwtRefreshInterceptor()

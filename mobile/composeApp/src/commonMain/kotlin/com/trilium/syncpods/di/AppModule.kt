@@ -1,6 +1,7 @@
 package com.trilium.syncpods.di
 
 import com.trilium.syncpods.createSupabaseClient
+import com.trilium.syncpods.deeplink.PendingDeepLink
 import com.trilium.syncpods.discover.DiscoverViewModel
 import com.trilium.syncpods.discover.PodcastRepository
 import com.trilium.syncpods.discover.PodcastRepositoryImpl
@@ -16,6 +17,8 @@ import com.trilium.syncpods.auth.LoginRepositoryImpl
 import com.trilium.syncpods.auth.LoginViewModel
 import com.trilium.syncpods.auth.SignUpViewModel
 import com.trilium.syncpods.auth.VerifyEmailViewModel
+import com.trilium.syncpods.billing.BillingRepository
+import com.trilium.syncpods.billing.BillingRepositoryImpl
 import com.trilium.syncpods.profile.ProfileRepository
 import com.trilium.syncpods.profile.ProfileRepositoryImpl
 import com.trilium.syncpods.profile.ProfileViewModel
@@ -32,9 +35,19 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.status.SessionStatus
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
+import com.trilium.syncpods.addtoplaylist.AddToPlaylistViewModel
+import com.trilium.syncpods.devsettings.DevSettingsRepository
+import com.trilium.syncpods.devsettings.DevSettingsRepositoryImpl
+import com.trilium.syncpods.devsettings.DevSettingsStorage
+import com.trilium.syncpods.devsettings.DevSettingsViewModel
+import com.trilium.syncpods.isDebug
 import com.trilium.syncpods.history.HistoryRepository
 import com.trilium.syncpods.history.HistoryViewModel
 import com.trilium.syncpods.history.SupabaseHistoryRepository
+import com.trilium.syncpods.library.LibraryViewModel
+import com.trilium.syncpods.playlist.PlaylistRepository
+import com.trilium.syncpods.playlist.SupabasePlaylistRepository
+import com.trilium.syncpods.playlistdetail.PlaylistDetailViewModel
 import com.trilium.syncpods.queue.DelegatingQueueRepository
 import com.trilium.syncpods.queue.LocalQueueRepository
 import com.trilium.syncpods.queue.QueueRepository
@@ -49,10 +62,11 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 val appModule = module {
-    includes(audioPlayerModule())
+    includes(audioPlayerModule(), billingHandlerModule())
     single { createPlatformHttpClient() }
     single { createSupabaseClient() }
     single { PodcastSummaryCache() }
+    single { PendingDeepLink() }
     single<PodcastRepository> {
         PodcastRepositoryImpl(
             httpClient = get(),
@@ -73,6 +87,7 @@ val appModule = module {
     single<ProfileRepository> {
         ProfileRepositoryImpl(supabaseClient = get())
     }
+    single<BillingRepository> { BillingRepositoryImpl(billingHandler = get(), supabase = get()) }
     single<LoginRepository> {
         LoginRepositoryImpl(supabaseClient = get())
     }
@@ -102,7 +117,7 @@ val appModule = module {
         QueueViewModel(get(), get(), authSignal)
     }
     single<SettingsRepository> { SettingsRepositoryImpl(supabaseClient = get()) }
-    viewModelOf(::ProfileViewModel)
+    viewModel { ProfileViewModel(get(), get()) }
     viewModel { SettingsViewModel(get()) }
     viewModel { LoginViewModel(get()) }
     viewModel { ForgotPasswordViewModel(repository = get()) }
@@ -118,4 +133,13 @@ val appModule = module {
     viewModel { PlayerViewModel(get<AudioPlayer>(), get<ProgressRepository>(), get<ProfileRepository>()) }
     single<HistoryRepository> { SupabaseHistoryRepository(supabaseClient = get()) }
     viewModel { HistoryViewModel(get(), get(), get()) }
+    single<PlaylistRepository> { SupabasePlaylistRepository(supabaseClient = get()) }
+    viewModel { LibraryViewModel(get(), get()) }
+    viewModelOf(::PlaylistDetailViewModel)
+    viewModelOf(::AddToPlaylistViewModel)
+    if (isDebug) {
+        includes(devSettingsStorageModule())
+        single<DevSettingsRepository> { DevSettingsRepositoryImpl(get<DevSettingsStorage>()) }
+        viewModel { DevSettingsViewModel(get()) }
+    }
 }

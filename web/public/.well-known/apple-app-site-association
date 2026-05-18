@@ -1,0 +1,8 @@
+{
+  "applinks": {
+    "details": [{
+      "appIDs": ["PLACEHOLDER_TEAM_ID.com.trilium.syncpods"],
+      "components": [{ "/": "/playlist/*" }]
+    }]
+  }
+}

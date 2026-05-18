@@ -3,7 +3,6 @@ package com.trilium.syncpods.shell
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -41,6 +40,7 @@ import com.trilium.syncpods.auth.SignUpScreen
 import com.trilium.syncpods.auth.SignUpViewModel
 import com.trilium.syncpods.auth.VerifyEmailScreen
 import com.trilium.syncpods.auth.VerifyEmailViewModel
+import com.trilium.syncpods.deeplink.PendingDeepLink
 import com.trilium.syncpods.discover.DiscoverScreen
 import com.trilium.syncpods.discover.DiscoverViewModel
 import com.trilium.syncpods.navigation.AppRoutes
@@ -55,16 +55,26 @@ import com.trilium.syncpods.profile.ProfileViewModel
 import com.trilium.syncpods.history.HistoryEvent
 import com.trilium.syncpods.history.HistoryScreen
 import com.trilium.syncpods.history.HistoryViewModel
+import com.trilium.syncpods.library.LibraryScreen
+import com.trilium.syncpods.library.LibraryViewModel
+import com.trilium.syncpods.playlistdetail.PlaylistDetailEvent
+import com.trilium.syncpods.playlistdetail.PlaylistDetailScreen
+import com.trilium.syncpods.playlistdetail.PlaylistDetailViewModel
+import com.trilium.syncpods.player.NowPlaying
 import com.trilium.syncpods.queue.QueueScreen
 import com.trilium.syncpods.queue.QueueViewModel
 import com.trilium.syncpods.search.SearchScreen
 import com.trilium.syncpods.search.SearchViewModel
+import com.trilium.syncpods.devsettings.DevSettingsScreen
+import com.trilium.syncpods.devsettings.DevSettingsViewModel
+import com.trilium.syncpods.isDebug
 import com.trilium.syncpods.settings.SettingsScreen
 import com.trilium.syncpods.settings.SettingsViewModel
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.ktor.http.encodeURLPathPart
+import kotlinx.coroutines.flow.filterNotNull
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -78,16 +88,19 @@ private data class TabItem(
 @Composable
 fun AppShell() {
     val navController = rememberNavController()
+    val pendingDeepLink = koinInject<PendingDeepLink>()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
     val isFullScreenRoute = currentDestination?.route == AppRoutes.Search.ROUTE
         || currentDestination?.route == AppRoutes.PodcastDetail.ROUTE
+        || currentDestination?.route == AppRoutes.PlaylistDetail.ROUTE
         || currentDestination?.route == AppRoutes.Settings.route
         || currentDestination?.route == AppRoutes.Login.route
         || currentDestination?.route == AppRoutes.SignUp.route
         || currentDestination?.route == AppRoutes.ForgotPassword.route
         || currentDestination?.route == AppRoutes.VerifyEmail.ROUTE
+        || currentDestination?.route == AppRoutes.DevSettings.route
 
     val supabaseClient = koinInject<SupabaseClient>()
     val sessionStatus by supabaseClient.auth.sessionStatus.collectAsState()
@@ -140,7 +153,7 @@ fun AppShell() {
     val playerViewModel = koinViewModel<PlayerViewModel>()
     val playerState by playerViewModel.feature.state.collectAsState()
 
-    val onPlayEpisode = { nowPlaying: com.trilium.syncpods.player.NowPlaying ->
+    val onPlayEpisode = { nowPlaying: NowPlaying ->
         playerViewModel.feature.process(PlayerEvent.Play(nowPlaying))
     }
 
@@ -214,9 +227,43 @@ fun AppShell() {
             }
 
             composable(AppRoutes.Library.route) {
-                Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-                    Text("Library — coming soon")
+                val viewModel = koinViewModel<LibraryViewModel>()
+                LibraryScreen(
+                    feature = viewModel.feature,
+                    onNavigateToPlaylist = { id -> navController.navigate("playlist/$id") },
+                    onNavigateToPodcast = { feedUrl -> navController.navigate("podcast/${feedUrl.encodeURLPathPart()}") },
+                    onNavigateToSignIn = { navController.navigate(AppRoutes.Login.route) },
+                    onNavigateToCreateAccount = { navController.navigate(AppRoutes.SignUp.route) },
+                    modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
+                    bottomContentPadding = innerPadding.calculateBottomPadding(),
+                )
+            }
+
+            composable(AppRoutes.PlaylistDetail.ROUTE) {
+                val viewModel = koinViewModel<PlaylistDetailViewModel>()
+                LaunchedEffect(viewModel) {
+                    viewModel.feature.process(PlaylistDetailEvent.ScreenVisible(viewModel.playlistId))
                 }
+                PlaylistDetailScreen(
+                    feature = viewModel.feature,
+                    onPlayEpisode = { episode ->
+                        onPlayEpisode(
+                            NowPlaying(
+                                guid = episode.guid,
+                                title = episode.title,
+                                podcastName = episode.podcastTitle,
+                                artworkUrl = episode.artworkUrl.orEmpty(),
+                                audioUrl = episode.audioUrl,
+                                feedUrl = episode.feedUrl,
+                                durationSeconds = episode.durationSeconds,
+                                positionSeconds = episode.positionSeconds,
+                            )
+                        )
+                    },
+                    onBack = { navController.popBackStack() },
+                    topContentPadding = innerPadding.calculateTopPadding(),
+                    bottomContentPadding = innerPadding.calculateBottomPadding(),
+                )
             }
 
             composable(AppRoutes.Queue.route) {
@@ -261,6 +308,15 @@ fun AppShell() {
                         navController.navigate(AppRoutes.Settings.route)
                     },
                     onNavigateToSignIn = { navController.navigate(AppRoutes.Login.route) },
+                    onNavigateToLibrary = {
+                        navController.navigate(AppRoutes.Library.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
                     modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
                     bottomContentPadding = innerPadding.calculateBottomPadding(),
                 )
@@ -278,7 +334,20 @@ fun AppShell() {
                             restoreState = false
                         }
                     },
+                    onNavigateToDevSettings = {
+                        navController.navigate(AppRoutes.DevSettings.route)
+                    },
                 )
+            }
+
+            if (isDebug) {
+                composable(AppRoutes.DevSettings.route) {
+                    val viewModel = koinViewModel<DevSettingsViewModel>()
+                    DevSettingsScreen(
+                        feature = viewModel.feature,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
             }
 
             composable(AppRoutes.Login.route) {
@@ -320,6 +389,14 @@ fun AppShell() {
                             popUpTo(0) { inclusive = true }
                         }
                     },
+                )
+            }
+
+            composable(AppRoutes.Login.route) {
+                val viewModel = koinViewModel<LoginViewModel>()
+                LoginScreen(
+                    feature = viewModel.feature,
+                    onBack = { navController.popBackStack() },
                 )
             }
 

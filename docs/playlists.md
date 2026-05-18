@@ -132,3 +132,22 @@ This modal fires in two cases:
 - Queue page: per-episode `ListPlus` button
 - History page: per-episode `ListPlus` button
 - Playlist detail page: play + add-to-queue per episode
+
+## Mobile Implementation
+
+The Library tab on mobile hosts playlists and subscriptions. Key patterns:
+
+**Feature files:** `library/LibraryFeature.kt`, `playlistdetail/PlaylistDetailFeature.kt` — full `StandardFeature` UDF pipelines. `addtoplaylist/AddToPlaylistViewModel.kt` is a plain `ViewModel` (not a `StandardFeature`) shared via Koin across screens that show the add-to-playlist sheet.
+
+**Data access:** `playlist/PlaylistRepository.kt` + `SupabasePlaylistRepository` — queries `playlists` and `playlist_episodes` tables directly via the Supabase Kotlin SDK.
+
+**Route argument extraction:** `PlaylistDetailViewModel` uses `SavedStateHandle.get<String>("id")` (same as `PodcastDetailViewModel`). Direct `Bundle.getString()` is Android-only and unavailable in KMP `commonMain`.
+
+**ScreenVisible dispatch:** `LibraryScreen` sends its own `ScreenVisible` event internally (no `LaunchedEffect` needed in `AppShell`). `PlaylistDetailScreen` does not — `AppShell` sends `PlaylistDetailEvent.ScreenVisible(viewModel.playlistId)` via `LaunchedEffect(viewModel)`.
+
+**Freemium cap on mobile:** Free users see an upgrade prompt at 3 playlists (`FREE_PLAYLIST_LIMIT = 3` constant in `LibraryScreen`). The limit is enforced server-side; the mobile prompt is advisory only.
+
+**"Add to Playlist" entry points on mobile:**
+- `PodcastDetailScreen` — `PlaylistAdd` icon per episode row
+- `QueueScreen` — `PlaylistAdd` icon per queue item (before the delete button)
+- `HistoryScreen` — `PlaylistAdd` icon per history row
