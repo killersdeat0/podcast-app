@@ -62,6 +62,7 @@ fun SettingsScreen(
         feature.effects.collect { effect ->
             when (effect) {
                 is SettingsEffect.NavigateToProfile -> onSignedOut()
+                is SettingsEffect.OpenDeleteAccountPage -> {}
             }
         }
     }

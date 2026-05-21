@@ -25,6 +25,7 @@ data class SettingsState(
 sealed class SettingsEvent {
     data object ScreenVisible : SettingsEvent()
     data object SignOutTapped : SettingsEvent()
+    data object DeleteAccountTapped : SettingsEvent()
     data object NotificationsTapped : SettingsEvent()
     data object PlaybackDefaultsTapped : SettingsEvent()
     data object OPMLTapped : SettingsEvent()
@@ -36,6 +37,7 @@ sealed class SettingsEvent {
 sealed class SettingsAction {
     data object LoadAuthState : SettingsAction()
     data object SignOut : SettingsAction()
+    data object NavigateToDeleteAccount : SettingsAction()
     data object NavigateToNotifications : SettingsAction()
     data object NavigateToPlaybackDefaults : SettingsAction()
     data object NavigateToOPML : SettingsAction()
@@ -55,6 +57,7 @@ sealed class SettingsResult {
 
 sealed class SettingsEffect {
     data object NavigateToProfile : SettingsEffect()
+    data object OpenDeleteAccountPage : SettingsEffect()
 }
 
 // ── Feature ───────────────────────────────────────────────────────────────────
@@ -77,6 +80,9 @@ class SettingsFeature(
 
             events.filterIsInstance<SettingsEvent.SignOutTapped>()
                 .map { SettingsAction.SignOut },
+
+            events.filterIsInstance<SettingsEvent.DeleteAccountTapped>()
+                .map { SettingsAction.NavigateToDeleteAccount },
 
             events.filterIsInstance<SettingsEvent.NotificationsTapped>()
                 .map { SettingsAction.NavigateToNotifications },
@@ -108,6 +114,10 @@ class SettingsFeature(
                     } catch (e: Exception) {
                         emit(SettingsResult.SignOutError(e.message ?: "Sign out failed"))
                     }
+                }
+
+                is SettingsAction.NavigateToDeleteAccount -> flow {
+                    _effects.emit(SettingsEffect.OpenDeleteAccountPage)
                 }
 
                 is SettingsAction.NavigateToNotifications -> flow {}
