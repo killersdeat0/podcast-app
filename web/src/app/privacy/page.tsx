@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
+import type { ReactNode } from 'react'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy — Syncpods',
   description: 'Privacy Policy for the Syncpods podcast app by Trilium.',
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section>
       <h2 className="text-xl font-semibold text-on-surface mb-3">{title}</h2>
@@ -14,11 +15,11 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-function P({ children }: { children: React.ReactNode }) {
+function P({ children }: { children: ReactNode }) {
   return <p className="text-on-surface-variant leading-relaxed">{children}</p>
 }
 
-function Sub({ title, children }: { title: string; children: React.ReactNode }) {
+function Sub({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
       <h3 className="text-base font-semibold text-on-surface mb-2">{title}</h3>
@@ -27,10 +28,10 @@ function Sub({ title, children }: { title: string; children: React.ReactNode }) 
   )
 }
 
-function Ul({ items }: { items: React.ReactNode[] }) {
+function Ul({ children }: { children: ReactNode }) {
   return (
     <ul className="list-disc list-inside space-y-1 text-on-surface-variant leading-relaxed pl-1">
-      {items.map((item, i) => <li key={i}>{item}</li>)}
+      {children}
     </ul>
   )
 }
@@ -42,7 +43,7 @@ function Table({ head, rows }: { head: string[]; rows: string[][] }) {
         <thead>
           <tr className="bg-surface-container">
             {head.map((h) => (
-              <th key={h} className="text-left px-4 py-3 text-on-surface font-semibold">{h}</th>
+              <th key={h} scope="col" className="text-left px-4 py-3 text-on-surface font-semibold">{h}</th>
             ))}
           </tr>
         </thead>
@@ -93,7 +94,7 @@ export default function PrivacyPage() {
               </a>
               <br />
               Website:{' '}
-              <a href="https://syncpods.app" className="text-primary hover:underline">
+              <a href="https://syncpods.app" rel="noopener noreferrer" className="text-primary hover:underline">
                 https://syncpods.app
               </a>
             </P>
@@ -101,22 +102,22 @@ export default function PrivacyPage() {
 
           <Section title="3. Information We Collect">
             <Sub title="3.1 Information You Provide Directly">
-              <Ul items={[
-                <><strong className="text-on-surface">Account credentials:</strong> Email address and password, or OAuth profile data (name, email, profile picture) when you sign in with Google.</>,
-                <><strong className="text-on-surface">Bookmarks:</strong> Notes you attach to saved moments within episodes.</>,
-                <><strong className="text-on-surface">Playlist content:</strong> Names and descriptions you create for playlists.</>,
-              ]} />
+              <Ul>
+                <li><strong className="text-on-surface">Account credentials:</strong> Email address and password, or OAuth profile data (name, email, profile picture) when you sign in with Google.</li>
+                <li><strong className="text-on-surface">Bookmarks:</strong> Notes you attach to saved moments within episodes.</li>
+                <li><strong className="text-on-surface">Playlist content:</strong> Names and descriptions you create for playlists.</li>
+              </Ul>
             </Sub>
             <Sub title="3.2 Information We Collect Automatically">
-              <Ul items={[
-                <><strong className="text-on-surface">Listening activity:</strong> Episode playback position, completion status, total seconds listened per day, and total listening time per podcast.</>,
-                <><strong className="text-on-surface">Subscriptions:</strong> Podcasts you follow, including feed URLs, episode filter preferences, and per-podcast playback speed (paid tier).</>,
-                <><strong className="text-on-surface">Queue and history:</strong> Episodes you add to your queue or have previously played.</>,
-                <><strong className="text-on-surface">Playlists:</strong> Episodes you organize into playlists and their order.</>,
-                <><strong className="text-on-surface">Playback preferences:</strong> Volume, skip durations, and playback speed.</>,
-                <><strong className="text-on-surface">App preferences:</strong> Selected theme and UI settings.</>,
-                <><strong className="text-on-surface">Billing status:</strong> Subscription tier (free or paid), and Stripe customer and subscription IDs.</>,
-              ]} />
+              <Ul>
+                <li><strong className="text-on-surface">Listening activity:</strong> Episode playback position, completion status, total seconds listened per day, and total listening time per podcast.</li>
+                <li><strong className="text-on-surface">Subscriptions:</strong> Podcasts you follow, including feed URLs, episode filter preferences, and per-podcast playback speed (paid tier).</li>
+                <li><strong className="text-on-surface">Queue and history:</strong> Episodes you add to your queue or have previously played.</li>
+                <li><strong className="text-on-surface">Playlists:</strong> Episodes you organize into playlists and their order.</li>
+                <li><strong className="text-on-surface">Playback preferences:</strong> Volume, skip durations, and playback speed.</li>
+                <li><strong className="text-on-surface">App preferences:</strong> Selected theme and UI settings.</li>
+                <li><strong className="text-on-surface">Billing status:</strong> Subscription tier (free or paid), and Stripe customer and subscription IDs.</li>
+              </Ul>
             </Sub>
             <Sub title="3.3 Information We Do Not Collect">
               <P>
@@ -129,13 +130,13 @@ export default function PrivacyPage() {
 
           <Section title="4. How We Use Your Information">
             <P>We use your information to:</P>
-            <Ul items={[
-              <><strong className="text-on-surface">Operate the App:</strong> Authenticate your account, sync your queue, history, and preferences across devices, and enable podcast playback.</>,
-              <><strong className="text-on-surface">Process payments:</strong> Manage your subscription through Stripe and the platform&apos;s native billing (Google Play / Apple StoreKit).</>,
-              <><strong className="text-on-surface">Communicate with you:</strong> Send transactional emails (password reset, email confirmation).</>,
-              <><strong className="text-on-surface">Improve the App:</strong> Analyze aggregate listening patterns to improve recommendations and performance.</>,
-              <><strong className="text-on-surface">Comply with legal obligations:</strong> Retain records as required by applicable law.</>,
-            ]} />
+            <Ul>
+              <li><strong className="text-on-surface">Operate the App:</strong> Authenticate your account, sync your queue, history, and preferences across devices, and enable podcast playback.</li>
+              <li><strong className="text-on-surface">Process payments:</strong> Manage your subscription through Stripe and the platform&apos;s native billing (Google Play / Apple StoreKit).</li>
+              <li><strong className="text-on-surface">Communicate with you:</strong> Send transactional emails (password reset, email confirmation).</li>
+              <li><strong className="text-on-surface">Improve the App:</strong> Analyze aggregate listening patterns to improve recommendations and performance.</li>
+              <li><strong className="text-on-surface">Comply with legal obligations:</strong> Retain records as required by applicable law.</li>
+            </Ul>
           </Section>
 
           <Section title="5. Legal Basis for Processing (GDPR)">
@@ -191,11 +192,11 @@ export default function PrivacyPage() {
 
           <Section title="8. Data Security">
             <P>We implement industry-standard security measures including:</P>
-            <Ul items={[
-              'Encrypted data transmission via HTTPS/TLS',
-              'Row-Level Security (RLS) policies ensuring each user can only access their own data',
-              'Authentication and session management via Supabase',
-            ]} />
+            <Ul>
+              <li>Encrypted data transmission via HTTPS/TLS</li>
+              <li>Row-Level Security (RLS) policies ensuring each user can only access their own data</li>
+              <li>Authentication and session management via Supabase</li>
+            </Ul>
             <P>
               No method of transmission or storage is 100% secure. Contact us at{' '}
               <a href="mailto:support@syncpods.app" className="text-primary hover:underline">
@@ -208,24 +209,24 @@ export default function PrivacyPage() {
           <Section title="9. Your Rights">
             <Sub title="9.1 GDPR Rights (EEA, UK, Switzerland)">
               <P>You have the right to:</P>
-              <Ul items={[
-                <><strong className="text-on-surface">Access:</strong> Request a copy of your personal data.</>,
-                <><strong className="text-on-surface">Rectification:</strong> Request correction of inaccurate data.</>,
-                <><strong className="text-on-surface">Erasure:</strong> Request deletion of your data. You may delete your account directly in the App, which permanently erases all associated data.</>,
-                <><strong className="text-on-surface">Restriction:</strong> Request we restrict processing in certain circumstances.</>,
-                <><strong className="text-on-surface">Portability:</strong> Request your data in a structured, machine-readable format.</>,
-                <><strong className="text-on-surface">Object:</strong> Object to processing based on legitimate interests.</>,
-                <><strong className="text-on-surface">Lodge a complaint:</strong> With your local supervisory authority (e.g., the ICO in the UK).</>,
-              ]} />
+              <Ul>
+                <li><strong className="text-on-surface">Access:</strong> Request a copy of your personal data.</li>
+                <li><strong className="text-on-surface">Rectification:</strong> Request correction of inaccurate data.</li>
+                <li><strong className="text-on-surface">Erasure:</strong> Request deletion of your data. You may delete your account directly in the App, which permanently erases all associated data.</li>
+                <li><strong className="text-on-surface">Restriction:</strong> Request we restrict processing in certain circumstances.</li>
+                <li><strong className="text-on-surface">Portability:</strong> Request your data in a structured, machine-readable format.</li>
+                <li><strong className="text-on-surface">Object:</strong> Object to processing based on legitimate interests.</li>
+                <li><strong className="text-on-surface">Lodge a complaint:</strong> With your local supervisory authority (e.g., the ICO in the UK).</li>
+              </Ul>
             </Sub>
             <Sub title="9.2 CCPA Rights (California Residents)">
               <P>You have the right to:</P>
-              <Ul items={[
-                <><strong className="text-on-surface">Know:</strong> Request disclosure of the personal information we hold about you.</>,
-                <><strong className="text-on-surface">Delete:</strong> Request deletion of your personal information.</>,
-                <><strong className="text-on-surface">Opt out of sale:</strong> We do not sell your personal information — no action is required.</>,
-                <><strong className="text-on-surface">Non-discrimination:</strong> We will not discriminate against you for exercising these rights.</>,
-              ]} />
+              <Ul>
+                <li><strong className="text-on-surface">Know:</strong> Request disclosure of the personal information we hold about you.</li>
+                <li><strong className="text-on-surface">Delete:</strong> Request deletion of your personal information.</li>
+                <li><strong className="text-on-surface">Opt out of sale:</strong> We do not sell your personal information — no action is required.</li>
+                <li><strong className="text-on-surface">Non-discrimination:</strong> We will not discriminate against you for exercising these rights.</li>
+              </Ul>
             </Sub>
             <P>
               To exercise any right, contact us at{' '}
@@ -284,7 +285,7 @@ export default function PrivacyPage() {
               </a>
               <br />
               Website:{' '}
-              <a href="https://syncpods.app" className="text-primary hover:underline">
+              <a href="https://syncpods.app" rel="noopener noreferrer" className="text-primary hover:underline">
                 https://syncpods.app
               </a>
             </P>
