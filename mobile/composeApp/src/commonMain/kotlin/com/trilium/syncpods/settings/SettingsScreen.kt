@@ -18,10 +18,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -30,7 +32,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -54,6 +58,8 @@ fun SettingsScreen(
     onNavigateToDevSettings: () -> Unit = {},
 ) {
     val state by feature.state.collectAsState()
+    val uriHandler = LocalUriHandler.current
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         feature.process(SettingsEvent.ScreenVisible)
     }
@@ -62,7 +68,8 @@ fun SettingsScreen(
         feature.effects.collect { effect ->
             when (effect) {
                 is SettingsEffect.NavigateToProfile -> onSignedOut()
-                is SettingsEffect.OpenDeleteAccountPage -> {}
+                is SettingsEffect.OpenDeleteAccountPage ->
+                    uriHandler.openUri("https://syncpods.app/settings")
             }
         }
     }
@@ -142,6 +149,9 @@ fun SettingsScreen(
                         onClick = { feature.process(SettingsEvent.SignOutTapped) },
                     )
                 }
+                item {
+                    DeleteAccountRow(onClick = { showDeleteConfirmDialog = true })
+                }
             }
             if (state.error != null) {
                 item {
@@ -187,6 +197,30 @@ fun SettingsScreen(
                 }
                 Spacer(Modifier.height(16.dp))
             }
+        }
+        if (showDeleteConfirmDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirmDialog = false },
+                title = { Text("Delete Account") },
+                text = {
+                    Text("This will permanently delete your account and all your data. You'll be taken to the website to complete the process.")
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showDeleteConfirmDialog = false
+                            feature.process(SettingsEvent.DeleteAccountTapped)
+                        },
+                    ) {
+                        Text("Continue", color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteConfirmDialog = false }) {
+                        Text("Cancel")
+                    }
+                },
+            )
         }
     }
 }
@@ -275,6 +309,30 @@ private fun SignOutRow(
         Spacer(Modifier.width(16.dp))
         Text(
             text = "Sign Out",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.error,
+        )
+    }
+}
+
+@Composable
+private fun DeleteAccountRow(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Default.Delete,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.error,
+            modifier = Modifier.size(22.dp),
+        )
+        Spacer(Modifier.width(16.dp))
+        Text(
+            text = "Delete Account",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.error,
         )
