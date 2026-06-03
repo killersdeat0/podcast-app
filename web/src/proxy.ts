@@ -23,6 +23,8 @@ const PUBLIC_PATHS = [
     '/api/podcasts/top',
     '/playlist',
     '/settings',
+    '/delete-account',
+    '/privacy',
 ]
 
 export async function proxy(request: NextRequest) {
