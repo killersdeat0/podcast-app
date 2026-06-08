@@ -70,6 +70,8 @@ fun SettingsScreen(
                 is SettingsEffect.NavigateToProfile -> onSignedOut()
                 is SettingsEffect.OpenDeleteAccountPage ->
                     uriHandler.openUri("https://syncpods.app/settings")
+                is SettingsEffect.OpenManageSubscription ->
+                    uriHandler.openUri("https://play.google.com/store/account/subscriptions?package=com.trilium.syncpods")
             }
         }
     }

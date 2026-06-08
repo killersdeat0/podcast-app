@@ -58,6 +58,7 @@ sealed class SettingsResult {
 sealed class SettingsEffect {
     data object NavigateToProfile : SettingsEffect()
     data object OpenDeleteAccountPage : SettingsEffect()
+    data object OpenManageSubscription : SettingsEffect()
 }
 
 // ── Feature ───────────────────────────────────────────────────────────────────
@@ -123,7 +124,9 @@ class SettingsFeature(
                 is SettingsAction.NavigateToNotifications -> flow {}
                 is SettingsAction.NavigateToPlaybackDefaults -> flow {}
                 is SettingsAction.NavigateToOPML -> flow {}
-                is SettingsAction.NavigateToManageSubscription -> flow {}
+                is SettingsAction.NavigateToManageSubscription -> flow {
+                    _effects.emit(SettingsEffect.OpenManageSubscription)
+                }
             }
         }
     }
