@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
@@ -158,9 +159,12 @@ class ProfileFeature(
     }
 
     override val actionToResult: Interactor<ProfileAction, ProfileResult> = { actions ->
-        actions.flatMapLatest { action ->
-            when (action) {
-                is ProfileAction.LoadProfile -> flow {
+        merge(
+            // LoadProfile and LoadProducts each get their own flatMapLatest so they don't cancel each other.
+            // Both are triggered simultaneously by ScreenVisible; a single flatMapLatest would cancel
+            // whichever arrived first before it could emit its terminal result, causing an infinite spinner.
+            actions.filterIsInstance<ProfileAction.LoadProfile>().flatMapLatest {
+                flow {
                     emit(ProfileResult.Loading)
                     try {
                         if (repository.isGuest()) {
@@ -181,28 +185,10 @@ class ProfileFeature(
                         emit(ProfileResult.LoadError(e.message ?: "Failed to load profile"))
                     }
                 }
+            },
 
-                is ProfileAction.NavigateToSignIn -> flow<ProfileResult> {
-                    _effects.emit(ProfileEffect.NavigateToSignIn)
-                }
-
-                is ProfileAction.NavigateToCreateAccount -> flow<ProfileResult> {
-                    _effects.emit(ProfileEffect.NavigateToCreateAccount)
-                }
-
-                is ProfileAction.NavigateToPodcast -> flow<ProfileResult> {
-                    _effects.emit(ProfileEffect.NavigateToPodcastDetail(action.feedUrl))
-                }
-
-                is ProfileAction.NavigateToViewAll -> flow<ProfileResult> {
-                    _effects.emit(ProfileEffect.NavigateToLibrary)
-                }
-
-                is ProfileAction.NavigateToSettings -> flow<ProfileResult> {
-                    _effects.emit(ProfileEffect.NavigateToSettings)
-                }
-
-                is ProfileAction.LoadProducts -> flow {
+            actions.filterIsInstance<ProfileAction.LoadProducts>().flatMapLatest {
+                flow {
                     try {
                         val products = billingRepository.getProducts()
                         emit(ProfileResult.ProductsLoaded(products))
@@ -210,8 +196,10 @@ class ProfileFeature(
                         emit(ProfileResult.ProductsLoaded(emptyList()))
                     }
                 }
+            },
 
-                is ProfileAction.PurchaseMonthly -> flow {
+            actions.filterIsInstance<ProfileAction.PurchaseMonthly>().flatMapLatest {
+                flow {
                     emit(ProfileResult.PurchaseStarted)
                     val result = billingRepository.purchase(MONTHLY_PRODUCT_ID)
                     when (result) {
@@ -226,8 +214,10 @@ class ProfileFeature(
                         }
                     }
                 }
+            },
 
-                is ProfileAction.PurchaseAnnual -> flow {
+            actions.filterIsInstance<ProfileAction.PurchaseAnnual>().flatMapLatest {
+                flow {
                     emit(ProfileResult.PurchaseStarted)
                     val result = billingRepository.purchase(ANNUAL_PRODUCT_ID)
                     when (result) {
@@ -242,8 +232,10 @@ class ProfileFeature(
                         }
                     }
                 }
+            },
 
-                is ProfileAction.RestorePurchases -> flow {
+            actions.filterIsInstance<ProfileAction.RestorePurchases>().flatMapLatest {
+                flow {
                     emit(ProfileResult.RestoreStarted)
                     val result = billingRepository.restorePurchases()
                     when (result) {
@@ -258,8 +250,28 @@ class ProfileFeature(
                         is RestoreResult.Error -> emit(ProfileResult.RestoreFailed(result.message))
                     }
                 }
-            }
-        }
+            },
+
+            actions.filterIsInstance<ProfileAction.NavigateToSignIn>().flatMapMerge {
+                flow { _effects.emit(ProfileEffect.NavigateToSignIn) }
+            },
+
+            actions.filterIsInstance<ProfileAction.NavigateToCreateAccount>().flatMapMerge {
+                flow { _effects.emit(ProfileEffect.NavigateToCreateAccount) }
+            },
+
+            actions.filterIsInstance<ProfileAction.NavigateToPodcast>().flatMapMerge { action ->
+                flow { _effects.emit(ProfileEffect.NavigateToPodcastDetail(action.feedUrl)) }
+            },
+
+            actions.filterIsInstance<ProfileAction.NavigateToViewAll>().flatMapMerge {
+                flow { _effects.emit(ProfileEffect.NavigateToLibrary) }
+            },
+
+            actions.filterIsInstance<ProfileAction.NavigateToSettings>().flatMapMerge {
+                flow { _effects.emit(ProfileEffect.NavigateToSettings) }
+            },
+        )
     }
 
     override suspend fun handleResult(
