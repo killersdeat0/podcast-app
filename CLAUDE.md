@@ -16,9 +16,11 @@ Schema lives in `supabase/migrations/`. Edge Functions live in `supabase/functio
 ```bash
 supabase db push            # apply pending migrations to remote DB
 
-# Edge Functions — deploy to BOTH projects every time:
-supabase functions deploy <function-name> --project-ref nuvadoybccdqipyhdhns  # dev
-supabase functions deploy <function-name> --project-ref dqqybduklxwxtcahqswh  # prod
+# Edge Functions — deploy to BOTH projects every time, always with --no-verify-jwt:
+supabase functions deploy <function-name> --project-ref nuvadoybccdqipyhdhns --no-verify-jwt  # dev
+supabase functions deploy <function-name> --project-ref dqqybduklxwxtcahqswh --no-verify-jwt  # prod
+# --no-verify-jwt is required: all functions call public external APIs (RSS/iTunes) and
+# Supabase's sb_publishable_* key format is not a valid JWT, so verify_jwt: true breaks them.
 ```
 
 ## Theming

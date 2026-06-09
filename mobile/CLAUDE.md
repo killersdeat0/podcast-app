@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 SyncPods is a **Kotlin Multiplatform (KMP)** app with **Compose Multiplatform** UI, sharing code between Android and iOS. Package: `com.trilium.syncpods`.
 
+## Supabase Edge Functions
+
+The mobile app calls the same Supabase Edge Functions as the web app (`podcasts-feed`, `podcasts-search`, `podcasts-trending`). All functions must be deployed with `--no-verify-jwt` — see root `CLAUDE.md` for the deploy commands. Omitting the flag sets `verify_jwt: true`, which causes 401s for all callers since `sb_publishable_*` keys are not valid JWTs.
+
 ## Build Commands
 
 ```bash
